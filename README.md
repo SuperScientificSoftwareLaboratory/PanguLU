@@ -52,7 +52,7 @@ You need to open the mc64 preprocessing option in pangulu_common.h:
 > **#define   PANGULU_MC64**
 
 ### Metis
-You will need the following two actions:    \
+You will need the following two actions:    
 1. You need to open the Metis compilation option in make.inc: 
 > **METISFLAGS  =  -lmetis**
 
