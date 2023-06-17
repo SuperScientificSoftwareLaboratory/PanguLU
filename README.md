@@ -53,13 +53,13 @@ You need to open the mc64 preprocessing option in pangulu_common.h:
 
 ### Metis
 You will need the following two actions:    \
-1.You need to open the Metis compilation option in make.inc: 
+1. You need to open the Metis compilation option in make.inc: 
 > **METISFLAGS  =  -lmetis**
 
-2.You need to open the Metis preprocessing option in pangulu_common.h: 
+2. You need to open the Metis preprocessing option in pangulu_common.h: 
 > **#define   METIS**
 
-note:METIS needs to be 64-bit.
+note: METIS needs to be 64-bit.
 
 ## Calculation Type
 PanguLU currently offer two types of accuracy.
