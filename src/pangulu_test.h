@@ -18,6 +18,7 @@ void pangulu_test(pangulu_common *common,
         int_32t P = common->P;
         int_32t Q = common->Q;
         int_32t NB = common->NB;
+        //printf("rank is %d pid is %d\n",rank,getpid());
         MPI_Barrier(MPI_COMM_WORLD);
         pangulu_time_start(common);
         common->N = pangulu_Bcast_N(origin_Smatrix->row, 0);
@@ -67,7 +68,6 @@ void pangulu_test(pangulu_common *common,
         block_common->rank_row_length = (block_common->block_length / P + (((block_common->block_length % P) > (rank / Q)) ? 1 : 0));
         block_common->rank_col_length = (block_common->block_length / Q + (((block_common->block_length % Q) > (rank % Q)) ? 1 : 0));
         block_common->every_level_length = PANGULU_MIN(block_common->every_level_length, block_common->block_length);
-
         MPI_Barrier(MPI_COMM_WORLD);
         pangulu_time_start(common);
 
@@ -77,14 +77,15 @@ void pangulu_test(pangulu_common *common,
                                 origin_Smatrix,
                                 reorder_matrix);
         }
-
+        
         MPI_Barrier(MPI_COMM_WORLD);
         pangulu_time_stop(common);
-
         if (rank == 0)
         {
                 printf("PanguLU the reorder time is %lf s\n", pangulu_get_spend_time(common));
         }
+
+        calculate_time = 0;
 
         int_t vector_length = N;
         pangulu_vector *X_vector = (pangulu_vector *)pangulu_malloc(sizeof(pangulu_vector));
@@ -115,7 +116,8 @@ void pangulu_test(pangulu_common *common,
 
         if (rank == 0)
         {
-                pangulu_symbolic(block_Smatrix,
+                pangulu_symbolic(block_common,
+                                 block_Smatrix,
                                  reorder_matrix);
         }
 
@@ -134,7 +136,7 @@ void pangulu_test(pangulu_common *common,
         pangulu_preprocess(block_common,
                            block_Smatrix,
                            reorder_matrix);
-
+        
 #ifdef PANGULU_SPTRSV
         pangulu_sptrsv_preprocess(block_common,
                                   block_Smatrix,
@@ -167,9 +169,24 @@ void pangulu_test(pangulu_common *common,
 
         MPI_Barrier(MPI_COMM_WORLD);
         pangulu_time_stop(common);
+
+        if(rank==0){
+                
+                int_t another_calculate_time=0;
+                for(int_t i=1;i<block_common->sum_rank_size;i++){
+                        pangulu_recv_vector_int(&another_calculate_time,1,i,0);
+                        calculate_time+=another_calculate_time;
+                }
+                //printf("rank %d calculate time %ld\n",rank,calculate_time*2);
+                FLOP=calculate_time*2;
+        }
+        else{
+                pangulu_send_vector_int(&calculate_time,1,0,0);
+        }
+
         if (rank == 0)
         {
-                printf("PanguLU the numerical time is %lf s %lf GFLOPs\n", pangulu_get_spend_time(common), FLOP / pangulu_get_spend_time(common) / 1000000000.0);
+                printf("PanguLU the numerical time is %lf s %lf GFLOPs\n",pangulu_get_spend_time(common),FLOP/pangulu_get_spend_time(common)/1000000000.0);
         }
 
 #ifdef PANGULU_SPTRSV
@@ -201,8 +218,8 @@ void pangulu_test(pangulu_common *common,
                 pangulu_reorder_vector_X_tran(block_Smatrix, answer_vector, X_vector);
                 pangulu_pangulu_Smatrix_multiple_pangulu_vector_CSR(origin_Smatrix, X_vector, answer_vector);
                 pangulu_check_answer_vec2norm(B_vector, answer_vector, N);
-                // pangulu_display_pangulu_vector(X_vector);
                 // pangulu_display_pangulu_vector(answer_vector);
+                // pangulu_display_pangulu_vector(X_vector);
         }
         MPI_Barrier(MPI_COMM_WORLD);
 
@@ -211,7 +228,9 @@ void pangulu_test(pangulu_common *common,
 
         // check numeric answer
         pangulu_check(block_common, block_Smatrix, reorder_matrix);
-        pangulu_destroy_part_pangulu_Smatrix(reorder_matrix);
+        if(rank==0){
+                pangulu_destroy_part_pangulu_Smatrix(reorder_matrix);
+        }
         MPI_Barrier(MPI_COMM_WORLD);
 
 #endif
@@ -227,6 +246,7 @@ void pangulu_test(pangulu_common *common,
         }
         free(block_Smatrix);
         block_Smatrix = NULL;
+
         return;
 }
 

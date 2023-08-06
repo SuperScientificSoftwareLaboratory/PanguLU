@@ -262,9 +262,9 @@ void pangulu_sflu_fp64_dense_row_purge(pangulu_Smatrix *A,
 
             TEMP_A_value[j * n + i] = scale;
 
-            double *temp_value = TEMP_A_value + j * n;
+            calculate_type *temp_value = TEMP_A_value + j * n;
 
-            double *x_value = TEMP_A_value + i * n;
+            calculate_type *x_value = TEMP_A_value + i * n;
 
             for (int k = getrf_diagIndex_csr[i] + 1; k < a_rowPointer[i + 1]; k++)
             {
@@ -558,9 +558,9 @@ void pangulu_sflu_fp64_dense(pangulu_Smatrix *A,
 
             TEMP_A_value[j * n + i] = scale;
 
-            double *temp_value = TEMP_A_value + j * n;
+            calculate_type *temp_value = TEMP_A_value + j * n;
 
-            double *x_value = TEMP_A_value + i * n;
+            calculate_type *x_value = TEMP_A_value + i * n;
 
             for (int k = getrf_diagIndex_csr[i] + 1; k < A->rowpointer[i + 1]; k++)
             {

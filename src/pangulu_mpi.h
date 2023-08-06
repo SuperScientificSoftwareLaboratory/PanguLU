@@ -29,6 +29,18 @@ void pangulu_Bcast_vector(int_t *vector, int_t length, int_t send_rank)
         }
     }
 }
+void pangulu_mpi_waitall(MPI_Request *Request, int num)
+{
+    MPI_Status Status;
+    for(int i = 0; i < num; i++)
+    {
+        MPI_Wait(&Request[i], &Status);
+    }
+}
+void pangulu_isend_vector_char_wait(char *A, int_t N, int_t send_id, int signal, MPI_Request* req)
+{
+    MPI_Isend(A, N, MPI_CHAR, send_id, signal, MPI_COMM_WORLD, req);
+}
 
 void pangulu_send_vector_int(int_t *A, int_t N, int_t send_id, int signal)
 {

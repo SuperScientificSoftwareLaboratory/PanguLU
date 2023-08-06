@@ -197,13 +197,13 @@ void pangulu_check(pangulu_block_common *block_common,
     pangulu_init_pangulu_vector(b4, vector_length);
     pangulu_multiply_upper_upper_U(block_common, block_Smatrix, b2, b3);
     pangulu_gather_pangulu_vector_to_rank_0(rank, b3, vector_length, sum_rank_size);
-
+    //pangulu_display_pangulu_vector(b3);
     pangulu_multiply_triggle_L(block_common, block_Smatrix, b3, b4);
     pangulu_gather_pangulu_vector_to_rank_0(rank, b4, vector_length, sum_rank_size);
     if (rank == 0)
     {
-        // pangulu_display_pangulu_vector(b1);
-        // pangulu_display_pangulu_vector(b4);
+        //pangulu_display_pangulu_vector(b1);
+        //pangulu_display_pangulu_vector(b4);
         pangulu_check_answer(b1, b4, N);
         pangulu_check_answer_vec2norm(b1, b4, N);
     }

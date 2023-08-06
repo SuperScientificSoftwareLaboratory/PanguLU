@@ -28,46 +28,14 @@ void pangulu_preprocess(pangulu_block_common *block_common,
     int_32t Q = block_common->Q;
     int_32t NB = block_common->NB;
 
-#ifdef SYMBOLIC
-    int_t *L_symbolic_rowptr = NULL;
-    int_32t *L_symbolic_colidx = NULL;
-    int_t *U_symbolic_rowptr = NULL;
-    int_32t *U_symbolic_colidx = NULL;
+    int_t *symbolic_rowpointer = NULL;
+    int_32t *symbolic_columnindex = NULL;
 
-#endif
 
     if (rank == 0)
     {
-#ifdef SYMBOLIC
-#ifdef symmetric
-        symbolic_sym_prune_get_U(block_Smatrix, N);
-#endif
-        L_symbolic_rowptr = block_Smatrix->L_rowpointer;
-        L_symbolic_colidx = block_Smatrix->L_columnindex;
-        U_symbolic_rowptr = block_Smatrix->U_rowpointer;
-        U_symbolic_colidx = block_Smatrix->U_columnindex;
-
-#endif
-        long long int calculate_sum = 0;
-        int_t *tmp_index = (int_t *)pangulu_malloc(sizeof(int_t) * (N + 5));
-        for (int_t i = 0; i < N; i++)
-        {
-            tmp_index[i] = 1;
-        }
-        for (int_t i = 0; i < N; i++)
-        {
-            for (int_t j = U_symbolic_rowptr[i]; j < U_symbolic_rowptr[i + 1]; j++)
-            {
-                tmp_index[U_symbolic_colidx[j]]++;
-            }
-        }
-        for (int_t i = 0; i < N; i++)
-        {
-            calculate_sum += (tmp_index[i] * (L_symbolic_rowptr[i + 1] - L_symbolic_rowptr[i]));
-        }
-        printf("Flop: %lld \n", calculate_sum * 2);
-        free(tmp_index);
-        FLOP = calculate_sum * 2;
+        symbolic_rowpointer = block_Smatrix->symbolic_rowpointer;
+        symbolic_columnindex = block_Smatrix->symbolic_columnindex;
     }
 
     int_32t block_length = block_common->block_length;
@@ -80,21 +48,35 @@ void pangulu_preprocess(pangulu_block_common *block_common,
     {
         save_send_rank_flag[i] = 0;
     }
-    int_t *block_Smatrix_nnzA_num = (int_t *)pangulu_malloc(sizeof(int_t) * block_length * block_length);
+    int_t *block_origin_nnzA_num = (int_t *)pangulu_malloc(sizeof(int_t) * block_length * block_length);
+        for (int_t i = 0; i < block_length * block_length; i++)
+    {
+        block_origin_nnzA_num[i] = 0;
+    }
+    
     int_t *grid_process_id = (int_t *)pangulu_malloc(sizeof(int_t) * P * Q);
-    int_t *block_Smatrix_non_zero_vector_L = (int_t *)pangulu_malloc(sizeof(int_t) * block_length);
-    int_t *block_Smatrix_non_zero_vector_U = (int_t *)pangulu_malloc(sizeof(int_t) * block_length);
-    int_t *save_block_Smatrix_columnpointer = NULL;
-    idx_int *save_block_Smatrix_rowindex = NULL;
-    calculate_type *save_value_csc = NULL;
-
+    
     char *save_flag_block_num = NULL;
-    int_t *save_block_Smatrix_csc_index = NULL;
     int_t *save_block_Smatrix_nnzA_num = NULL;
     int_t *every_rank_block_num = (int_t *)pangulu_malloc(sizeof(int_t) * sum_rank_size);
     int_t *every_rank_block_nnz = (int_t *)pangulu_malloc(sizeof(int_t) * sum_rank_size);
     int_t sum_send_num = 0;
 
+    int_t *block_Smatrix_nnzA_num = NULL;
+    int_t *block_Smatrix_non_zero_vector_L = NULL;
+    int_t *block_Smatrix_non_zero_vector_U = NULL;
+    
+    if(rank==0){
+        block_Smatrix_nnzA_num=block_Smatrix->block_Smatrix_nnzA_num;
+        block_Smatrix_non_zero_vector_L=block_Smatrix->block_Smatrix_non_zero_vector_L;
+        block_Smatrix_non_zero_vector_U=block_Smatrix->block_Smatrix_non_zero_vector_U;
+    }
+    else{
+        block_Smatrix_nnzA_num = (int_t *)pangulu_malloc(sizeof(int_t) * block_length * block_length);
+        block_Smatrix_non_zero_vector_L = (int_t *)pangulu_malloc(sizeof(int_t) * block_length);
+        block_Smatrix_non_zero_vector_U = (int_t *)pangulu_malloc(sizeof(int_t) * block_length);
+    }
+    
     if (rank == 0)
     {
 
@@ -120,91 +102,18 @@ void pangulu_preprocess(pangulu_block_common *block_common,
 
         save_block_Smatrix_nnzA_num = (int_t *)pangulu_malloc(sizeof(int_t) * block_length * block_length);
 
-        for (int_t i = 0; i < block_length; i++)
-        {
-            block_Smatrix_non_zero_vector_L[i] = 0;
-        }
-
-        for (int_t i = 0; i < block_length; i++)
-        {
-            block_Smatrix_non_zero_vector_U[i] = 0;
-        }
-
-        for (int_t i = 0; i < block_length * block_length; i++)
-        {
-            block_Smatrix_nnzA_num[i] = 0;
-        }
-
-#ifdef SYMBOLIC
-        // change begin
-        for (int_t i = 0; i < N; i++)
-        {
-            for (int_t j = L_symbolic_rowptr[i]; j < L_symbolic_rowptr[i + 1]; j++)
-            {
-                int_t block_row = i / NB;
-                int_t block_col = (L_symbolic_colidx[j]) / NB;
-                block_Smatrix_nnzA_num[block_row * block_length + block_col]++;
-                if (block_row == block_col)
-                {
-                    if (i >= L_symbolic_colidx[j])
-                    {
-                        block_Smatrix_non_zero_vector_L[block_row]++;
-                    }
-                    if (i <= L_symbolic_colidx[j])
-                    {
-                        block_Smatrix_non_zero_vector_U[block_col]++;
-                    }
-                }
-            }
-        }
-
-        for (int_t i = 0; i < N; i++)
-        {
-            for (int_t j = U_symbolic_rowptr[i]; j < U_symbolic_rowptr[i + 1]; j++)
-            {
-                int_t block_row = i / NB;
-                int_t block_col = (U_symbolic_colidx[j]) / NB;
-                block_Smatrix_nnzA_num[block_row * block_length + block_col]++;
-                if (block_row == block_col)
-                {
-                    if (i >= U_symbolic_colidx[j])
-                    {
-                        block_Smatrix_non_zero_vector_L[block_row]++;
-                    }
-                    if (i <= U_symbolic_colidx[j])
-                    {
-                        block_Smatrix_non_zero_vector_U[block_col]++;
-                    }
-                }
-            }
-        }
-
-        // change end
-#else
         for (int_t i = 0; i < N; i++)
         {
             for (int_t j = reorder_matrix->rowpointer[i]; j < reorder_matrix->rowpointer[i + 1]; j++)
             {
                 int_t block_row = i / NB;
                 int_t block_col = (reorder_matrix->columnindex[j]) / NB;
-                block_Smatrix_nnzA_num[block_row * block_length + block_col]++;
-                if (block_row == block_col)
-                {
-                    if (i >= reorder_matrix->columnindex[j])
-                    {
-                        block_Smatrix_non_zero_vector_L[block_row]++;
-                    }
-                    if (i <= reorder_matrix->columnindex[j])
-                    {
-                        block_Smatrix_non_zero_vector_U[block_col]++;
-                    }
-                }
+                block_origin_nnzA_num[block_row * block_length + block_col]++;
             }
         }
-#endif
+
         A_nnz_rowpointer_num = 0;
 
-        int_t grid_id = 0;
         for (int_t offset_block_row = 0; offset_block_row < P; offset_block_row++)
         {
             for (int_t offset_block_col = 0; offset_block_col < Q; offset_block_col++)
@@ -224,296 +133,7 @@ void pangulu_preprocess(pangulu_block_common *block_common,
                         }
                     }
                 }
-                grid_id++;
             }
-        }
-
-        int_t *L_sum_columnpointer = (int_t *)pangulu_malloc(sizeof(int_t) * (block_length + 1));
-        int_t *U_sum_rowpointer = (int_t *)pangulu_malloc(sizeof(int_t) * (block_length + 1));
-
-        for (int_t i = 0; i < block_length + 1; i++)
-        {
-            L_sum_columnpointer[i] = 0;
-        }
-        for (int_t i = 0; i < block_length + 1; i++)
-        {
-            U_sum_rowpointer[i] = 0;
-        }
-
-        for (int_t i = 0; i < block_length; i++)
-        {
-            for (int_t j = 0; j < block_length; j++)
-            {
-                if (block_Smatrix_nnzA_num[i * block_length + j] != 0)
-                {
-                    if (i >= j)
-                    {
-                        L_sum_columnpointer[j + 1]++;
-                    }
-                    if (i <= j)
-                    {
-                        U_sum_rowpointer[i + 1]++;
-                    }
-                }
-            }
-        }
-
-        for (int_t i = 0; i < block_length; i++)
-        {
-            L_sum_columnpointer[i + 1] += L_sum_columnpointer[i];
-        }
-        for (int_t i = 0; i < block_length; i++)
-        {
-            U_sum_rowpointer[i + 1] += U_sum_rowpointer[i];
-        }
-
-        int_t *L_sum_rowindex = (int_t *)pangulu_malloc(sizeof(int_t) * L_sum_columnpointer[block_length]);
-        int_t *U_sum_columnindex = (int_t *)pangulu_malloc(sizeof(int_t) * U_sum_rowpointer[block_length]);
-        for (int_t i = 0; i < block_length; i++)
-        {
-            for (int_t j = 0; j < block_length; j++)
-            {
-                if (block_Smatrix_nnzA_num[i * block_length + j] != 0)
-                {
-                    if (i >= j)
-                    {
-                        L_sum_rowindex[L_sum_columnpointer[j]++] = i;
-                    }
-                    if (i <= j)
-                    {
-                        U_sum_columnindex[U_sum_rowpointer[i]++] = j;
-                    }
-                }
-            }
-        }
-
-        for (int_t i = block_length; i > 0; i--)
-        {
-            L_sum_columnpointer[i] = L_sum_columnpointer[i - 1];
-        }
-        for (int_t i = block_length; i > 0; i--)
-        {
-            U_sum_rowpointer[i] = U_sum_rowpointer[i - 1];
-        }
-        L_sum_columnpointer[0] = 0;
-        U_sum_rowpointer[0] = 0;
-
-        save_block_Smatrix_csc_index = (int_t *)pangulu_malloc(sizeof(int_t) * (A_nnz_rowpointer_num + 1));
-        save_block_Smatrix_columnpointer = (int_t *)pangulu_malloc(sizeof(int_t) * (NB + 1) * A_nnz_rowpointer_num);
-#ifdef SYMBOLIC
-        save_block_Smatrix_rowindex = (idx_int *)pangulu_malloc(sizeof(idx_int) * (L_symbolic_rowptr[N] + U_symbolic_rowptr[N]));
-        save_value_csc = (calculate_type *)pangulu_malloc(sizeof(calculate_type) * (L_symbolic_rowptr[N] + U_symbolic_rowptr[N]));
-
-#else
-        // change end
-
-        save_block_Smatrix_rowindex = (idx_int *)pangulu_malloc(sizeof(idx_int) * reorder_matrix->rowpointer[N]);
-        save_value_csc = (calculate_type *)pangulu_malloc(sizeof(calculate_type) * reorder_matrix->rowpointer[N]);
-#endif
-
-        for (int_t i = 0; i < (A_nnz_rowpointer_num + 1); i++)
-        {
-            save_block_Smatrix_csc_index[i] = 0;
-        }
-        for (int_t i = 0; i < A_nnz_rowpointer_num * (NB + 1); i++)
-        {
-            save_block_Smatrix_columnpointer[i] = 0;
-        }
-
-#ifdef SYMBOLIC
-        // change begin
-        for (int_t i = 0; i < (L_symbolic_rowptr[N] + U_symbolic_rowptr[N]); i++)
-        {
-            save_block_Smatrix_rowindex[i] = 0;
-            save_value_csc[i] = 0.0;
-        }
-        // change end
-#else
-        for (int_t i = 0; i < reorder_matrix->rowpointer[N]; i++)
-        {
-            save_block_Smatrix_rowindex[i] = 0;
-            save_value_csc[i] = 0.0;
-        }
-#endif
-
-        A_nnz_rowpointer_num = 0;
-        for (int_t i = 0; i < block_length; i++)
-        {
-            for (int_t j = 0; j < block_length; j++)
-            {
-                int_t now_mapper_index = save_block_Smatrix_nnzA_num[i * block_length + j];
-                if (block_Smatrix_nnzA_num[i * block_length + j] != 0)
-                {
-                    save_block_Smatrix_csc_index[now_mapper_index + 1] = block_Smatrix_nnzA_num[i * block_length + j];
-                    A_nnz_rowpointer_num++;
-                }
-            }
-        }
-
-        for (int_t i = 0; i < A_nnz_rowpointer_num; i++)
-        {
-            save_block_Smatrix_csc_index[i + 1] += save_block_Smatrix_csc_index[i];
-        }
-
-#ifdef SYMBOLIC
-
-        // change begin
-        for (int_t i = 0; i < N; i++)
-        {
-            for (int_t j = L_symbolic_rowptr[i]; j < L_symbolic_rowptr[i + 1]; j++)
-            {
-                int_t block_row = i / NB;
-                int_t block_col = (L_symbolic_colidx[j]) / NB;
-                save_block_Smatrix_columnpointer[save_block_Smatrix_nnzA_num[block_row * block_length + block_col] * (NB + 1) + (L_symbolic_colidx[j]) % NB + 1]++;
-            }
-        }
-
-        for (int_t i = 0; i < N; i++)
-        {
-            for (int_t j = U_symbolic_rowptr[i]; j < U_symbolic_rowptr[i + 1]; j++)
-            {
-                int_t block_row = i / NB;
-                int_t block_col = (U_symbolic_colidx[j]) / NB;
-                save_block_Smatrix_columnpointer[save_block_Smatrix_nnzA_num[block_row * block_length + block_col] * (NB + 1) + (U_symbolic_colidx[j]) % NB + 1]++;
-            }
-        }
-        // change end
-
-#else
-        for (int_t i = 0; i < N; i++)
-        {
-            for (int_t j = reorder_matrix->rowpointer[i]; j < reorder_matrix->rowpointer[i + 1]; j++)
-            {
-                int_t block_row = i / NB;
-                int_t block_col = (reorder_matrix->columnindex[j]) / NB;
-                save_block_Smatrix_columnpointer[save_block_Smatrix_nnzA_num[block_row * block_length + block_col] * (NB + 1) + (reorder_matrix->columnindex[j]) % NB + 1]++;
-            }
-        }
-#endif
-        for (int_t i = 0; i < A_nnz_rowpointer_num; i++)
-        {
-            int_t *now_Smatrix = save_block_Smatrix_columnpointer + i * (NB + 1);
-            for (int_t j = 0; j < NB; j++)
-            {
-                now_Smatrix[j + 1] += now_Smatrix[j];
-            }
-        }
-#ifdef SYMBOLIC
-        // change begin
-
-        for (int_t i = 0; i < N; i++)
-        {
-            int_t now_symbolic_index = reorder_matrix->rowpointer[i];
-            int_t max_index = reorder_matrix->rowpointer[i + 1];
-            for (int_t j = U_symbolic_rowptr[i]; j < U_symbolic_rowptr[i + 1]; j++)
-            {
-                int_t block_row = i / NB;
-                int_t block_col = (U_symbolic_colidx[j]) / NB;
-                int_t now_mapper_index = save_block_Smatrix_nnzA_num[block_row * block_length + block_col];
-                int_t *now_columnpointer = save_block_Smatrix_columnpointer + now_mapper_index * (NB + 1);
-                idx_int *now_rowindex = save_block_Smatrix_rowindex + save_block_Smatrix_csc_index[now_mapper_index];
-                calculate_type *now_value_csc = save_value_csc + save_block_Smatrix_csc_index[now_mapper_index];
-                now_rowindex[now_columnpointer[(U_symbolic_colidx[j]) % NB]] = i % NB;
-                if (now_symbolic_index < max_index && U_symbolic_colidx[j] == reorder_matrix->columnindex[now_symbolic_index])
-                {
-                    now_value_csc[now_columnpointer[(U_symbolic_colidx[j]) % NB]] = reorder_matrix->value[now_symbolic_index];
-                    now_symbolic_index++;
-                }
-                else
-                {
-                    now_value_csc[now_columnpointer[(U_symbolic_colidx[j]) % NB]] = 0.0;
-                }
-                now_columnpointer[(U_symbolic_colidx[j]) % NB]++;
-            }
-            for (int_t j = L_symbolic_rowptr[i]; j < L_symbolic_rowptr[i + 1]; j++)
-            {
-                int_t block_row = i / NB;
-                int_t block_col = (L_symbolic_colidx[j]) / NB;
-                int_t now_mapper_index = save_block_Smatrix_nnzA_num[block_row * block_length + block_col];
-                int_t *now_columnpointer = save_block_Smatrix_columnpointer + now_mapper_index * (NB + 1);
-                idx_int *now_rowindex = save_block_Smatrix_rowindex + save_block_Smatrix_csc_index[now_mapper_index];
-                calculate_type *now_value_csc = save_value_csc + save_block_Smatrix_csc_index[now_mapper_index];
-                now_rowindex[now_columnpointer[(L_symbolic_colidx[j]) % NB]] = i % NB;
-                if (now_symbolic_index < max_index && L_symbolic_colidx[j] == reorder_matrix->columnindex[now_symbolic_index])
-                {
-                    now_value_csc[now_columnpointer[(L_symbolic_colidx[j]) % NB]] = reorder_matrix->value[now_symbolic_index];
-                    now_symbolic_index++;
-                }
-                else
-                {
-                    now_value_csc[now_columnpointer[(L_symbolic_colidx[j]) % NB]] = 0.0;
-                }
-                now_columnpointer[(L_symbolic_colidx[j]) % NB]++;
-            }
-            if (now_symbolic_index != reorder_matrix->rowpointer[i + 1])
-            {
-                printf("restore the matrix error %ld %ld\n", now_symbolic_index, reorder_matrix->rowpointer[i + 1]);
-                for (int_t j = U_symbolic_rowptr[i]; j < U_symbolic_rowptr[i + 1]; j++)
-                {
-                    printf("%d ", U_symbolic_colidx[j]);
-                }
-                printf("\n");
-                for (int_t j = L_symbolic_rowptr[i]; j < L_symbolic_rowptr[i + 1]; j++)
-                {
-                    printf("%d ", L_symbolic_colidx[j]);
-                }
-                printf("\n");
-                for (int_t j = reorder_matrix->rowpointer[i]; j < reorder_matrix->rowpointer[i + 1]; j++)
-                {
-                    printf("%d ", reorder_matrix->columnindex[j]);
-                }
-                printf("\n");
-            }
-        }
-
-        free(L_symbolic_rowptr);
-        free(L_symbolic_colidx);
-        free(U_symbolic_rowptr);
-        free(U_symbolic_colidx);
-
-        L_symbolic_rowptr = NULL;
-        L_symbolic_colidx = NULL;
-        U_symbolic_rowptr = NULL;
-        U_symbolic_colidx = NULL;
-
-        block_Smatrix->L_rowpointer = NULL;
-        block_Smatrix->L_columnindex = NULL;
-        block_Smatrix->U_rowpointer = NULL;
-        block_Smatrix->U_columnindex = NULL;
-
-        // change end
-#else
-
-        for (int_t i = 0; i < N; i++)
-        {
-            for (int_t j = reorder_matrix->rowpointer[i]; j < reorder_matrix->rowpointer[i + 1]; j++)
-            {
-                int_t block_row = i / NB;
-                int_t block_col = (reorder_matrix->columnindex[j]) / NB;
-                int_t now_mapper_index = save_block_Smatrix_nnzA_num[block_row * block_length + block_col];
-                int_t *now_columnpointer = save_block_Smatrix_columnpointer + now_mapper_index * (NB + 1);
-                idx_int *now_rowindex = save_block_Smatrix_rowindex + save_block_Smatrix_csc_index[now_mapper_index];
-                calculate_type *now_value_csc = save_value_csc + save_block_Smatrix_csc_index[now_mapper_index];
-                now_rowindex[now_columnpointer[(reorder_matrix->columnindex[j]) % NB]] = i % NB;
-                now_value_csc[now_columnpointer[(reorder_matrix->columnindex[j]) % NB]] = reorder_matrix->value[j];
-                now_columnpointer[(reorder_matrix->columnindex[j]) % NB]++;
-            }
-        }
-#endif
-
-#ifndef CHECK_LU
-        pangulu_destroy_part_pangulu_Smatrix(reorder_matrix);
-#endif
-
-        // return ;
-        for (int_t i = 0; i < A_nnz_rowpointer_num; i++)
-        {
-            int_t *now_columnpointer = save_block_Smatrix_columnpointer + i * (NB + 1);
-            for (int_t j = NB; j > 0; j--)
-            {
-                now_columnpointer[j] = now_columnpointer[j - 1];
-            }
-            now_columnpointer[0] = 0;
         }
 
         save_flag_block_num = (char *)pangulu_malloc(sizeof(char) * block_length * block_length * sum_rank_size);
@@ -524,19 +144,24 @@ void pangulu_preprocess(pangulu_block_common *block_common,
 
         for (int_t level = 0; level < block_length; level++)
         {
-            for (int_t L_num = L_sum_columnpointer[level]; L_num < L_sum_columnpointer[level + 1]; L_num++)
+            for (int_t L_row = level; L_row < block_length; L_row++)
             {
-                int_t L_row = L_sum_rowindex[L_num];
-                for (int_t U_num = U_sum_rowpointer[level]; U_num < U_sum_rowpointer[level + 1]; U_num++)
+                if (block_Smatrix_nnzA_num[L_row * block_length + level] == 0)
                 {
-                    int_t U_col = U_sum_columnindex[U_num];
+                    continue;
+                }
+                for (int_t U_col = level; U_col < block_length; U_col++)
+                {
+                    if (block_Smatrix_nnzA_num[level * block_length + U_col] == 0)
+                    {
+                        continue;
+                    }
                     int_t block_index = L_row * block_length + U_col;
                     if (block_Smatrix_nnzA_num[block_index] != 0)
                     {
                         int_t now_rank = grid_process_id[(L_row % P) * Q + (U_col % Q)];
                         int_t now_task_rank = level_task_rank_id[level * (P * Q) + now_rank];
                         save_flag_block_num[now_task_rank * block_length * block_length + block_index] = 1;
-                        // printf("block index %ld rank %ld\n",block_index,now_task_rank);
                     }
                 }
             }
@@ -578,7 +203,9 @@ void pangulu_preprocess(pangulu_block_common *block_common,
             sum_send_num += every_rank_block_nnz[i];
         }
     }
+
     pangulu_Bcast_vector(block_Smatrix_nnzA_num, block_length * block_length, 0);
+    pangulu_Bcast_vector(block_origin_nnzA_num, block_length * block_length, 0);
     pangulu_Bcast_vector(grid_process_id, P * Q, 0);
     pangulu_Bcast_vector(block_Smatrix_non_zero_vector_L, block_length, 0);
     pangulu_Bcast_vector(block_Smatrix_non_zero_vector_U, block_length, 0);
@@ -588,133 +215,6 @@ void pangulu_preprocess(pangulu_block_common *block_common,
 
     int_t sum_process_grid_num = every_rank_block_num[rank];
     int_t sum_process_grid_nnz = every_rank_block_nnz[rank];
-
-    char *max_tmp = NULL;
-    int_32t send_max_length = 100000000;
-    if (rank == 0)
-    {
-
-        int_t max_block_num = 0;
-        int_t max_nnz = 0;
-        for (int_t i = 0; i < sum_rank_size; i++)
-        {
-            max_block_num = PANGULU_MAX(max_block_num, every_rank_block_num[i]);
-        }
-        for (int_t i = 0; i < sum_rank_size; i++)
-        {
-            max_nnz = PANGULU_MAX(max_nnz, every_rank_block_nnz[i]);
-        }
-
-        max_tmp = (char *)pangulu_malloc(sizeof(int_t) * (max_block_num) * (NB + 1) + (sizeof(idx_int) + sizeof(calculate_type)) * max_nnz);
-
-        for (int_t i = 1; i < sum_rank_size; i++)
-        {
-            int_t now_offset = 0;
-            char *now_save_flag_block_num = save_flag_block_num + i * block_length * block_length;
-
-            for (int_t now_row = 0; now_row < block_length; now_row++)
-            {
-                for (int_t now_col = 0; now_col < block_length; now_col++)
-                {
-                    if (now_save_flag_block_num[now_row * block_length + now_col] == 1)
-                    {
-                        int_t now_mapper_index = save_block_Smatrix_nnzA_num[now_row * block_length + now_col];
-                        int_t *now_columnpointer = save_block_Smatrix_columnpointer + now_mapper_index * (NB + 1);
-                        idx_int *now_rowindex = save_block_Smatrix_rowindex + save_block_Smatrix_csc_index[now_mapper_index];
-                        calculate_type *now_value_csc = save_value_csc + save_block_Smatrix_csc_index[now_mapper_index];
-
-                        char *now_tmp = max_tmp + now_offset;
-                        int_t *save_send_columnpointer = (int_t *)(now_tmp);
-                        idx_int *save_send_rowindex = (idx_int *)(now_tmp + (NB + 1) * sizeof(int_t));
-                        calculate_type *save_send_value_csc = (calculate_type *)(now_tmp + (NB + 1) * sizeof(int_t) + now_columnpointer[NB] * sizeof(idx_int));
-
-                        for (int_t k = 0; k < (NB + 1); k++)
-                        {
-                            save_send_columnpointer[k] = now_columnpointer[k];
-                        }
-
-                        for (int_t k = 0; k < now_columnpointer[NB]; k++)
-                        {
-                            save_send_rowindex[k] = now_rowindex[k];
-                        }
-                        for (int_t k = 0; k < now_columnpointer[NB]; k++)
-                        {
-                            save_send_value_csc[k] = now_value_csc[k];
-                        }
-                        now_offset += ((NB + 1) * sizeof(int_t) + now_columnpointer[NB] * (sizeof(idx_int) + sizeof(calculate_type)));
-                    }
-                }
-            }
-            int_t send_length = every_rank_block_num[i] * (NB + 1) * sizeof(int_t) + every_rank_block_nnz[i] * (sizeof(calculate_type) + sizeof(idx_int));
-            for (int_t j = 0; j < (send_length + send_max_length - 1) / send_max_length; j++)
-            {
-                if ((send_length - j * send_max_length) >= send_max_length)
-                {
-                    pangulu_send_vector_char(max_tmp + j * send_max_length, send_max_length, i, i + sum_rank_size * j);
-                }
-                else
-                {
-                    pangulu_send_vector_char(max_tmp + j * send_max_length, (int_32t)(send_length - j * send_max_length), i, i + sum_rank_size * j);
-                }
-            }
-        }
-
-        int_t now_offset = 0;
-        for (int_t now_row = 0; now_row < block_length; now_row++)
-        {
-            for (int_t now_col = 0; now_col < block_length; now_col++)
-            {
-                if (save_flag_block_num[now_row * block_length + now_col] == 1)
-                {
-                    int_t now_mapper_index = save_block_Smatrix_nnzA_num[now_row * block_length + now_col];
-                    int_t *now_columnpointer = save_block_Smatrix_columnpointer + now_mapper_index * (NB + 1);
-                    idx_int *now_rowindex = save_block_Smatrix_rowindex + save_block_Smatrix_csc_index[now_mapper_index];
-                    calculate_type *now_value_csc = save_value_csc + save_block_Smatrix_csc_index[now_mapper_index];
-
-                    char *now_tmp = max_tmp + now_offset;
-                    int_t *save_send_columnpointer = (int_t *)(now_tmp);
-                    idx_int *save_send_rowindex = (idx_int *)(now_tmp + (NB + 1) * sizeof(int_t));
-                    calculate_type *save_send_value_csc = (calculate_type *)(now_tmp + (NB + 1) * sizeof(int_t) + now_columnpointer[NB] * sizeof(idx_int));
-
-                    for (int_t k = 0; k < (NB + 1); k++)
-                    {
-                        save_send_columnpointer[k] = now_columnpointer[k];
-                    }
-                    for (int_t k = 0; k < now_columnpointer[NB]; k++)
-                    {
-                        save_send_rowindex[k] = now_rowindex[k];
-                    }
-                    for (int_t k = 0; k < now_columnpointer[NB]; k++)
-                    {
-                        save_send_value_csc[k] = now_value_csc[k];
-                    }
-                    now_offset += ((NB + 1) * sizeof(int_t) + now_columnpointer[NB] * (sizeof(idx_int) + sizeof(calculate_type)));
-                }
-            }
-        }
-
-        free(save_block_Smatrix_columnpointer);
-        free(save_block_Smatrix_rowindex);
-        free(save_value_csc);
-        free(save_block_Smatrix_csc_index);
-        free(save_block_Smatrix_nnzA_num);
-    }
-    else
-    {
-        max_tmp = (char *)pangulu_malloc(sizeof(int_t) * (sum_process_grid_num) * (NB + 1) + (sizeof(idx_int) + sizeof(calculate_type)) * sum_process_grid_nnz);
-        int_t recv_length = sum_process_grid_num * (NB + 1) * sizeof(int_t) + sum_process_grid_nnz * (sizeof(idx_int) + sizeof(calculate_type));
-        for (int_t j = 0; j < (recv_length + send_max_length - 1) / send_max_length; j++)
-        {
-            if ((recv_length - j * send_max_length) >= send_max_length)
-            {
-                pangulu_recv_vector_char(max_tmp + j * send_max_length, send_max_length, 0, rank + sum_rank_size * j);
-            }
-            else
-            {
-                pangulu_recv_vector_char(max_tmp + j * send_max_length, (int_32t)(recv_length - j * send_max_length), 0, rank + sum_rank_size * j);
-            }
-        }
-    }
 
     if (rank == 0)
     {
@@ -727,19 +227,6 @@ void pangulu_preprocess(pangulu_block_common *block_common,
     {
         save_flag_block_num = (char *)pangulu_malloc(sizeof(char) * block_length * block_length);
         pangulu_recv_vector_char(save_flag_block_num, block_length * block_length, 0, rank);
-    }
-
-    if (rank == -1)
-    {
-        printf("save flag block num:\n");
-        for (int_t i = 0; i < block_length; i++)
-        {
-            for (int_t j = 0; j < block_length; j++)
-            {
-                printf("%d ", save_flag_block_num[i * block_length + j]);
-            }
-            printf("\n");
-        }
     }
     int_t *sum_flag_block_num = (int_t *)pangulu_malloc(sizeof(int_t) * block_length * block_length);
 
@@ -782,46 +269,588 @@ void pangulu_preprocess(pangulu_block_common *block_common,
     {
         real_matrix_flag[i] = 0;
     }
+
+    char *save_tmp = (char *)pangulu_malloc(sizeof(int_t) * (sum_process_grid_num) * (NB + 1) + (sizeof(idx_int) + sizeof(calculate_type)) * sum_process_grid_nnz);
+
+
     sum_process_grid_num = 0;
     sum_process_grid_nnz = 0;
-    for (int_t now_row = 0; now_row < block_length; now_row++)
+    int_t max_nnz = 0;
+    int_t preprocess_ompnum = 4;
+
+    if (rank == 0)
     {
-        for (int_t now_col = 0; now_col < block_length; now_col++)
+        int req = 0;
+        MPI_Request *Request = (MPI_Request *)pangulu_malloc(sizeof(MPI_Request) * block_length * preprocess_ompnum);
+        for (int_t i = 0; i < block_length * block_length; i++)
         {
-            if (save_flag_block_num[now_row * block_length + now_col] != 0)
+            max_nnz = PANGULU_MAX(max_nnz, block_Smatrix_nnzA_num[i]);
+        }
+        int_t max_origin_nnz = 0;
+        for (int_t i = 0; i < block_length * block_length; i++)
+        {
+            max_origin_nnz = PANGULU_MAX(max_origin_nnz, block_origin_nnzA_num[i]);
+        }
+
+        int_t block_max_length = (sizeof(idx_int) + sizeof(calculate_type)) * max_origin_nnz;
+        int_t tmp_length = PANGULU_MAX((unsigned int)block_max_length, (sizeof(idx_int)) * max_nnz);
+        char *max_tmp = (char *)pangulu_malloc((block_length * 2 - 1) * (sizeof(int_t) * (NB + 1) + tmp_length) * preprocess_ompnum);
+        
+        int_t **tmp_rowpinter_all = (int_t **)pangulu_malloc(sizeof(int_t *) * (2 * block_length - 1) * preprocess_ompnum);
+        idx_int **tmp_colindex_all = (idx_int **)pangulu_malloc(sizeof(idx_int *) * (2 * block_length - 1) * preprocess_ompnum);
+        int_t index_array = 0;
+        for (int_t i = 0; i < (2 * block_length - 1) * preprocess_ompnum; i++)
+        {
+            tmp_rowpinter_all[i] = (int_t *)(max_tmp + index_array);
+            tmp_colindex_all[i] = (idx_int *)(max_tmp + index_array + sizeof(int_t) * (NB + 1));
+            index_array += (sizeof(int_t) * (NB + 1) + (sizeof(idx_int)) * max_nnz);
+        }
+        for (int_t block_level = 0; block_level < block_length; block_level += preprocess_ompnum)
+        {
+            #pragma omp parallel num_threads(preprocess_ompnum)
             {
-                pangulu_Smatrix *tmp = (pangulu_Smatrix *)pangulu_malloc(sizeof(pangulu_Smatrix));
-                pangulu_init_pangulu_Smatrix(tmp);
+                int tid = omp_get_thread_num();
 
-                // new
-                int_t offset = sum_process_grid_num * (NB + 1) * sizeof(int_t) + sum_process_grid_nnz * (sizeof(idx_int) + sizeof(calculate_type));
-                int_t *now_columnpointer = (int_t *)(max_tmp + offset);
-                idx_int *now_rowindex = (idx_int *)(max_tmp + offset + (NB + 1) * sizeof(int_t));
-                calculate_type *now_value_csc = (calculate_type *)(max_tmp + offset + (NB + 1) * sizeof(int_t) + now_columnpointer[NB] * sizeof(idx_int));
+                int_t **tmp_rowpinter = tmp_rowpinter_all + (2 * block_length - 1) * tid;
+                idx_int **tmp_colindex = tmp_colindex_all + (2 * block_length - 1) * tid;
 
-                tmp->nnz = now_columnpointer[NB];
-                tmp->columnpointer = now_columnpointer;
-                tmp->rowindex = now_rowindex;
-                tmp->value_CSC = now_value_csc;
-                tmp->row = NB;
-                tmp->column = NB;
+                int_t now_level = tid + block_level;
 
-                sum_process_grid_nnz += now_columnpointer[NB];
-                mapper_A[now_row * block_length + now_col] = sum_process_grid_num;
-                Big_Smatrix_value[sum_process_grid_num] = tmp;
-
-                int_t now_rank = grid_process_id[(now_row % P) * Q + (now_col % Q)];
-                int_t flag = level_task_rank_id[(P * Q) * PANGULU_MIN(now_row, now_col) + now_rank];
-
-                if (flag == rank)
+                if (now_level < block_length)
                 {
-                    real_matrix_flag[sum_process_grid_num] = 1;
-                }
+                    int_t row_min = now_level * NB;
+                    int_t row_max = PANGULU_MIN(N, (now_level + 1) * NB);
+                    
+                    for (int_t i = 0; i < (2 * (block_length - now_level) - 1); i++)
+                    {
+                        int_t *now_tmp_rowpointer = tmp_rowpinter[i];
+                        memset(now_tmp_rowpointer, 0, sizeof(int_t) * (NB + 1));
+                    }
+                    for (int_t now_col = row_min; now_col < row_max; now_col++)
+                    {
+                        for (int_t j = symbolic_rowpointer[now_col]; j < symbolic_rowpointer[now_col + 1]; j++)
+                        {
 
-                sum_process_grid_num++;
+                            int_t now_row = symbolic_columnindex[j];
+
+                            int_t block_col = now_row / NB;
+
+                            // add L
+                            if (now_row == now_col)
+                            {
+                                // continue;
+                            }
+                            else if (now_row < row_max)
+                            {
+                                int_t *now_tmp_rowpointer = tmp_rowpinter[block_col - now_level];
+                                if (preprocess_ompnum == 1)
+                                    now_tmp_rowpointer[now_row % NB + 1]++;
+                                else
+                                {
+                                    now_tmp_rowpointer[now_row % NB + 1]++;
+                                }
+                            }
+                            else
+                            {
+                                int_t *now_tmp_rowpointer = tmp_rowpinter[block_col + block_length - 1 - 2 * now_level];
+                                if (preprocess_ompnum == 1)
+                                    now_tmp_rowpointer[now_row % NB + 1]++;
+                                else
+                                {
+                                    now_tmp_rowpointer[now_row % NB + 1]++;
+                                }
+                            }
+                        }
+                    }
+
+                    for (int_t now_row = row_min; now_row < row_max; now_row++)
+                    {
+                        for (int_t j = symbolic_rowpointer[now_row]; j < symbolic_rowpointer[now_row + 1]; j++)
+                        {
+                            int_t now_col = symbolic_columnindex[j];
+                            int_t block_row = now_col / NB;
+                            // add U
+                            int_t *now_tmp_rowpointer = tmp_rowpinter[block_row - now_level];
+                            now_tmp_rowpointer[now_row % NB + 1]++;
+                        }
+                    }
+
+                    for (int_t i = 0; i < (2 * (block_length - now_level) - 1); i++)
+                    {
+                        int_t *now_tmp_rowpointer = tmp_rowpinter[i];
+                        for (int_t j = 0; j < NB; j++)
+                        {
+                            now_tmp_rowpointer[j + 1] += now_tmp_rowpointer[j];
+                        }
+                    }
+                    for (int_t now_col = row_min; now_col < row_max; now_col++)
+                    {
+                        for (int_t j = symbolic_rowpointer[now_col]; j < symbolic_rowpointer[now_col + 1]; j++)
+                        {
+                            int_t now_row = symbolic_columnindex[j];
+                            int_t block_col = now_row / NB;
+                            // add L
+                            if (now_row == now_col)
+                            {
+                                // continue;
+                            }
+                            else if (now_row < row_max)
+                            {
+                                int_t *now_tmp_rowpointer = tmp_rowpinter[block_col - now_level];
+                                idx_int *now_tmp_columnindex = tmp_colindex[block_col - now_level];
+                                if (preprocess_ompnum == 1)
+                                    now_tmp_columnindex[now_tmp_rowpointer[now_row % NB]++] = now_col % NB;
+                                else
+                                {
+                                    int_t index;
+                                    index = now_tmp_rowpointer[now_row % NB]++;
+                                    now_tmp_columnindex[index] = now_col % NB;
+                                }
+                            }
+                            else
+                            {
+                                int_t *now_tmp_rowpointer = tmp_rowpinter[block_col + block_length - 1 - 2 * now_level];
+                                idx_int *now_tmp_columnindex = tmp_colindex[block_col + block_length - 1 - 2 * now_level];
+                                if (preprocess_ompnum == 1)
+                                    now_tmp_columnindex[now_tmp_rowpointer[now_row % NB]++] = now_col % NB;
+                                else
+                                {
+                                    int_t index;
+                                    index = now_tmp_rowpointer[now_row % NB]++;
+                                    now_tmp_columnindex[index] = now_col % NB;
+                                }
+                            }
+                        }
+                    }
+
+                    for (int_t now_row = row_min; now_row < row_max; now_row++)
+                    {
+                        for (int_t j = symbolic_rowpointer[now_row]; j < symbolic_rowpointer[now_row + 1]; j++)
+                        {
+                            int_t now_col = symbolic_columnindex[j];
+                            int_t block_row = now_col / NB;
+                            // add U
+                            int_t *now_tmp_rowpointer = tmp_rowpinter[block_row - now_level];
+                            idx_int *now_tmp_columnindex = tmp_colindex[block_row - now_level];
+                            now_tmp_columnindex[now_tmp_rowpointer[now_row % NB]++] = now_col % NB;
+                        }
+                    }
+                    for (int_t i = 0; i < (2 * (block_length - now_level) - 1); i++)
+                    {
+                        int_t *now_tmp_rowpointer = tmp_rowpinter[i];
+                        for (int_t j = NB; j > 0; j--)
+                        {
+                            now_tmp_rowpointer[j] = now_tmp_rowpointer[j - 1];
+                        }
+                        now_tmp_rowpointer[0] = 0;
+                    }
+                }
+            }
+            req = 0;
+            for (int_t now_level = block_level, k = 0; now_level < PANGULU_MIN(block_length, block_level + preprocess_ompnum); now_level++, k++)
+            {
+
+                int_t **tmp_rowpinter = tmp_rowpinter_all + (2 * block_length - 1) * k;
+                
+                for (int_t i = now_level; i < block_length; i++)
+                {
+                    int_t flag_index = now_level * block_length + i;
+                    int_t length = sizeof(int_t) * (NB + 1) + (sizeof(idx_int)) * block_Smatrix_nnzA_num[flag_index];
+                    int_t *now_tmp_rowpointer = tmp_rowpinter[i - now_level];
+                    for (int_t j = 1; j < sum_rank_size; j++)
+                    {
+                        flag_index += block_length * block_length;
+                        if (save_flag_block_num[flag_index] != 0)
+                        {
+                            pangulu_isend_vector_char_wait((char *)now_tmp_rowpointer, length, j, now_level * block_length + i, &Request[req++]);
+                        }
+                    }
+                }
+                
+                // send L
+                for (int_t i = now_level + 1; i < block_length; i++)
+                {
+                    int_t flag_index = i * block_length + now_level;
+                    int_t length = sizeof(int_t) * (NB + 1) + (sizeof(idx_int)) * block_Smatrix_nnzA_num[flag_index];
+                    int_t *now_tmp_rowpointer = tmp_rowpinter[i + block_length - 2 * now_level - 1];
+                    for (int_t j = 1; j < sum_rank_size; j++)
+                    {
+                        flag_index += block_length * block_length;
+                        if (save_flag_block_num[flag_index] != 0)
+                        {
+                            pangulu_isend_vector_char_wait((char *)now_tmp_rowpointer, length, j, i * block_length + now_level, &Request[req++]);
+                        }
+                    }
+                }
+                
+                
+            }
+            
+            for (int_t now_level = block_level, k = 0; now_level < PANGULU_MIN(block_length, block_level + preprocess_ompnum); now_level++, k++)
+            {
+                
+                int_t **tmp_rowpinter = tmp_rowpinter_all + (2 * block_length - 1) * k;
+                
+                for (int_t i = now_level; i < block_length; i++)
+                {
+                    int_t block_row = now_level;
+                    int_t block_col = i;
+                    int_t flag_index = now_level * block_length + i;
+                    int_t length = sizeof(int_t) * (NB + 1) + (sizeof(idx_int)) * block_Smatrix_nnzA_num[flag_index];
+                    int_t *now_tmp_rowpointer = tmp_rowpinter[i - now_level];
+
+                    if (save_flag_block_num[flag_index] != 0)
+                    {
+                        pangulu_Smatrix *tmp = (pangulu_Smatrix *)pangulu_malloc(sizeof(pangulu_Smatrix));
+                        pangulu_init_pangulu_Smatrix(tmp);
+
+                        // new
+                        int_t offset = sum_process_grid_num * (NB + 1) * sizeof(int_t) + sum_process_grid_nnz * (sizeof(idx_int) + sizeof(calculate_type));
+                        memcpy(save_tmp + offset, now_tmp_rowpointer, length);
+
+                        int_t *now_rowpinter = (int_t *)(save_tmp + offset);
+                        idx_int *now_colindex = (idx_int *)(save_tmp + offset + (NB + 1) * sizeof(int_t));
+                        calculate_type *now_value = (calculate_type *)(save_tmp + offset + (NB + 1) * sizeof(int_t) + now_rowpinter[NB] * sizeof(idx_int));
+                        memset(now_value,now_rowpinter[NB]* sizeof(calculate_type),0.0);
+                        // pangulu_sort_pangulu_matrix(NB,now_rowpinter,now_colindex);
+
+                        tmp->nnz = now_rowpinter[NB];
+                        tmp->rowpointer = now_rowpinter;
+                        tmp->columnindex = now_colindex;
+                        tmp->value = now_value;
+                        tmp->row = NB;
+                        tmp->column = NB;
+
+                        sum_process_grid_nnz += now_rowpinter[NB];
+
+                        mapper_A[block_row * block_length + block_col] = sum_process_grid_num;
+                        Big_Smatrix_value[sum_process_grid_num] = tmp;
+
+                        int_t now_rank = grid_process_id[(block_row % P) * Q + (block_col % Q)];
+                        int_t flag = level_task_rank_id[(P * Q) * PANGULU_MIN(block_row, block_col) + now_rank];
+
+                        if (flag == rank)
+                        {
+                            real_matrix_flag[sum_process_grid_num] = 1;
+                        }
+                        sum_process_grid_num++;
+                    }
+                }
+                // get L
+                for (int_t i = now_level + 1; i < block_length; i++)
+                {
+                    int_t block_row = i;
+                    int_t block_col = now_level;
+                    int_t flag_index = i * block_length + now_level;
+                    int_t length = sizeof(int_t) * (NB + 1) + (sizeof(idx_int)) * block_Smatrix_nnzA_num[flag_index];
+                    int_t *now_tmp_rowpointer = tmp_rowpinter[i + block_length - 2 * now_level - 1];
+
+                    if (save_flag_block_num[flag_index] != 0)
+                    {
+                        pangulu_Smatrix *tmp = (pangulu_Smatrix *)pangulu_malloc(sizeof(pangulu_Smatrix));
+                        pangulu_init_pangulu_Smatrix(tmp);
+
+                        // new
+                        int_t offset = sum_process_grid_num * (NB + 1) * sizeof(int_t) + sum_process_grid_nnz * (sizeof(idx_int) + sizeof(calculate_type));
+                        memcpy(save_tmp + offset, now_tmp_rowpointer, length);
+
+                        int_t *now_rowpinter = (int_t *)(save_tmp + offset);
+                        idx_int *now_colindex = (idx_int *)(save_tmp + offset + (NB + 1) * sizeof(int_t));
+                        calculate_type *now_value = (calculate_type *)(save_tmp + offset + (NB + 1) * sizeof(int_t) + now_rowpinter[NB] * sizeof(idx_int));
+                        memset(now_value,now_rowpinter[NB]* sizeof(calculate_type),0.0);
+                        
+                        // pangulu_sort_pangulu_matrix(NB,now_rowpinter,now_colindex);
+
+                        tmp->nnz = now_rowpinter[NB];
+                        tmp->rowpointer = now_rowpinter;
+                        tmp->columnindex = now_colindex;
+                        tmp->value = now_value;
+                        tmp->row = NB;
+                        tmp->column = NB;
+
+                        sum_process_grid_nnz += now_rowpinter[NB];
+
+                        mapper_A[block_row * block_length + block_col] = sum_process_grid_num;
+                        Big_Smatrix_value[sum_process_grid_num] = tmp;
+
+                        int_t now_rank = grid_process_id[(block_row % P) * Q + (block_col % Q)];
+                        int_t flag = level_task_rank_id[(P * Q) * PANGULU_MIN(block_row, block_col) + now_rank];
+
+                        if (flag == rank)
+                        {
+                            real_matrix_flag[sum_process_grid_num] = 1;
+                        }
+                        sum_process_grid_num++;
+                    }
+                }
+            }
+            pangulu_mpi_waitall(Request, req);
+            
+        }
+        for (int_t block_row = 0; block_row < block_length; block_row++)
+        {
+            for (int_t block_col = 0; block_col < block_length; block_col++)
+            {
+                if (block_origin_nnzA_num[block_row * block_length + block_col] != 0)
+                {
+                    if (save_flag_block_num[block_row * block_length + block_col] != 0 && block_origin_nnzA_num[block_row * block_length + block_col] != 0)
+                    {
+
+                        int_t index = mapper_A[block_row * block_length + block_col];
+                        pangulu_Smatrix *tmp = Big_Smatrix_value[index];
+                        pangulu_sort_pangulu_matrix(NB, tmp->rowpointer, tmp->columnindex);
+                    }
+                }
             }
         }
+        int_t *save_rowpointer = (int_t *)max_tmp;
+        idx_int *save_colindex = (idx_int *)(max_tmp + sizeof(int_t) * (NB + 1));
+        calculate_type *tmp_value = NULL;
+        int_t *save_index = (int_t *)pangulu_malloc(sizeof(int_t) * N);
+        for (int_t i = 0; i < N; i++)
+        {
+            save_index[i] = reorder_matrix->rowpointer[i];
+        }
+        for (int_t block_row = 0; block_row < block_length; block_row++)
+        {
+            for (int_t block_col = 0; block_col < block_length; block_col++)
+            {
+                if (block_origin_nnzA_num[block_row * block_length + block_col] != 0)
+                {
+                    tmp_value = (calculate_type *)(max_tmp + sizeof(int_t) * (NB + 1) + sizeof(idx_int) * block_origin_nnzA_num[block_row * block_length + block_col]);
+                    int_t index_row_min = block_row * NB;
+                    int_t index_row_max = PANGULU_MIN((block_row + 1) * NB, N);
+                    int_t index_col_max = PANGULU_MIN((block_col + 1) * NB, N);
+                    memset(max_tmp, 0, sizeof(int_t) * (NB + 1));
+
+                    for (int_t index_row = index_row_min, i = 0; index_row < index_row_max; index_row++, i++)
+                    {
+                        int_t now_index = save_rowpointer[i];
+                        int_t index_begin = save_index[index_row];
+                        int_t col = reorder_matrix->columnindex[index_begin];
+                        while ((col < index_col_max) && (index_begin < reorder_matrix->rowpointer[index_row + 1]))
+                        {
+                            tmp_value[now_index] = reorder_matrix->value[index_begin];
+                            save_colindex[now_index++] = col % NB;
+
+                            index_begin++;
+                            col = reorder_matrix->columnindex[index_begin];
+                        }
+                        save_index[index_row] = index_begin;
+                        save_rowpointer[i + 1] = now_index;
+                    }
+
+                    for (int_t i = index_row_max - block_row * NB; i < NB; i++)
+                    {
+                        save_rowpointer[i + 1] = save_rowpointer[i];
+                    }
+
+                    int_t length = sizeof(int_t) * (NB + 1) + (sizeof(idx_int) + sizeof(calculate_type)) * block_origin_nnzA_num[block_row * block_length + block_col];
+                    int_t flag_index = block_row * block_length + block_col;
+                    for (int_t i = 1; i < sum_rank_size; i++)
+                    {
+                        flag_index += block_length * block_length;
+                        if (save_flag_block_num[flag_index] != 0 && block_origin_nnzA_num[block_row * block_length + block_col] != 0)
+                        {
+                            pangulu_send_vector_char(max_tmp, length, i, block_row * block_length + block_col);
+                        }
+                    }
+                    if (save_flag_block_num[block_row * block_length + block_col] != 0 && block_origin_nnzA_num[block_row * block_length + block_col] != 0)
+                    {
+                        int_t index = mapper_A[block_row * block_length + block_col];
+                        pangulu_Smatrix *tmp = Big_Smatrix_value[index];
+                        for (int_t i = 0; i < NB; i++)
+                        {
+                            for (int_t j = tmp->rowpointer[i], k = save_rowpointer[i]; (j < tmp->rowpointer[i + 1]) && k < save_rowpointer[i + 1]; j++)
+                            {
+                                if (tmp->columnindex[j] == save_colindex[k])
+                                {
+                                    tmp->value[j] = tmp_value[k];
+                                    k++;
+                                }
+                                else
+                                {
+                                    tmp->value[j] = 0.0;
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        }
+        free(tmp_rowpinter_all);
+        free(tmp_colindex_all);
+        free(Request);
+        free(save_index);
+        free(max_tmp);
+        free(symbolic_rowpointer);
+        free(symbolic_columnindex);
+        block_Smatrix->symbolic_rowpointer=symbolic_rowpointer=NULL;
+        block_Smatrix->symbolic_columnindex=symbolic_columnindex=NULL;
     }
+    else
+    {
+
+        for (int_t now_level = 0; now_level < block_length; now_level++)
+        {
+            for (int_t i = now_level; i < block_length; i++)
+            {
+                int_t block_row = now_level;
+                int_t block_col = i;
+                int_t flag_index = now_level * block_length + i;
+                int_t length = sizeof(int_t) * (NB + 1) + (sizeof(idx_int)) * block_Smatrix_nnzA_num[flag_index];
+
+                if (save_flag_block_num[flag_index] != 0)
+                {
+
+                    int_t offset = sum_process_grid_num * (NB + 1) * sizeof(int_t) + sum_process_grid_nnz * (sizeof(idx_int) + sizeof(calculate_type));
+
+                    pangulu_recv_vector_char(save_tmp + offset, length, 0, block_row * block_length + block_col);
+
+                    pangulu_Smatrix *tmp = (pangulu_Smatrix *)pangulu_malloc(sizeof(pangulu_Smatrix));
+                    pangulu_init_pangulu_Smatrix(tmp);
+
+                    int_t *now_rowpinter = (int_t *)(save_tmp + offset);
+                    idx_int *now_colindex = (idx_int *)(save_tmp + offset + (NB + 1) * sizeof(int_t));
+                    calculate_type *now_value = (calculate_type *)(save_tmp + offset + (NB + 1) * sizeof(int_t) + now_rowpinter[NB] * sizeof(idx_int));
+                    memset(now_value,now_rowpinter[NB]* sizeof(calculate_type),0.0);
+                        
+                    tmp->nnz = now_rowpinter[NB];
+                    tmp->rowpointer = now_rowpinter;
+                    tmp->columnindex = now_colindex;
+                    tmp->value = now_value;
+                    tmp->row = NB;
+                    tmp->column = NB;
+
+                    sum_process_grid_nnz += now_rowpinter[NB];
+
+                    mapper_A[block_row * block_length + block_col] = sum_process_grid_num;
+                    Big_Smatrix_value[sum_process_grid_num] = tmp;
+
+                    int_t now_rank = grid_process_id[(block_row % P) * Q + (block_col % Q)];
+                    int_t flag = level_task_rank_id[(P * Q) * PANGULU_MIN(block_row, block_col) + now_rank];
+
+                    if (flag == rank)
+                    {
+                        real_matrix_flag[sum_process_grid_num] = 1;
+                    }
+                    sum_process_grid_num++;
+                }
+            }
+            // get L
+            for (int_t i = now_level + 1; i < block_length; i++)
+            {
+                int_t block_row = i;
+                int_t block_col = now_level;
+                int_t flag_index = i * block_length + now_level;
+                int_t length = sizeof(int_t) * (NB + 1) + (sizeof(idx_int)) * block_Smatrix_nnzA_num[flag_index];
+
+                if (save_flag_block_num[flag_index] != 0)
+                {
+                    int_t offset = sum_process_grid_num * (NB + 1) * sizeof(int_t) + sum_process_grid_nnz * (sizeof(idx_int) + sizeof(calculate_type));
+
+                    pangulu_recv_vector_char(save_tmp + offset, length, 0, block_row * block_length + block_col);
+
+                    pangulu_Smatrix *tmp = (pangulu_Smatrix *)pangulu_malloc(sizeof(pangulu_Smatrix));
+                    pangulu_init_pangulu_Smatrix(tmp);
+
+                    // new
+
+                    int_t *now_rowpinter = (int_t *)(save_tmp + offset);
+                    idx_int *now_colindex = (idx_int *)(save_tmp + offset + (NB + 1) * sizeof(int_t));
+                    calculate_type *now_value = (calculate_type *)(save_tmp + offset + (NB + 1) * sizeof(int_t) + now_rowpinter[NB] * sizeof(idx_int));
+                    memset(now_value,now_rowpinter[NB]* sizeof(calculate_type),0.0);
+                        
+                    // pangulu_sort_pangulu_matrix(NB,now_rowpinter,now_colindex);
+
+                    tmp->nnz = now_rowpinter[NB];
+                    tmp->rowpointer = now_rowpinter;
+                    tmp->columnindex = now_colindex;
+                    tmp->value = now_value;
+                    tmp->row = NB;
+                    tmp->column = NB;
+
+                    sum_process_grid_nnz += now_rowpinter[NB];
+
+                    mapper_A[block_row * block_length + block_col] = sum_process_grid_num;
+                    Big_Smatrix_value[sum_process_grid_num] = tmp;
+
+                    int_t now_rank = grid_process_id[(block_row % P) * Q + (block_col % Q)];
+                    int_t flag = level_task_rank_id[(P * Q) * PANGULU_MIN(block_row, block_col) + now_rank];
+
+                    if (flag == rank)
+                    {
+                        real_matrix_flag[sum_process_grid_num] = 1;
+                    }
+                    sum_process_grid_num++;
+                }
+            }
+        }
+
+        for (int_t block_row = 0; block_row < block_length; block_row++)
+        {
+            for (int_t block_col = 0; block_col < block_length; block_col++)
+            {
+                if (block_origin_nnzA_num[block_row * block_length + block_col] != 0)
+                {
+                    if (save_flag_block_num[block_row * block_length + block_col] != 0 && block_origin_nnzA_num[block_row * block_length + block_col] != 0)
+                    {
+                        int_t index = mapper_A[block_row * block_length + block_col];
+                        pangulu_Smatrix *tmp = Big_Smatrix_value[index];
+                        pangulu_sort_pangulu_matrix(NB, tmp->rowpointer, tmp->columnindex);
+                    }
+                }
+            }
+        }
+
+        for (int_t i = 0; i < block_length * block_length; i++)
+        {
+            max_nnz = PANGULU_MAX(max_nnz, block_Smatrix_nnzA_num[i]);
+        }
+        int_t max_origin_nnz = 0;
+        for (int_t i = 0; i < block_length * block_length; i++)
+        {
+            max_origin_nnz = PANGULU_MAX(max_origin_nnz, block_origin_nnzA_num[i]);
+        }
+        int_t tmp_length = PANGULU_MAX((sizeof(idx_int) + sizeof(calculate_type)) * max_origin_nnz, (sizeof(idx_int)) * max_nnz);
+        char *max_tmp = (char *)pangulu_malloc(sizeof(int_t) * (NB + 1) + tmp_length);
+
+        int_t *tmp_rowpinter = (int_t *)max_tmp;
+        idx_int *tmp_colindex = (idx_int *)(max_tmp + sizeof(int_t) * (NB + 1));
+        calculate_type *tmp_value = NULL;
+        for (int_t block_row = 0; block_row < block_length; block_row++)
+        {
+            for (int_t block_col = 0; block_col < block_length; block_col++)
+            {
+                if (save_flag_block_num[block_row * block_length + block_col] != 0 && block_origin_nnzA_num[block_row * block_length + block_col] != 0)
+                {
+                    tmp_value = (calculate_type *)(max_tmp + sizeof(int_t) * (NB + 1) + sizeof(idx_int) * block_origin_nnzA_num[block_row * block_length + block_col]);
+                    int_t length = sizeof(int_t) * (NB + 1) + (sizeof(idx_int) + sizeof(calculate_type)) * block_origin_nnzA_num[block_row * block_length + block_col];
+                    pangulu_recv_vector_char(max_tmp, length, 0, block_row * block_length + block_col);
+
+                    int_t index = mapper_A[block_row * block_length + block_col];
+                    pangulu_Smatrix *tmp = Big_Smatrix_value[index];
+                    for (int_t i = 0; i < NB; i++)
+                    {
+                        for (int_t j = tmp->rowpointer[i], k = tmp_rowpinter[i]; (j < tmp->rowpointer[i + 1]) && k < tmp_rowpinter[i + 1]; j++)
+                        {
+                            if (tmp->columnindex[j] == tmp_colindex[k])
+                            {
+                                tmp->value[j] = tmp_value[k];
+                                k++;
+                            }
+                            else
+                            {
+                                tmp->value[j] = 0.0;
+                            }
+                        }
+                    }
+                }
+            }
+        }
+        free(max_tmp);
+    }
+
 
     free(save_flag_block_num);
 
@@ -854,21 +883,6 @@ void pangulu_preprocess(pangulu_block_common *block_common,
                 else
                 {
                     pangulu_memcpy_zero_pangulu_Smatrix_CSC_value(Big_Smatrix_value[now_mapperA_offset]);
-                }
-            }
-        }
-    }
-
-    if (rank == -1)
-    {
-        for (int_t i = 0; i < block_length; i++)
-        {
-            for (int_t j = 0; j < block_length; j++)
-            {
-                int_t index = mapper_A[i * block_length + j];
-                if (index != -1)
-                {
-                    pangulu_display_pangulu_Smatrix_CSC(Big_Smatrix_value[index]);
                 }
             }
         }
@@ -912,18 +926,7 @@ void pangulu_preprocess(pangulu_block_common *block_common,
         }
     }
 
-    if (rank == -1)
-    {
-        printf("tmp save block num:\n");
-        for (int_t i = 0; i < block_length; i++)
-        {
-            for (int_t j = 0; j < block_length; j++)
-            {
-                printf("%ld ", tmp_save_block_num[i * block_length + j]);
-            }
-            printf("\n");
-        }
-    }
+
 
     int_t *U_rowpointer = (int_t *)pangulu_malloc(sizeof(int_t) * (block_length + 1));
     int_t *L_columnpointer = (int_t *)pangulu_malloc(sizeof(int_t) * (block_length + 1));
@@ -1112,7 +1115,7 @@ void pangulu_preprocess(pangulu_block_common *block_common,
     int_t *MAX_level_nnzL = (int_t *)pangulu_malloc(sizeof(int_t) * L_Smatrix_nzz * every_level_length);
     int_t *MAX_level_nnzU = (int_t *)pangulu_malloc(sizeof(int_t) * U_Smatrix_nzz * every_level_length);
 
-    char *flag_save_L = (char *)pangulu_malloc(sizeof(char) * L_Smatrix_nzz * every_level_length);
+    char *flag_save_L = (char *)pangulu_malloc(sizeof(char) * (L_Smatrix_nzz + U_Smatrix_nzz) * every_level_length);
     char *flag_save_U = (char *)pangulu_malloc(sizeof(char) * U_Smatrix_nzz * every_level_length);
 
     block_Smatrix->flag_save_L = flag_save_L;
@@ -1222,9 +1225,10 @@ void pangulu_preprocess(pangulu_block_common *block_common,
     free(MAX_level_nnzU);
 
     int_t MAX_all_nnzX = 0;
+    
     for (int_t i = 0; i < sum_process_grid_num; i++)
     {
-        pangulu_Smatrix_add_more_memory_CSR(Big_Smatrix_value[i]);
+        pangulu_Smatrix_add_more_memory(Big_Smatrix_value[i]);
 #ifdef GPU_OPEN
         pangulu_Smatrix_add_CUDA_memory(Big_Smatrix_value[i]);
         pangulu_Smatrix_CUDA_memcpy_A(Big_Smatrix_value[i]);
@@ -1233,7 +1237,7 @@ void pangulu_preprocess(pangulu_block_common *block_common,
 
         MAX_all_nnzX = PANGULU_MAX(MAX_all_nnzX, Big_Smatrix_value[i]->nnz);
     }
-
+    
 #ifndef GPU_OPEN
 
     int_t *work_space = (int_t *)malloc(sizeof(int_t) * (4 * NB + 8));
@@ -1281,7 +1285,7 @@ void pangulu_preprocess(pangulu_block_common *block_common,
 
     pangulu_malloc_pangulu_Smatrix_value_CSR(calculate_X, MAX_all_nnzX);
     pangulu_malloc_pangulu_Smatrix_value_CSC(calculate_X, MAX_all_nnzX);
-
+    
     int_t diagonal_nnz = 0;
     int_t *mapper_diagonal_Smatrix = (int_t *)pangulu_malloc(sizeof(int_t) * block_length);
 
@@ -1303,7 +1307,7 @@ void pangulu_preprocess(pangulu_block_common *block_common,
 
     char *flag_dignon_L = (char *)pangulu_malloc(sizeof(char) * diagonal_nnz);
     char *flag_dignon_U = (char *)pangulu_malloc(sizeof(char) * diagonal_nnz);
-
+    
     for (int_t i = 0; i < diagonal_nnz; i++)
     {
         flag_dignon_L[i] = 0;
@@ -1399,7 +1403,7 @@ void pangulu_preprocess(pangulu_block_common *block_common,
             }
         }
     }
-
+    
     free(tmp_save_block_num);
 
     int_t *task_flag_id = (int_t *)pangulu_malloc(sizeof(int_t) * block_length * block_length);
@@ -1886,7 +1890,7 @@ void pangulu_preprocess(pangulu_block_common *block_common,
     pangulu_cuda_malloc((void **)&CUDA_TEMP_value, NB * NB * sizeof(calculate_type));
     pangulu_cuda_malloc((void **)&CUDA_B_idx_COL, NB * NB * sizeof(idx_int));
 #endif
-
+            
     block_Smatrix->mapper_Big_pangulu_Smatrix = mapper_A;
     block_Smatrix->block_Smatrix_nnzA_num = block_Smatrix_nnzA_num;
     block_Smatrix->block_Smatrix_non_zero_vector_L = block_Smatrix_non_zero_vector_L;
@@ -1934,7 +1938,7 @@ void pangulu_preprocess(pangulu_block_common *block_common,
     block_Smatrix->real_matrix_flag = real_matrix_flag;
     block_Smatrix->sum_flag_block_num = sum_flag_block_num;
     block_Smatrix->receive_level_num = receive_level_num;
-    block_Smatrix->max_tmp = max_tmp;
+    block_Smatrix->save_tmp = save_tmp;
 
     block_Smatrix->level_index = level_index;
     block_Smatrix->level_index_reverse = level_index_reverse;
@@ -1942,7 +1946,7 @@ void pangulu_preprocess(pangulu_block_common *block_common,
     block_Smatrix->mapper_mpi = mapper_mpi;
     block_Smatrix->mapper_mpi_reverse = mapper_mpi_reverse;
     block_Smatrix->mpi_level_num = mpi_level_num;
-
+    
 #ifdef OVERLAP
 
     block_Smatrix->run_bsem1 = (bsem *)pangulu_malloc(sizeof(bsem));

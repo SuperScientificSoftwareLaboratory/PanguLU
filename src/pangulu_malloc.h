@@ -172,7 +172,7 @@ void pangulu_Smatrix_add_more_memory(pangulu_Smatrix *A)
     int_t *rowpointer = (int_t *)now_malloc_space;
     idx_int *columnindex = (idx_int *)(now_malloc_space + sizeof(int_t) * (n + 1));
     calculate_type *value = (calculate_type *)(now_malloc_space + sizeof(int_t) * (n + 1) + sizeof(idx_int) * nnzA);
-    int_t *CSR_to_CSC_index = (int_t *)pangulu_malloc(sizeof(int_t) * nnzA);
+    int_t *CSC_to_CSR_index = (int_t *)pangulu_malloc(sizeof(int_t) * nnzA);
     for (int_t i = 0; i < nnzA; i++)
     {
         value[i] = (calculate_type)0.0;
@@ -204,7 +204,7 @@ void pangulu_Smatrix_add_more_memory(pangulu_Smatrix *A)
             int_t index = index_rowpointer[col];
             columnindex[index] = i;
             value[index] = A->value[j];
-            CSR_to_CSC_index[j] = index;
+            CSC_to_CSR_index[index] = j;
             index_rowpointer[col]++;
         }
     }
@@ -240,7 +240,7 @@ void pangulu_Smatrix_add_more_memory(pangulu_Smatrix *A)
     A->columnpointer = rowpointer;
     A->rowindex = columnindex;
     A->value_CSC = value;
-    A->CSR_to_CSC_index = CSR_to_CSC_index;
+    A->CSC_to_CSR_index = CSC_to_CSR_index;
     free(index_rowpointer);
     free(save_bin_rowpointer);
 

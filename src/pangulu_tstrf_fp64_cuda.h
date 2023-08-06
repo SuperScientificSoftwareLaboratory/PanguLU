@@ -17,8 +17,8 @@ void pangulu_tstrf_fp64_cuda_v8(pangulu_Smatrix *A,
     cudaMemcpy(d_graphInDegree, U->graphInDegree, n * sizeof(int), cudaMemcpyHostToDevice);
     int *d_id_extractor = U->d_id_extractor;
     cudaMemset(d_id_extractor, 0, sizeof(int));
-    double *d_left_sum = A->d_left_sum;
-    cudaMemset(d_left_sum, 0, nnzA * sizeof(double));
+    calculate_type *d_left_sum = A->d_left_sum;
+    cudaMemset(d_left_sum, 0, nnzA * sizeof(calculate_type));
     /*****************************************************************************/
     pangulu_tstrf_cuda_kernel_v8(n,
                                  nnzU,
@@ -157,8 +157,8 @@ void pangulu_tstrf_fp64_cuda_v11(pangulu_Smatrix *A,
     cudaMemcpy(d_graphInDegree, U->graphInDegree, n * sizeof(int), cudaMemcpyHostToDevice);
     int *d_id_extractor = U->d_id_extractor;
     cudaMemset(d_id_extractor, 0, sizeof(int));
-    double *d_left_sum = A->d_left_sum;
-    cudaMemset(d_left_sum, 0, nnzA * sizeof(double));
+    calculate_type *d_left_sum = A->d_left_sum;
+    cudaMemset(d_left_sum, 0, nnzA * sizeof(calculate_type));
     /*****************************************************************************/
     pangulu_tstrf_cuda_kernel_v11(n,
                                   nnzU,

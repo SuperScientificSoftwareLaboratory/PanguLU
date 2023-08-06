@@ -1,12 +1,11 @@
 #ifndef PANGULU_COMMON_H
 #define PANGULU_COMMON_H
 
-#define ADAPTIVE_KERNEL_SELECTION
+//#define ADAPTIVE_KERNEL_SELECTION
 #define SYNCHRONIZE_FREE
 #define PANGULU_MC64
 #define METIS
 #define SYMBOLIC
-
 #define PANGULU_SPTRSV
 
 #ifdef SYMBOLIC
@@ -15,7 +14,7 @@
 
 #define CPU_OPTION
 #define OVERLAP
-// #define CHECK_LU
+//#define CHECK_LU
 #define GPU_OPEN
 // #define CHECK_TIME
 
@@ -44,15 +43,16 @@ typedef int idx_int;
 
 #define MPI_INT_TYPE MPI_LONG
 
+//#define calculate_type float
 #define calculate_type double
 // #if calculate_type==double
 #define MPI_VAL_TYPE MPI_DOUBLE
 // #elif calculate_type==float
-// #define MPI_VAL_TYPE MPI_FLOAT
+//#define MPI_VAL_TYPE MPI_FLOAT
 // #endif
 
-#define ERROR 0.000001
-#define CHECK_ERROR 0.0001
+#define ERROR 1e-8
+#define CHECK_ERROR 1e-8
 #define BIN_LENGTH 12
 #define pangulu_exchange_PQ(row, P) \
     (row + P - 1) % P
@@ -92,6 +92,7 @@ extern int_t *ssssm_col_ops_u;
 extern idx_int *ssssm_ops_pointer;
 extern idx_int *getrf_diagIndex_csr;
 extern idx_int *getrf_diagIndex_csc;
+extern int_t calculate_time;
 
 extern int_32t RANK;
 extern int_32t LEVEL;
@@ -201,10 +202,8 @@ typedef struct pangulu_block_Smatrix
     calculate_type *col_scale;
 
     // symbolic
-    int_t *L_rowpointer;
-    int_32t *L_columnindex;
-    int_t *U_rowpointer;
-    int_32t *U_columnindex;
+    int_t *symbolic_rowpointer;
+    int_32t *symbolic_columnindex;
 
     int_t *block_Smatrix_nnzA_num;
     int_t *block_Smatrix_non_zero_vector_L;
@@ -247,7 +246,7 @@ typedef struct pangulu_block_Smatrix
     int_t *real_matrix_flag;
     int_t *sum_flag_block_num;
     int_t *receive_level_num;
-    char *max_tmp;
+    char *save_tmp;
 
     int_t *level_index;
     int_t *level_index_reverse;

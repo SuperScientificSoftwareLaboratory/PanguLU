@@ -534,8 +534,8 @@ void cscmultcsc_dense(pangulu_Smatrix *A,
             for (int pointer_u = U->columnpointer[j]; pointer_u < U->columnpointer[j + 1]; pointer_u++)
             {
                 int i = U->rowindex[pointer_u]; // ith row
-                double value_U = U->value_CSC[pointer_u];
-                double *A_value = TEMP_A_value + n * j; // point to jth column
+                calculate_type value_U = U->value_CSC[pointer_u];
+                calculate_type *A_value = TEMP_A_value + n * j; // point to jth column
                 for (int pointer_l = L->columnpointer[i]; pointer_l < L->columnpointer[i + 1]; pointer_l++)
                 {                                                    // ith column Lki Uij Akj
                     int k = L->rowindex[pointer_l];                  // kth row
@@ -547,7 +547,7 @@ void cscmultcsc_dense(pangulu_Smatrix *A,
 #pragma omp parallel for num_threads(PANGU_OMP_NUM_THREADS)
     for (int i = 0; i < n; i++)
     {
-        double *A_value = TEMP_A_value + i * n;
+        calculate_type *A_value = TEMP_A_value + i * n;
         for (int j = A->columnpointer[i]; j < A->columnpointer[i + 1]; j++)
         {
             int row = A->rowindex[j];

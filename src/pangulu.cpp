@@ -29,6 +29,7 @@ double TIME_ssssm = 0.0;
 double TIME_cuda_memcpy = 0.0;
 double TIME_wait = 0.0;
 double calculate_TIME_wait = 0.0;
+int_t calculate_time = 0;
 
 int_32t RANK;
 int_32t LEVEL;
@@ -68,7 +69,6 @@ void pangulu(int ARGC, char **ARGV)
     }
 
     pangulu_test(common, origin_Smatrix);
-
     if (rank == 0)
     {
         pangulu_destroy_part_pangulu_Smatrix(origin_Smatrix);
@@ -79,12 +79,6 @@ void pangulu(int ARGC, char **ARGV)
         origin_Smatrix = NULL;
     }
 
-    if (rank != 0)
-    {
-        pangulu_destroy_pangulu_common(common);
-    }
-
-    MPI_Barrier(MPI_COMM_WORLD);
     MPI_Finalize();
     return;
 }

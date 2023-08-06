@@ -24,7 +24,10 @@
 void pangulu_getrf_interface(pangulu_Smatrix *A, pangulu_Smatrix *L, pangulu_Smatrix *U,
                              pangulu_Smatrix *calculate_L, pangulu_Smatrix *calculate_U)
 {
-
+    for(int_t i=0;i<U->nnz;i++){
+        int_t now_row=U->rowindex[i];
+        calculate_time+=(L->columnpointer[now_row+1]-L->columnpointer[now_row]);
+    }
 #ifdef CHECK_TIME
     struct timeval GET_TIME_START;
     pangulu_time_check_begin(&GET_TIME_START);
@@ -75,7 +78,10 @@ void pangulu_getrf_interface(pangulu_Smatrix *A, pangulu_Smatrix *L, pangulu_Sma
 void pangulu_tstrf_interface(pangulu_Smatrix *A, pangulu_Smatrix *save_X, pangulu_Smatrix *U,
                              pangulu_Smatrix *calculate_X, pangulu_Smatrix *calculate_U)
 {
-
+    for(int_t i=0;i<A->nnz;i++){
+        int_t now_col=A->columnindex[i];
+        calculate_time+=(U->rowpointer[now_col+1]-U->rowpointer[now_col]);
+    }
 #ifdef CHECK_TIME
     struct timeval GET_TIME_START;
     pangulu_time_check_begin(&GET_TIME_START);
@@ -157,6 +163,10 @@ void pangulu_tstrf_interface(pangulu_Smatrix *A, pangulu_Smatrix *save_X, pangul
 void pangulu_gessm_interface(pangulu_Smatrix *A, pangulu_Smatrix *save_X, pangulu_Smatrix *L,
                              pangulu_Smatrix *calculate_X, pangulu_Smatrix *calculate_L)
 {
+    for(int_t i=0;i<A->nnz;i++){
+        int_t now_row=A->rowindex[i];
+        calculate_time+=(L->columnpointer[now_row+1]-L->columnpointer[now_row]);
+    }
 #ifdef CHECK_TIME
     struct timeval GET_TIME_START;
     pangulu_time_check_begin(&GET_TIME_START);
@@ -243,7 +253,10 @@ void pangulu_gessm_interface(pangulu_Smatrix *A, pangulu_Smatrix *save_X, pangul
 void pangulu_ssssm_interface(pangulu_Smatrix *A, pangulu_Smatrix *L, pangulu_Smatrix *U,
                              pangulu_Smatrix *calculate_L, pangulu_Smatrix *calculate_U)
 {
-
+    for(int_t i=0;i<U->nnz;i++){
+        int_t now_row=U->rowindex[i];
+        calculate_time+=(L->columnpointer[now_row+1]-L->columnpointer[now_row]);
+    }
 #ifdef CHECK_TIME
     struct timeval GET_TIME_START;
     pangulu_time_check_begin(&GET_TIME_START);

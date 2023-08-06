@@ -24,6 +24,8 @@
 #define PANGULU_ABS(A) \
     ((A > 0) ? (A) : (-A))
 
+#define ZERO_ELEMENT 1e-12
+
 void pangulu_get_common(pangulu_common *common,
                         int_t ARGC, char **ARGV, int_32t size)
 {
@@ -87,10 +89,8 @@ void pangulu_init_pangulu_block_Smatrix(pangulu_block_Smatrix *block_Smatrix)
     block_Smatrix->col_scale = NULL;
 
     // symbolic
-    block_Smatrix->L_rowpointer = NULL;
-    block_Smatrix->L_columnindex = NULL;
-    block_Smatrix->U_rowpointer = NULL;
-    block_Smatrix->U_columnindex = NULL;
+    block_Smatrix->symbolic_rowpointer = NULL;
+    block_Smatrix->symbolic_columnindex = NULL;
 
     // LU
     block_Smatrix->block_Smatrix_nnzA_num = NULL;
@@ -134,7 +134,7 @@ void pangulu_init_pangulu_block_Smatrix(pangulu_block_Smatrix *block_Smatrix)
     block_Smatrix->real_matrix_flag = NULL;
     block_Smatrix->sum_flag_block_num = NULL;
     block_Smatrix->receive_level_num = NULL;
-    block_Smatrix->max_tmp = NULL;
+    block_Smatrix->save_tmp = NULL;
 
     block_Smatrix->level_index = NULL;
     block_Smatrix->level_index_reverse = NULL;
@@ -515,7 +515,7 @@ void pangulu_display_pangulu_vector(pangulu_vector *V)
     printf("this vector length is %ld\n", V->row);
     for (int_t i = 0; i < V->row; i++)
     {
-        printf("%lf\n", V->value[i]);
+        printf("%ld %lf\n", i, V->value[i]);
     }
 }
 
@@ -622,6 +622,26 @@ void pangulu_pangulu_Smatrix_multiple_pangulu_vector_CSR(pangulu_Smatrix *A,
     }
 }
 
+void pangulu_pangulu_Smatrix_multiple_pangulu_vector(pangulu_Smatrix *A,
+                                                     pangulu_vector *X,
+                                                     pangulu_vector *B)
+{
+    int_t n = A->row;
+    calculate_type *X_value = X->value;
+    calculate_type *B_value = B->value;
+    for(int_t i = 0 ; i < n; i++){
+        B_value[i] = 0.0;
+    }
+    for (int_t i = 0; i < n; i++)
+    {
+        for (int_t j = A->rowpointer[i]; j < A->rowpointer[i + 1]; j++)
+        {
+            int_t row = A->columnindex[j];
+            B_value[row] += A->value[j] * X_value[i];
+        }
+    }
+}
+
 void pangulu_pangulu_Smatrix_multiply_block_pangulu_vector_CSR(pangulu_Smatrix *A,
                                                                calculate_type *X,
                                                                calculate_type *B)
@@ -701,7 +721,7 @@ void pangulu_read_pangulu_vector(pangulu_vector *X, int_t n, char *filename)
     X->value = (calculate_type *)pangulu_malloc(sizeof(calculate_type) * n);
     for (int_t i = 0; i < n; i++)
     {
-        X->value[i] = (calculate_type)i;
+        X->value[i] = 2.0;
     }
     X->row = n;
 }
@@ -711,7 +731,8 @@ void pangulu_get_init_value_pangulu_vector(pangulu_vector *X, int_t n)
     X->value = (calculate_type *)pangulu_malloc(sizeof(calculate_type) * n);
     for (int_t i = 0; i < n; i++)
     {
-        X->value[i] = (calculate_type)i;
+       //X->value[i] = (calculate_type)i;
+       X->value[i] = 2.0;
     }
     X->row = n;
 }
@@ -734,6 +755,79 @@ void pangulu_zero_pangulu_vector(pangulu_vector *v)
         v->value[i] = 0.0;
     }
 }
+
+void pangulu_add_diagonal_element(pangulu_Smatrix *S){
+        int_t diagonal_add=0;
+        int_t n=S->row;
+        int_t *new_rowpointer=(int_t *)pangulu_malloc(sizeof(int_t)*(n+5));
+        for(int_t i=0;i<n;i++){
+            int_t flag=0;
+            for(int_t j=S->rowpointer[i];j<S->rowpointer[i+1];j++){
+                if(S->columnindex[j]==i){
+                    flag=1;
+                    break;
+                }
+            }
+            new_rowpointer[i]=S->rowpointer[i]+diagonal_add;
+            diagonal_add+=(!flag);
+        }
+        // if(diagonal_add==0){
+        //     free(new_rowpointer);
+        //     return ;
+        // }
+        new_rowpointer[n]=S->rowpointer[n]+diagonal_add;
+        
+        int_32t *new_columnindex=(int_32t *)pangulu_malloc(sizeof(int_32t)*new_rowpointer[n]);
+        calculate_type *new_value=(calculate_type *)pangulu_malloc(sizeof(calculate_type)*new_rowpointer[n]);
+        
+        for(int_t i=0;i<n;i++){
+            if((new_rowpointer[i+1]-new_rowpointer[i])==(S->rowpointer[i+1]-S->rowpointer[i])){
+                for(int_t j=new_rowpointer[i],k=S->rowpointer[i];j<new_rowpointer[i+1];j++,k++){
+                    new_columnindex[j]=S->columnindex[k];
+                    new_value[j]=S->value[k];
+                }
+            }
+            else{
+                int_t flag=0;
+                for(int_t j=new_rowpointer[i],k=S->rowpointer[i];k<S->rowpointer[i+1];j++,k++){
+                    if(S->columnindex[k]<i){
+                        new_columnindex[j]=S->columnindex[k];
+                        new_value[j]=S->value[k];
+                    }
+                    else if(S->columnindex[k]>i){
+                        if(flag==0){
+                            new_columnindex[j]=i;
+                            new_value[j]=ZERO_ELEMENT;
+                            k--;
+                            flag=1;
+                        }
+                        else{
+                            new_columnindex[j]=S->columnindex[k];
+                            new_value[j]=S->value[k];
+                        }
+                        
+                    }
+                    else{
+                        printf("error\n");
+                    }
+                    
+                }
+                if(flag==0){
+                    new_columnindex[new_rowpointer[i+1]-1]=i;
+                    new_value[new_rowpointer[i+1]-1]=ZERO_ELEMENT;
+                }
+            }
+        }
+
+        free(S->rowpointer);
+        free(S->columnindex);
+        free(S->value);
+        S->rowpointer=new_rowpointer;
+        S->columnindex=new_columnindex;
+        S->value=new_value;
+        S->nnz=new_rowpointer[n];
+    }
+
 
 void pangulu_send_pangulu_vector_value(pangulu_vector *S,
                                        int_t send_id, int_t signal, int_t vector_length)

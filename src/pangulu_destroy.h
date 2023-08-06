@@ -343,8 +343,8 @@ void pangulu_destroy(pangulu_block_common *block_common,
     free(block_Smatrix->mapper_Big_pangulu_Smatrix);
     block_Smatrix->mapper_Big_pangulu_Smatrix = NULL;
 
-    free(block_Smatrix->max_tmp);
-    block_Smatrix->max_tmp = NULL;
+    free(block_Smatrix->save_tmp);
+    block_Smatrix->save_tmp = NULL;
 
     free(block_Smatrix->block_Smatrix_nnzA_num);
     block_Smatrix->block_Smatrix_nnzA_num = NULL;
@@ -372,7 +372,7 @@ void pangulu_destroy(pangulu_block_common *block_common,
 
     free(block_Smatrix->U_pangulu_Smatrix_rowpointer);
     block_Smatrix->U_pangulu_Smatrix_rowpointer = NULL;
-
+    
     free(block_Smatrix->U_pangulu_Smatrix_columnindex);
     block_Smatrix->U_pangulu_Smatrix_columnindex = NULL;
 
@@ -438,6 +438,10 @@ void pangulu_destroy(pangulu_block_common *block_common,
 
     free(block_Smatrix->level_index_reverse);
     block_Smatrix->level_index_reverse = NULL;
+    
+    free(block_Smatrix->flag_save_L);
+    block_Smatrix->flag_save_L=NULL;
+    block_Smatrix->flag_save_U=NULL;
 
     free(block_Smatrix->mapper_mpi);
     block_Smatrix->mapper_mpi = NULL;
@@ -449,10 +453,12 @@ void pangulu_destroy(pangulu_block_common *block_common,
     block_Smatrix->mpi_level_num = NULL;
 
     free(block_Smatrix->flag_dignon_L);
+    block_Smatrix->flag_dignon_L=NULL;
     free(block_Smatrix->flag_dignon_U);
-
-    free(block_Smatrix->flag_save_L);
-    free(block_Smatrix->flag_save_U);
+    block_Smatrix->flag_dignon_U=NULL;
+    return ;    
+    
+    
 }
 
 #endif

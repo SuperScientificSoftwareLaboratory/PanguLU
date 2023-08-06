@@ -10,6 +10,8 @@
 
 #define PANGULU_MC64_FLAG -5
 
+
+
 void pangulu_MC64dd(int_t col, int_t n, int_t *queue, calculate_type *row_scale_value, int_t *save_tmp)
 {
     int_t loc = save_tmp[col];
@@ -171,6 +173,7 @@ void pangulu_mc64(pangulu_Smatrix *S, int_t **perm, int_t **iperm,
         if (rowptr[i] >= rowptr[i + 1])
         {
             printf("error this matrix exist row is nuLL\n");
+            fflush(NULL);
             exit(-1);
         }
     }
@@ -208,6 +211,7 @@ void pangulu_mc64(pangulu_Smatrix *S, int_t **perm, int_t **iperm,
         if (rowptr[i] >= rowptr[i + 1])
         {
             printf("error exit zero row in matrix\n");
+            fflush(NULL);
             exit(-1);
         }
     }
@@ -230,6 +234,8 @@ void pangulu_mc64(pangulu_Smatrix *S, int_t **perm, int_t **iperm,
         }
         else
         {
+            printf("now max is NULL\n");
+            fflush(NULL);
             exit(0);
         }
 
@@ -698,6 +704,7 @@ void pangulu_Smatrix_transport_transport_iperm(pangulu_Smatrix *S, pangulu_Smatr
 #include <metis.h>
 void pangulu_get_graph_struct(pangulu_Smatrix *S, int_t **xadj_adress, int_t **adjincy_adress)
 {
+    pangulu_add_diagonal_element(S);
     pangulu_Smatrix_add_CSC(S);
     int_t *xadj = (int_t *)pangulu_malloc(sizeof(int_t) * (S->row + 1));
     xadj[0] = 0;
@@ -972,7 +979,7 @@ void pangulu_reorder(pangulu_block_Smatrix *block_Smatrix,
     int_t *metis_perm = NULL;
     calculate_type *row_scale = NULL;
     calculate_type *col_scale = NULL;
-
+    //printf("begin\n");
 #ifdef PANGULU_MC64
     pangulu_mc64(origin_matrix, &perm, &iperm, &row_scale, &col_scale);
 #else
@@ -998,7 +1005,7 @@ void pangulu_reorder(pangulu_block_Smatrix *block_Smatrix,
 
     for (int_t i = 0; i < n; i++)
     {
-        row_scale[i] = 1.0;
+        col_scale[i] = 1.0;
     }
 
 #endif
@@ -1038,7 +1045,7 @@ void pangulu_reorder(pangulu_block_Smatrix *block_Smatrix,
             {
                 if (PANGULU_ABS(PANGULU_ABS(tmp->value[tmp_index]) - 1.0) > 1e-10)
                 {
-                    printf("error in row %ld %lf\n", row, tmp->value[tmp_index]);
+                    //printf("error in row %ld %lf\n", row, tmp->value[tmp_index]);
                 }
             }
             tmp_index++;
@@ -1047,6 +1054,7 @@ void pangulu_reorder(pangulu_block_Smatrix *block_Smatrix,
 #ifdef METIS
     pangulu_metis(tmp, &metis_perm);
 #else
+    pangulu_add_diagonal_element(tmp);
     metis_perm = (int_t *)pangulu_malloc(sizeof(int_t) * n);
     for (int_t i = 0; i < n; i++)
     {
@@ -1054,7 +1062,7 @@ void pangulu_reorder(pangulu_block_Smatrix *block_Smatrix,
     }
 
 #endif
-
+    //pangulu_display_pangulu_Smatrix(tmp);
     pangulu_Smatrix_transport_transport_iperm(tmp, reorder_matrix, metis_perm);
     pangulu_sort_pangulu_matrix(reorder_matrix);
 
