@@ -22,13 +22,9 @@ PanguLU/make.inc    compiler, compiler flags included in all Makefiles
 we use the method is to use make automatic build system.
 installation method:
 You will need install make.
-
 Frist, in order to use MPI, you need to install mpich (recommended version: OpenMPI-4.1.2).
-
 Second, in order to use NVCC, you need to install CUDA (recommended version: CUDA-12.1).
-
 Third, Specify the installation path to be used in make.inc.
-
 Fianlly, use make for automatic installation.
 > **make**
 
@@ -105,16 +101,16 @@ In this example,six processes are used to test, the  NB_number is 2 ,P_number is
 
 * Updated the pre-processing phase with OpenMP.
 * Updated the compilation method of PanguLU, compile libpangulu.so and libpangulu.a at the same time.
-* Updated timing for the rearrangement phase, the symbolic factorisation phase, the pre-processing phase.
+* Updated timing for the reorder phase, the symbolic factorisation phase, the pre-processing phase.
 * Added GFLOPS for the numeric factorisation phase.
  
 #### <p align='left'>Version 3.0.0 (Apr. 02, 2023) </p>
 
 * Used adaptive selection sparse BLAS in the numeric factorisation phase.
-* Added the rearrangement phase.
+* Added the reorder phase.
 * Added the symbolic factorisation phase. 
-* Added mc64 sorting algorithm in the rearrangement phase.
-* Added interface for 64-bit metis package in the rearrangement phase.
+* Added mc64 sorting algorithm in the reorder phase.
+* Added interface for 64-bit metis package in the reorder phase.
 
 
 #### <p align='left'> Version 2.0.0 (Jul. &thinsp;22, 2022) </p>
@@ -129,7 +125,7 @@ In this example,six processes are used to test, the  NB_number is 2 ,P_number is
 * Used Sparse BLAS for floating point calculations on GPUs.
 * Added the pre-processing phase.
 * Added the numeric factorisation phase.
-* Added the triangular factorisation phase.
+* Added the triangular solve phase.
 
 
 
