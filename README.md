@@ -1,19 +1,10 @@
 # PanguLU
 
- 
- **PanguLU** is an open source software package that uses a block sparse structure to solve linear systems A*X=B. It uses a sparse matrix block LU factorisation algorithm. The sparse matrix block LU factorisation algorithm is an algorithm that splits the sparse matrix into multiple sparse matrix blocks, and uses sparse BLAS kernels among the sparse matrix blocks. This solver can be used in heterogeneous The distributed platform operates accurately and efficiently.
-
 -------------------
-
 
 ## Introduction
 
-PanguLU is mainly used on distributed multi-GPU parallel clusters. PanguLU is implemented using MPI and CUDA, MPI is used for communication and CUDA is used for GPU computing. We have implemented multi-GPU acceleration and are still actively accelerating.
-
-PanguLU reads in a CSR matrix that has undergone symbolic decomposition, then performs matrix division, distributes the matrix to each node for numerical decomposition, and then solves the vector by distributed triangular solution. 
-
-PanguLU uses a synchronisation-free distributed communication strategy and uses a global variable to improve the degree of parallelism as much as possible under the premise of ensuring the correctness of the computation.
-
+PanguLU is an open source software package for solving a linear system *Ax = b* on heterogeneous distributed platforms. The library is written in pure C, and exploits parallelism from MPI, OpenMP and CUDA. The sparse LU factorisation algorithm used in PanguLU splits the sparse matrix into multiple equally-sized sparse matrix blocks and computes them by using sparse BLAS. The latest version of PanguLU uses a synchronisation-free communication strategy to reduce the overall latency overhead, and a variety of block-wise sparse BLAS methods have been adaptively called to improve efficiency on CPUs and GPUs. Currently, PanguLU supports both single and double precision. In addition, our team at the SSSLab is constantly optimising and updating PanguLU.
 
 ## Structure of code
 
@@ -81,7 +72,7 @@ Then you need to open the MPI_float option in pangulu_common.h:
 
 
 ## Execution of PanguLU
-PanguLU is to complete the operation of solving AX=b, and the test file is placed in the test folder. The test is to first perform the LU numerical decomposition of the matrix test.mtx, and use Ly=b to complete the lower triangular solution and Ux=y to complete the upper triangular solution test method.
+PanguLU is to complete the operation of solving *Ax = b*, and the test file is placed in the test folder. The test is to first perform the LU numeric decomposition of the matrix test.mtx, and use *Ly = b* to complete the lower triangular solution and *Ux = y* to complete the upper triangular solution test method.
 ### run command
 
 > **mpirun -np process_number ./PanguLU -NB NB_number -F Smatrix_name**
@@ -104,31 +95,37 @@ or use the run.sh:
 
 In this example,six processes are used to test, the  NB_number is 2 ,P_number is 2,Q_number is 3, matrix name is test.mtx
 
-## Release version
-#### <p align='left'>Oct 19,2021 Version 1.0</p>
+## Release versions
 
-* Rule-based 2D LU factorisation scheduling strategy
-* Sparse BLAS: base 4 sparse kernels
-* PanguLU pre-processing phase
-* PanguLU numerical factorisation phase
-* PanguLU triangular factorisation phase
-#### <p align='left'>Jul &nbsp;&thinsp;22,2022 Version 2.0</p>
+#### <p align='left'>Version 3.5.0 (Aug. 06, 2023) </p>
 
-* Synchronisation-free scheduling strategy
-* Change the MPI communication method
-* Increase data calculation types for fp32
-#### <p align='left'>Apr 02,2023 Version 3.0</p>
-
-* Adaptive Selection Sparse BLAS
-* PanguLU symbolic factorisation phase
-* Increase mc64 sorting algorithm
-* Increase interface for 64-bit metis 5.1.0 packages
-#### <p align='left'>Aug 06,2023 Version 3.5</p>
-
-* Optimise PanguLU pre-processing phase
-* Change the compilation method of PanguLU
-* Redefine PanguLU's Output
+* Updated the pre-processing phase with OpenMP.
+* Updated the compilation method of PanguLU, compile libpangulu.so and libpangulu.a at the same time.
+* Updated timing for the rearrangement phase, the symbolic factorisation phase, the pre-processing phase.
+* Added GFLOPS for the numeric factorisation phase.
  
+#### <p align='left'>Version 3.0.0 (Apr. 02, 2023) </p>
+
+* Used adaptive selection sparse BLAS in the numeric factorisation phase.
+* Added the rearrangement phase.
+* Added the symbolic factorisation phase. 
+* Added mc64 sorting algorithm in the rearrangement phase.
+* Added interface for 64-bit metis package in the rearrangement phase.
+
+
+#### <p align='left'> Version 2.0.0 (Jul. &thinsp;22, 2022) </p>
+
+* Used a synchronisation-free scheduling strategy in the numeric factorisation phase.
+* Updated the MPI communication method in the numeric factorisation phase.
+* Added single precision in the numeric factorisation phase.
+
+#### <p align='left'>Version 1.0.0 (Oct. 19, 2021) </p>
+
+* Used a rule-based 2D LU factorisation scheduling strategy.
+* Used Sparse BLAS for floating point calculations on GPUs.
+* Added the pre-processing phase.
+* Added the numeric factorisation phase.
+* Added the triangular factorisation phase.
 
 
 
