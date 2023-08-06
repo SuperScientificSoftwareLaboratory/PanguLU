@@ -6,7 +6,7 @@ all: $(EXE)
 
 
 $(EXE):test.o
-	$(NVCC) $(CUDA_INC) $(CUDA_LIB)  $(MPICPPLINK) test.o -I../include -L. -lpangulu $(METISFLAGS) -o $(EXE)
+	$(MPICPP) test.o ../lib/libpangulu.a $(MPICPPLINK) -I../include -L. $(CUDA_INC) $(CUDA_LIB) $(METISFLAGS) -fopenmp -o $(EXE)
 
 
 test.o:test.cpp
