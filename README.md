@@ -22,9 +22,13 @@ PanguLU/make.inc    compiler, compiler flags included in all Makefiles
 we use the method is to use make automatic build system.
 installation method:
 You will need install make.
+
 Frist, in order to use MPI, you need to install mpich (recommended version: OpenMPI-4.1.2).
+
 Second, in order to use NVCC, you need to install CUDA (recommended version: CUDA-12.1).
+
 Third, Specify the installation path to be used in make.inc.
+
 Fianlly, use make for automatic installation.
 > **make**
 
