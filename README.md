@@ -19,10 +19,10 @@ PanguLU uses a synchronisation-free distributed communication strategy and uses 
 
 ```
 PanguLU/README      instructions on installation
-PanguLU/src         C and CUDA source code, to be compiled into libpangulu.so
+PanguLU/src         C and CUDA source code, to be compiled into libpangulu.a and libpangulu.so
 PanguLU/test        testing code
-PanguLU/icnlude     contains headers archieve libpangulu.so
-PanguLU/lib         contains library archieve libpangulu.so
+PanguLU/icnlude     contains headers archieve libpangulu.a and libpangulu.so
+PanguLU/lib         contains library archieve libpangulu.a and libpangulu.so
 PanguLU/Makefile    top-level Makefile that does installation and testing
 PanguLU/make.inc    compiler, compiler flags included in all Makefiles
 ```
@@ -105,12 +105,29 @@ or use the run.sh:
 In this example,six processes are used to test, the  NB_number is 2 ,P_number is 2,Q_number is 3, matrix name is test.mtx
 
 ## Release version
-<p align='left'>Oct 19,2021 Version 1.0</p>
-<p align='left'>Jul &nbsp;&thinsp;22,2022 Version 2.0</p>
-<p align='left'>Nov 28,2022 Version 2.1</p>
-<p align='left'>Apr 02,2023 Version 3.0</p>
-<p align='left'>Jun 17,2023 Version 3.1</p>
+#### <p align='left'>Oct 19,2021 Version 1.0</p>
 
+* Rule-based 2D LU factorisation scheduling strategy
+* Sparse BLAS: base 4 sparse kernels
+* PanguLU pre-processing phase
+* PanguLU numerical factorisation phase
+* PanguLU triangular factorisation phase
+#### <p align='left'>Jul &nbsp;&thinsp;22,2022 Version 2.0</p>
+
+* Synchronisation-free scheduling strategy
+* Change the MPI communication method
+* Increase data calculation types for fp32
+#### <p align='left'>Apr 02,2023 Version 3.0</p>
+
+* Adaptive Selection Sparse BLAS
+* PanguLU symbolic factorisation phase
+* Increase mc64 sorting algorithm
+* Increase interface for 64-bit metis 5.1.0 packages
+#### <p align='left'>Aug 06,2023 Version 3.5</p>
+
+* Optimise PanguLU pre-processing phase
+* Change the compilation method of PanguLU
+* Redefine PanguLU's Output
  
 
 
