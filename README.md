@@ -95,7 +95,7 @@ or use the run.sh:
 
 In this example,six processes are used to test, the  NB_number is 2 ,P_number is 2,Q_number is 3, matrix name is test.mtx
 
-##Reference
+## Reference
 
 * [1] Xu Fu, Bingbin Zhang, Tengcheng Wang, Wenhao Li, Yuechen Lu, Enxin Yi, Jianqi Zhao, Xiaohan Geng, Fangying Li, Jingwen Zhang, Zhou Jin, Weifeng Liu. PanguLU: A Scalable Regular Two-Dimensional Block-Cyclic Sparse Direct Solver on Distributed Heterogeneous Systems. 36th ACM/IEEE International Conference for High Performance Computing, Networking, Storage, and Analysis (SC ’23). 2023.
 
