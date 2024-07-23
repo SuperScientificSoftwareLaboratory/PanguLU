@@ -1,16 +1,18 @@
 all:
 	(cd src; make)
 	(cd lib; make)
-	(cd test; make)
+	(cd examples; make)
 src:
 	(cd src; make)
 
 lib:
 	(cd lib; make)
 
-test:
-	(cd test; make)
+examples:
+	(cd examples; make)
 clean:
 	(cd src; make clean)
 	(cd lib; make clean)
-	(cd test; make clean)
+	(cd examples; make clean)
+
+update:clean all

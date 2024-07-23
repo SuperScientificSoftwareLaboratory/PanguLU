@@ -18,8 +18,8 @@ void pangulu_bsem_init(bsem *bsem_p, int_t value)
     {
         exit(1);
     }
-    bsem_p->mutex = (pthread_mutex_t *)pangulu_malloc(sizeof(pthread_mutex_t));
-    bsem_p->cond = (pthread_cond_t *)pangulu_malloc(sizeof(pthread_cond_t));
+    bsem_p->mutex = (pthread_mutex_t *)pangulu_malloc(__FILE__, __LINE__, sizeof(pthread_mutex_t));
+    bsem_p->cond = (pthread_cond_t *)pangulu_malloc(__FILE__, __LINE__, sizeof(pthread_cond_t));
     pangulu_mutex_init((bsem_p->mutex));
     pthread_cond_init((bsem_p->cond), NULL);
     bsem_p->v = value;
@@ -27,12 +27,12 @@ void pangulu_bsem_init(bsem *bsem_p, int_t value)
 
 bsem *pangulu_bsem_destory(bsem *bsem_p)
 {
-    free(bsem_p->mutex);
+    pangulu_free(__FILE__, __LINE__, bsem_p->mutex);
     bsem_p->mutex = NULL;
-    free(bsem_p->cond);
+    pangulu_free(__FILE__, __LINE__, bsem_p->cond);
     bsem_p->cond = NULL;
     bsem_p->v = 0;
-    free(bsem_p);
+    pangulu_free(__FILE__, __LINE__, bsem_p);
     return NULL;
 }
 

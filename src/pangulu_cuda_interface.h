@@ -2,7 +2,7 @@
 #define PANGULU_CUDA_INTERFACE_H
 
 #include "pangulu_common.h"
-#include "pangulu_cuda.h"
+#include "platforms/02_GPU/01_CUDA/000_CUDA/pangulu_cuda.h"
 
 #ifdef CHECK_TIME
 #include "pangulu_time.h"
@@ -13,11 +13,10 @@ void pangulu_cuda_device_init(int_32t rank)
         int_32t gpu_num;
         pangulu_cuda_getDevicenum(&gpu_num);
         int_32t usr_id = pangulu_cuda_setDevice(gpu_num, rank);
-        // printf("the gpu num is %d the rank is %d use the %d gpu\n", gpu_num, rank, usr_id);
         cudaDeviceProp prop;
         cudaGetDeviceProperties(&prop, usr_id);
         if (rank == 0)
-                printf("Device %s\n", prop.name);
+                printf(PANGULU_I_DEV_IS);
 }
 
 void pangulu_cuda_device_init_thread(int_32t rank)
@@ -35,10 +34,10 @@ void pangulu_cuda_free_interface(void *cuda_address)
 void pangulu_Smatrix_add_CUDA_memory(pangulu_Smatrix *S)
 {
         pangulu_cuda_malloc((void **)&(S->CUDA_rowpointer), ((S->row) + 1) * sizeof(int_t));
-        pangulu_cuda_malloc((void **)&(S->CUDA_columnindex), (S->nnz) * sizeof(idx_int));
+        pangulu_cuda_malloc((void **)&(S->CUDA_columnindex), (S->nnz) * sizeof(pangulu_inblock_idx));
         pangulu_cuda_malloc((void **)&(S->CUDA_value), (S->nnz) * sizeof(calculate_type));
         pangulu_cuda_malloc((void **)&(S->CUDA_bin_rowpointer), BIN_LENGTH * sizeof(int_t));
-        pangulu_cuda_malloc((void **)&(S->CUDA_bin_rowindex), (S->row) * sizeof(int_t));
+        pangulu_cuda_malloc((void **)&(S->CUDA_bin_rowindex), (S->row) * sizeof(pangulu_inblock_idx));
 }
 
 void pangulu_Smatrix_CUDA_memory_init(pangulu_Smatrix *S, int_t NB, int_t nnz)
@@ -47,7 +46,7 @@ void pangulu_Smatrix_CUDA_memory_init(pangulu_Smatrix *S, int_t NB, int_t nnz)
         S->column = NB;
         S->nnz = nnz;
         pangulu_cuda_malloc((void **)&(S->CUDA_rowpointer), (NB + 1) * sizeof(int_t));
-        pangulu_cuda_malloc((void **)&(S->CUDA_columnindex), nnz * sizeof(idx_int));
+        pangulu_cuda_malloc((void **)&(S->CUDA_columnindex), nnz * sizeof(pangulu_inblock_idx));
         pangulu_cuda_malloc((void **)&(S->CUDA_value), nnz * sizeof(calculate_type));
 }
 

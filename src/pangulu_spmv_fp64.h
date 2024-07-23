@@ -25,8 +25,8 @@ void pangulu_spmv_cpu_choumi(pangulu_Smatrix *S, pangulu_vector *X, pangulu_vect
 void pangulu_spmv_cpu_xishu(pangulu_Smatrix *S, pangulu_vector *X, pangulu_vector *B, int_t vector_number)
 {
     int_t m = S->row;
-    int_t *csrRowPtr_tmp = S->rowpointer;
-    int_32t *csrColIdx_tmp = S->columnindex;
+    pangulu_inblock_ptr *csrRowPtr_tmp = S->rowpointer;
+    pangulu_inblock_idx *csrColIdx_tmp = S->columnindex;
     calculate_type *csrVal_tmp = S->value;
     for (int_t vector_index = 0; vector_index < vector_number; vector_index++)
     {
@@ -45,8 +45,8 @@ void pangulu_spmv_cpu_xishu(pangulu_Smatrix *S, pangulu_vector *X, pangulu_vecto
 void pangulu_spmv_cpu_xishu_csc(pangulu_Smatrix *S, pangulu_vector *X, pangulu_vector *B, int_t vector_number)
 {
     int_t m = S->row;
-    int_t *csccolumnPtr_tmp = S->columnpointer;
-    int_32t *cscrowIdx_tmp = S->rowindex;
+    pangulu_inblock_ptr *csccolumnPtr_tmp = S->columnpointer;
+    pangulu_inblock_idx *cscrowIdx_tmp = S->rowindex;
     calculate_type *cscVal_tmp = S->value_CSC;
     for (int_t vector_index = 0; vector_index < vector_number; vector_index++)
     {
@@ -56,7 +56,7 @@ void pangulu_spmv_cpu_xishu_csc(pangulu_Smatrix *S, pangulu_vector *X, pangulu_v
         {
             for (int_t j = csccolumnPtr_tmp[i]; j < csccolumnPtr_tmp[i + 1]; j++)
             {
-                int_32t row = cscrowIdx_tmp[j];
+                pangulu_inblock_idx row = cscrowIdx_tmp[j];
                 y[row] += cscVal_tmp[j] * x[i];
             }
         }

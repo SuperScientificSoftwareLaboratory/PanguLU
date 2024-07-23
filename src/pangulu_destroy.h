@@ -14,21 +14,21 @@
 
 pangulu_vector *pangulu_destroy_pangulu_vector(pangulu_vector *V)
 {
-    free(V->value);
+    pangulu_free(__FILE__, __LINE__, V->value);
     V->value = NULL;
-    free(V);
+    pangulu_free(__FILE__, __LINE__, V);
     return NULL;
 }
 
-pangulu_Smatrix *pangulu_destroy_part_pangulu_Smatrix(pangulu_Smatrix *S)
+pangulu_Smatrix *pangulu_destroy_part_pangulu_origin_Smatrix(pangulu_origin_Smatrix *S)
 {
-    free(S->rowpointer);
-    free(S->columnindex);
-    free(S->value);
+    pangulu_free(__FILE__, __LINE__, S->rowpointer);
+    pangulu_free(__FILE__, __LINE__, S->columnindex);
+    pangulu_free(__FILE__, __LINE__, S->value);
     S->rowpointer = NULL;
     S->columnindex = NULL;
     S->value = NULL;
-    free(S);
+    pangulu_free(__FILE__, __LINE__, S);
     return NULL;
 }
 
@@ -39,41 +39,41 @@ pangulu_Smatrix *pangulu_destroy_pangulu_Smatrix(pangulu_Smatrix *S)
     S->column = 0;
     if (S->columnpointer != NULL)
     {
-        free(S->columnpointer);
+        pangulu_free(__FILE__, __LINE__, S->columnpointer);
     }
     S->columnpointer = NULL;
     S->rowindex = NULL;
     S->value_CSC = NULL;
     if (S->rowpointer != NULL)
     {
-        free(S->rowpointer);
+        pangulu_free(__FILE__, __LINE__, S->rowpointer);
     }
     S->rowpointer = NULL;
     S->columnindex = NULL;
     S->value = NULL;
     if (S->bin_rowpointer != NULL)
     {
-        free(S->bin_rowpointer);
+        pangulu_free(__FILE__, __LINE__, S->bin_rowpointer);
     }
     S->bin_rowpointer = NULL;
     if (S->bin_rowindex != NULL)
     {
-        free(S->bin_rowindex);
+        pangulu_free(__FILE__, __LINE__, S->bin_rowindex);
     }
     S->bin_rowindex = NULL;
     if (S->nnzU != NULL)
     {
-        free(S->nnzU);
+        pangulu_free(__FILE__, __LINE__, S->nnzU);
     }
     S->nnzU = NULL;
     if (S->CSC_to_CSR_index != NULL)
     {
-        free(S->CSC_to_CSR_index);
+        pangulu_free(__FILE__, __LINE__, S->CSC_to_CSR_index);
     }
     S->CSC_to_CSR_index = NULL;
     if (S != NULL)
     {
-        free(S);
+        pangulu_free(__FILE__, __LINE__, S);
     }
     return NULL;
 }
@@ -85,15 +85,15 @@ pangulu_Smatrix *pangulu_destroy_copy_pangulu_Smatrix(pangulu_Smatrix *S)
     S->column = 0;
     if (S->value_CSC != NULL)
     {
-        free(S->value_CSC);
+        pangulu_free(__FILE__, __LINE__, S->value_CSC);
     }
     if (S->value != NULL)
     {
-        free(S->value);
+        pangulu_free(__FILE__, __LINE__, S->value);
     }
     if (S != NULL)
     {
-        free(S);
+        pangulu_free(__FILE__, __LINE__, S);
     }
     return NULL;
 }
@@ -105,49 +105,49 @@ pangulu_Smatrix *pangulu_destroy_big_pangulu_Smatrix(pangulu_Smatrix *S)
     S->column = 0;
     if (S->columnpointer != NULL)
     {
-        free(S->columnpointer);
+        pangulu_free(__FILE__, __LINE__, S->columnpointer);
     }
     S->columnpointer = NULL;
     S->rowindex = NULL;
     S->value_CSC = NULL;
     if (S->rowpointer != NULL)
     {
-        free(S->rowpointer);
+        pangulu_free(__FILE__, __LINE__, S->rowpointer);
     }
     S->rowpointer = NULL;
     if (S->columnindex != NULL)
     {
-        free(S->columnindex);
+        pangulu_free(__FILE__, __LINE__, S->columnindex);
     }
     S->columnindex = NULL;
     if (S->value != NULL)
     {
-        free(S->value);
+        pangulu_free(__FILE__, __LINE__, S->value);
     }
     S->value = NULL;
     if (S->bin_rowpointer != NULL)
     {
-        free(S->bin_rowpointer);
+        pangulu_free(__FILE__, __LINE__, S->bin_rowpointer);
     }
     S->bin_rowpointer = NULL;
     if (S->bin_rowindex != NULL)
     {
-        free(S->bin_rowindex);
+        pangulu_free(__FILE__, __LINE__, S->bin_rowindex);
     }
     S->bin_rowindex = NULL;
     if (S->nnzU != NULL)
     {
-        free(S->nnzU);
+        pangulu_free(__FILE__, __LINE__, S->nnzU);
     }
     S->nnzU = NULL;
     if (S->CSC_to_CSR_index != NULL)
     {
-        free(S->CSC_to_CSR_index);
+        pangulu_free(__FILE__, __LINE__, S->CSC_to_CSR_index);
     }
     S->CSC_to_CSR_index = NULL;
     if (S != NULL)
     {
-        free(S);
+        pangulu_free(__FILE__, __LINE__, S);
     }
     return NULL;
 }
@@ -161,27 +161,27 @@ pangulu_Smatrix *pangulu_destroy_calculate_pangulu_Smatrix_X(pangulu_Smatrix *S)
     S->rowindex = NULL;
     if (S->value_CSC != NULL)
     {
-        free(S->value_CSC);
+        pangulu_free(__FILE__, __LINE__, S->value_CSC);
     }
     S->value_CSC = NULL;
     S->rowpointer = NULL;
     S->columnindex = NULL;
     if (S->value != NULL)
     {
-        free(S->value);
+        pangulu_free(__FILE__, __LINE__, S->value);
     }
     S->value = NULL;
     if (S != NULL)
     {
-        free(S);
+        pangulu_free(__FILE__, __LINE__, S);
     }
     return NULL;
 }
 
 pangulu_common *pangulu_destroy_pangulu_common(pangulu_common *common)
 {
-    free(common->file_name);
-    free(common);
+    pangulu_free(__FILE__, __LINE__, common->file_name);
+    pangulu_free(__FILE__, __LINE__, common);
     return NULL;
 }
 
@@ -222,9 +222,9 @@ void pangulu_destroy_cuda_memory_pangulu_Smatrix(pangulu_Smatrix *S)
 #else
 void pangulu_destroy_Smatrix_level(pangulu_Smatrix *A)
 {
-    free(A->level_size);
+    pangulu_free(__FILE__, __LINE__, A->level_size);
     A->level_size = NULL;
-    free(A->level_idx);
+    pangulu_free(__FILE__, __LINE__, A->level_idx);
     A->level_idx = NULL;
     A->num_lev = 0;
 }
@@ -248,7 +248,7 @@ void pangulu_destroy(pangulu_block_common *block_common,
         int_t now_mapperA_offset = mapper_A[now_offset];
         if (now_mapperA_offset != -1 && block_Smatrix->real_matrix_flag[now_mapperA_offset] == 1)
         {
-            pangulu_destroy_Smatrix_level(block_Smatrix->Big_pangulu_Smatrix_value[now_mapperA_offset]);
+            pangulu_destroy_Smatrix_level(&block_Smatrix->Big_pangulu_Smatrix_value[now_mapperA_offset]);
         }
     }
 #endif
@@ -257,17 +257,15 @@ void pangulu_destroy(pangulu_block_common *block_common,
         if (mapper_A[i] != -1)
         {
 #ifdef GPU_OPEN
-            pangulu_destroy_cuda_memory_pangulu_Smatrix(block_Smatrix->Big_pangulu_Smatrix_value[mapper_A[i]]);
+            pangulu_destroy_cuda_memory_pangulu_Smatrix(&(block_Smatrix->Big_pangulu_Smatrix_value[mapper_A[i]]));
 #endif
-            // block_Smatrix->Big_pangulu_Smatrix_value[mapper_A[i]]=pangulu_destroy_big_pangulu_Smatrix(block_Smatrix->Big_pangulu_Smatrix_value[mapper_A[i]]);
-            free(block_Smatrix->Big_pangulu_Smatrix_value[mapper_A[i]]);
-            block_Smatrix->Big_pangulu_Smatrix_value[mapper_A[i]] = NULL;
             if (block_Smatrix->Big_pangulu_Smatrix_copy_value[mapper_A[i]] != NULL)
             {
                 block_Smatrix->Big_pangulu_Smatrix_copy_value[mapper_A[i]] = pangulu_destroy_copy_pangulu_Smatrix(block_Smatrix->Big_pangulu_Smatrix_copy_value[mapper_A[i]]);
             }
         }
     }
+    pangulu_free(__FILE__, __LINE__, block_Smatrix->blocks_current_rank);
 
     for (int_t i = 0; i < L_Smatrix_nzz * every_level_length; i++)
     {
@@ -296,7 +294,7 @@ void pangulu_destroy(pangulu_block_common *block_common,
             block_Smatrix->diagonal_Smatrix_U[index] = pangulu_destroy_pangulu_Smatrix(block_Smatrix->diagonal_Smatrix_U[index]);
         }
     }
-    // return ;
+
 #ifdef GPU_OPEN
     pangulu_cuda_free_interface(CUDA_B_idx_COL);
 
@@ -319,142 +317,152 @@ void pangulu_destroy(pangulu_block_common *block_common,
 
     block_Smatrix->heap = pangulu_destory_pangulu_heap(block_Smatrix->heap);
 
-    free(TEMP_A_value);
-    free(ssssm_col_ops_u);
-    free(ssssm_ops_pointer);
-    free(getrf_diagIndex_csc);
-    free(getrf_diagIndex_csr);
+    pangulu_free(__FILE__, __LINE__, TEMP_A_value);
+    pangulu_free(__FILE__, __LINE__, ssssm_col_ops_u);
+    pangulu_free(__FILE__, __LINE__, ssssm_ops_pointer);
+    pangulu_free(__FILE__, __LINE__, getrf_diagIndex_csc);
+    pangulu_free(__FILE__, __LINE__, getrf_diagIndex_csr);
 
-    free(block_Smatrix->row_perm);
+    pangulu_free(__FILE__, __LINE__, SSSSM_hash_LU);
+    pangulu_free(__FILE__, __LINE__, SSSSM_flag_LU);
+    pangulu_free(__FILE__, __LINE__, SSSSM_flag_L_row);
+    pangulu_free(__FILE__, __LINE__, SSSSM_hash_L_row);
+    pangulu_free(__FILE__, __LINE__, SSSSM_L_value);
+    pangulu_free(__FILE__, __LINE__, SSSSM_U_value);
+    pangulu_free(__FILE__, __LINE__, zip_rows);
+    pangulu_free(__FILE__, __LINE__, zip_cols);
+    pangulu_free(__FILE__, __LINE__, SSSSM_hash_U_col);
+
+    pangulu_free(__FILE__, __LINE__, block_Smatrix->row_perm);
     block_Smatrix->row_perm = NULL;
 
-    free(block_Smatrix->col_perm);
+    pangulu_free(__FILE__, __LINE__, block_Smatrix->col_perm);
     block_Smatrix->col_perm = NULL;
 
-    free(block_Smatrix->metis_perm);
+    pangulu_free(__FILE__, __LINE__, block_Smatrix->metis_perm);
     block_Smatrix->metis_perm = NULL;
 
-    free(block_Smatrix->row_scale);
+    pangulu_free(__FILE__, __LINE__, block_Smatrix->row_scale);
     block_Smatrix->row_scale = NULL;
 
-    free(block_Smatrix->col_scale);
+    pangulu_free(__FILE__, __LINE__, block_Smatrix->col_scale);
     block_Smatrix->col_scale = NULL;
 
-    free(block_Smatrix->mapper_Big_pangulu_Smatrix);
+    pangulu_free(__FILE__, __LINE__, block_Smatrix->mapper_Big_pangulu_Smatrix);
     block_Smatrix->mapper_Big_pangulu_Smatrix = NULL;
 
-    free(block_Smatrix->save_tmp);
+    pangulu_free(__FILE__, __LINE__, block_Smatrix->save_tmp);
     block_Smatrix->save_tmp = NULL;
 
-    free(block_Smatrix->block_Smatrix_nnzA_num);
+    pangulu_free(__FILE__, __LINE__, block_Smatrix->block_Smatrix_nnzA_num);
     block_Smatrix->block_Smatrix_nnzA_num = NULL;
 
-    free(block_Smatrix->block_Smatrix_non_zero_vector_L);
+    pangulu_free(__FILE__, __LINE__, block_Smatrix->block_Smatrix_non_zero_vector_L);
     block_Smatrix->block_Smatrix_non_zero_vector_L = NULL;
 
-    free(block_Smatrix->block_Smatrix_non_zero_vector_U);
+    pangulu_free(__FILE__, __LINE__, block_Smatrix->block_Smatrix_non_zero_vector_U);
     block_Smatrix->block_Smatrix_non_zero_vector_U = NULL;
 
-    free(block_Smatrix->Big_pangulu_Smatrix_value);
+    pangulu_free(__FILE__, __LINE__, block_Smatrix->Big_pangulu_Smatrix_value);
     block_Smatrix->Big_pangulu_Smatrix_value = NULL;
 
-    free(block_Smatrix->Big_pangulu_Smatrix_copy_value);
+    pangulu_free(__FILE__, __LINE__, block_Smatrix->Big_pangulu_Smatrix_copy_value);
     block_Smatrix->Big_pangulu_Smatrix_copy_value = NULL;
 
-    free(block_Smatrix->L_pangulu_Smatrix_columnpointer);
+    pangulu_free(__FILE__, __LINE__, block_Smatrix->L_pangulu_Smatrix_columnpointer);
     block_Smatrix->L_pangulu_Smatrix_columnpointer = NULL;
 
-    free(block_Smatrix->L_pangulu_Smatrix_rowindex);
+    pangulu_free(__FILE__, __LINE__, block_Smatrix->L_pangulu_Smatrix_rowindex);
     block_Smatrix->L_pangulu_Smatrix_rowindex = NULL;
 
-    free(block_Smatrix->L_pangulu_Smatrix_value);
+    pangulu_free(__FILE__, __LINE__, block_Smatrix->L_pangulu_Smatrix_value);
     block_Smatrix->L_pangulu_Smatrix_value = NULL;
 
-    free(block_Smatrix->U_pangulu_Smatrix_rowpointer);
+    pangulu_free(__FILE__, __LINE__, block_Smatrix->U_pangulu_Smatrix_rowpointer);
     block_Smatrix->U_pangulu_Smatrix_rowpointer = NULL;
     
-    free(block_Smatrix->U_pangulu_Smatrix_columnindex);
+    pangulu_free(__FILE__, __LINE__, block_Smatrix->U_pangulu_Smatrix_columnindex);
     block_Smatrix->U_pangulu_Smatrix_columnindex = NULL;
 
-    free(block_Smatrix->U_pangulu_Smatrix_value);
+    pangulu_free(__FILE__, __LINE__, block_Smatrix->U_pangulu_Smatrix_value);
     block_Smatrix->U_pangulu_Smatrix_value = NULL;
 
-    free(block_Smatrix->mapper_diagonal);
+    pangulu_free(__FILE__, __LINE__, block_Smatrix->mapper_diagonal);
     block_Smatrix->mapper_diagonal = NULL;
 
-    free(block_Smatrix->diagonal_Smatrix_L);
+    pangulu_free(__FILE__, __LINE__, block_Smatrix->diagonal_Smatrix_L);
     block_Smatrix->diagonal_Smatrix_L = NULL;
 
-    free(block_Smatrix->diagonal_Smatrix_U);
+    pangulu_free(__FILE__, __LINE__, block_Smatrix->diagonal_Smatrix_U);
     block_Smatrix->diagonal_Smatrix_U = NULL;
 
-    free(block_Smatrix->mapper_LU);
+    pangulu_free(__FILE__, __LINE__, block_Smatrix->mapper_LU);
     block_Smatrix->mapper_LU = NULL;
 
-    free(block_Smatrix->task_flag_id);
+    pangulu_free(__FILE__, __LINE__, block_Smatrix->task_flag_id);
     block_Smatrix->task_flag_id = NULL;
 
-    free(block_Smatrix->task_level_num);
+    pangulu_free(__FILE__, __LINE__, block_Smatrix->task_level_num);
     block_Smatrix->task_level_num = NULL;
 
-    free(block_Smatrix->now_level_L_length);
+    pangulu_free(__FILE__, __LINE__, block_Smatrix->now_level_L_length);
     block_Smatrix->now_level_L_length = NULL;
 
-    free(block_Smatrix->now_level_U_length);
+    pangulu_free(__FILE__, __LINE__, block_Smatrix->now_level_U_length);
     block_Smatrix->now_level_U_length = NULL;
 
-    free(block_Smatrix->save_now_level_L);
+    pangulu_free(__FILE__, __LINE__, block_Smatrix->save_now_level_L);
     block_Smatrix->save_now_level_L = NULL;
 
-    free(block_Smatrix->save_now_level_L);
+    pangulu_free(__FILE__, __LINE__, block_Smatrix->save_now_level_L);
     block_Smatrix->save_now_level_L = NULL;
 
-    free(block_Smatrix->send_flag);
+    pangulu_free(__FILE__, __LINE__, block_Smatrix->send_flag);
     block_Smatrix->send_flag = NULL;
 
-    free(block_Smatrix->send_diagonal_flag_L);
+    pangulu_free(__FILE__, __LINE__, block_Smatrix->send_diagonal_flag_L);
     block_Smatrix->send_diagonal_flag_L = NULL;
 
-    free(block_Smatrix->grid_process_id);
+    pangulu_free(__FILE__, __LINE__, block_Smatrix->grid_process_id);
     block_Smatrix->grid_process_id = NULL;
 
-    free(block_Smatrix->send_diagonal_flag_U);
+    pangulu_free(__FILE__, __LINE__, block_Smatrix->send_diagonal_flag_U);
     block_Smatrix->send_diagonal_flag_U = NULL;
 
-    free(block_Smatrix->save_send_rank_flag);
+    pangulu_free(__FILE__, __LINE__, block_Smatrix->save_send_rank_flag);
     block_Smatrix->save_send_rank_flag = NULL;
 
-    free(block_Smatrix->level_task_rank_id);
+    pangulu_free(__FILE__, __LINE__, block_Smatrix->level_task_rank_id);
     block_Smatrix->level_task_rank_id = NULL;
 
-    free(block_Smatrix->real_matrix_flag);
+    pangulu_free(__FILE__, __LINE__, block_Smatrix->real_matrix_flag);
     block_Smatrix->real_matrix_flag = NULL;
 
-    free(block_Smatrix->sum_flag_block_num);
+    pangulu_free(__FILE__, __LINE__, block_Smatrix->sum_flag_block_num);
     block_Smatrix->sum_flag_block_num = NULL;
 
-    free(block_Smatrix->level_index);
+    pangulu_free(__FILE__, __LINE__, block_Smatrix->level_index);
     block_Smatrix->level_index = NULL;
 
-    free(block_Smatrix->level_index_reverse);
+    pangulu_free(__FILE__, __LINE__, block_Smatrix->level_index_reverse);
     block_Smatrix->level_index_reverse = NULL;
     
-    free(block_Smatrix->flag_save_L);
+    pangulu_free(__FILE__, __LINE__, block_Smatrix->flag_save_L);
     block_Smatrix->flag_save_L=NULL;
     block_Smatrix->flag_save_U=NULL;
 
-    free(block_Smatrix->mapper_mpi);
+    pangulu_free(__FILE__, __LINE__, block_Smatrix->mapper_mpi);
     block_Smatrix->mapper_mpi = NULL;
 
-    free(block_Smatrix->mapper_mpi_reverse);
+    pangulu_free(__FILE__, __LINE__, block_Smatrix->mapper_mpi_reverse);
     block_Smatrix->mapper_mpi_reverse = NULL;
 
-    free(block_Smatrix->mpi_level_num);
+    pangulu_free(__FILE__, __LINE__, block_Smatrix->mpi_level_num);
     block_Smatrix->mpi_level_num = NULL;
 
-    free(block_Smatrix->flag_dignon_L);
+    pangulu_free(__FILE__, __LINE__, block_Smatrix->flag_dignon_L);
     block_Smatrix->flag_dignon_L=NULL;
-    free(block_Smatrix->flag_dignon_U);
+    pangulu_free(__FILE__, __LINE__, block_Smatrix->flag_dignon_U);
     block_Smatrix->flag_dignon_U=NULL;
     return ;    
     

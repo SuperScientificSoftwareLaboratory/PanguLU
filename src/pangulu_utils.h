@@ -1,8 +1,9 @@
 #ifndef PANGULU_UTILS_H
 #define PANGULU_UTILS_H
 
-#include "mmio.h"
-#include "mmio_highlevel.h"
+#include <cblas.h>
+// #include "mmio.h"
+// #include "mmio_highlevel.h"
 #include "pangulu_common.h"
 
 #include "pangulu_time.h"
@@ -11,47 +12,225 @@
 #include "pangulu_mpi.h"
 #include "pangulu_malloc.h"
 
+#include <omp.h>
+#include <pthread.h>
+#include <stdio.h>
+#include <unistd.h>
+// #include"pangulu_reorder.h"
+// #include "pangulu_interface.h"
+
 #ifdef GPU_OPEN
 #include "pangulu_cuda_interface.h"
 #endif
 
 #include <getopt.h>
 
-#define PANGULU_MAX(A, B) \
-    (((A) > (B)) ? (A) : (B))
-#define PANGULU_MIN(A, B) \
-    (((A) < (B)) ? (A) : (B))
-#define PANGULU_ABS(A) \
-    ((A > 0) ? (A) : (-A))
+void bind_to_core(int core)
+{
+    cpu_set_t cpuset;
+    CPU_ZERO(&cpuset);
+    CPU_SET(core, &cpuset);
 
-#define ZERO_ELEMENT 1e-12
+    if (pthread_setaffinity_np(pthread_self(), sizeof(cpuset), &cpuset) != 0)
+    {
+        perror("pthread_setaffinity_np error");
+    }
+}
+
+// bug fixed.
+void MPI_Barrier_asym(MPI_Comm comm, int wake_rank, unsigned long long awake_interval_us)
+{
+    int sum_rank_size = 0;
+    MPI_Comm_size(comm, &sum_rank_size);
+    if (RANK == wake_rank)
+    {
+        for (int i = 0; i < sum_rank_size; i++)
+        {
+            if (i != wake_rank)
+            {
+                MPI_Send(&sum_rank_size, 1, MPI_INT, i, 0xCAFE, comm);
+            }
+        }
+    }
+    else
+    {
+        int mpi_buf_int;
+        int mpi_flag = 0;
+        MPI_Status mpi_stat;
+        while (1)
+        {
+            mpi_flag = 0;
+            MPI_Iprobe(wake_rank, 0xCAFE, comm, &mpi_flag, &mpi_stat);
+            if (mpi_flag != 0 && mpi_stat.MPI_TAG == 0xCAFE)
+            {
+                MPI_Recv(&mpi_buf_int, 1, MPI_INT, wake_rank, 0xCAFE, comm, &mpi_stat);
+                if (mpi_buf_int == sum_rank_size)
+                {
+                    break;
+                }
+                else
+                {
+                    printf(PANGULU_E_ASYM);
+                    exit(2);
+                }
+            }
+            usleep(awake_interval_us);
+        }
+    }
+}
+
+double fabs(double _Complex x){
+    return sqrt(__real__(x)*__real__(x) + __imag__(x)*__imag__(x));
+}
+
+double _Complex log(double _Complex x){
+    double _Complex y;
+    __real__(y) = log(__real__(x)*__real__(x) + __imag__(x)*__imag__(x))/2;
+    __imag__(y) = atan(__imag__(x)/__real__(x));
+    return y;
+}
+
+double _Complex sqrt(double _Complex x){
+    double _Complex y;
+    __real__(y) = sqrt(fabs(x) + __real__(x))/sqrt(2);
+    __imag__(y) = (sqrt(fabs(x) - __real__(x))/sqrt(2))*(__imag__(x)>0?1:__imag__(x)==0?0:-1);
+    return y;
+}
+
+void exclusive_scan(int_t *input, int length)
+{
+    if (length == 0 || length == 1)
+        return;
+
+    int_t old_val, new_val;
+
+    old_val = input[0];
+    input[0] = 0;
+    for (int i = 1; i < length; i++)
+    {
+        new_val = input[i];
+        input[i] = old_val + input[i - 1];
+        old_val = new_val;
+    }
+}
+
+void exclusive_scan(int_32t *input, int length)
+{
+    if (length == 0 || length == 1)
+        return;
+
+    int_32t old_val, new_val;
+
+    old_val = input[0];
+    input[0] = 0;
+    for (int i = 1; i < length; i++)
+    {
+        new_val = input[i];
+        input[i] = old_val + input[i - 1];
+        old_val = new_val;
+    }
+}
+
+void exclusive_scan(unsigned int *input, int length)
+{
+    if (length == 0 || length == 1)
+        return;
+
+    unsigned int old_val, new_val;
+
+    old_val = input[0];
+    input[0] = 0;
+    for (int i = 1; i < length; i++)
+    {
+        new_val = input[i];
+        input[i] = old_val + input[i - 1];
+        old_val = new_val;
+    }
+}
+
+void swap_key(int_t *a, int_t *b)
+{
+    int_t tmp = *a;
+    if (a != NULL && b != NULL)
+    {
+        *a = *b;
+    }
+    if (b != NULL)
+    {
+        *b = tmp;
+    }
+}
+
+void swap_val(calculate_type *a, calculate_type *b)
+{
+    calculate_type tmp = *a;
+    if (a != NULL && b != NULL)
+    {
+        *a = *b;
+    }
+    if (b != NULL)
+    {
+        *b = tmp;
+    }
+}
+
+int BinaryLowerBound(int_t *arr, int len, int_t value)
+{
+    int left = 0;
+    int right = len;
+    int mid;
+    while (left < right)
+    {
+        mid = (left + right) >> 1;
+        // value <= arr[mid] ? (right = mid) : (left = mid + 1);
+        value < arr[mid] ? (right = mid) : (left = mid + 1);
+    }
+    return left;
+}
+
+int_t BinarySearch(int *arr, int_t left, int right, int_t target)
+{
+    int_t low = left;
+    int_t high = right;
+    int_t mid = 0;
+    while (low <= high)
+    {
+        mid = (low + high) / 2;
+        if (target < arr[mid])
+            high = mid - 1;
+        else if (target > arr[mid])
+            low = mid + 1;
+        else
+            return mid;
+    }
+    return -1;
+}
+
+int_t BinarySearch(int_t *arr, int_t left, int_t right, int_t target)
+{
+    int_t low = left;
+    int_t high = right;
+    int_t mid = 0;
+    while (low <= high)
+    {
+        mid = (low + high) / 2;
+        if (target < arr[mid])
+            high = mid - 1;
+        else if (target > arr[mid])
+            low = mid + 1;
+        else
+            return mid;
+    }
+    return -1;
+}
 
 void pangulu_get_common(pangulu_common *common,
-                        int_t ARGC, char **ARGV, int_32t size)
+                        pangulu_init_options *init_options, int_32t size)
 {
-    int_t c;
-    extern char *optarg;
-    common->NB = 0;
     common->P = 0;
     common->Q = 0;
     common->sum_rank_size = size;
-    common->omp_thread = 1;
-    while ((c = getopt(ARGC, ARGV, "NB:F:O:")) != EOF)
-    {
-        switch (c)
-        {
-        case 'B':
-            common->NB = atoi(optarg);
-            continue;
-        case 'O':
-            common->NB = atoi(optarg);
-            continue;
-        case 'F':
-            common->file_name = (char *)pangulu_malloc((strlen(optarg) + 10) * sizeof(char));
-            strcpy(common->file_name, optarg);
-            continue;
-        }
-    }
+    common->omp_thread = 64;
 
     int_t tmp_p = sqrt(common->sum_rank_size);
     while (((common->sum_rank_size) % tmp_p) != 0)
@@ -61,20 +240,9 @@ void pangulu_get_common(pangulu_common *common,
 
     common->P = tmp_p;
     common->Q = common->sum_rank_size / tmp_p;
-    if (common->rank == 0)
-    {
-        printf("MPI Processes %d NB is %d\n", common->P * common->Q, common->NB);
-        printf("Matrix is %s\n", common->file_name);
-        fflush(NULL);
-    }
-    if (common->sum_rank_size <= 0)
-    {
-        printf("error don't any process sum_rank_size is %d\n", common->sum_rank_size);
-        exit(2);
-    }
     if ((common->NB) == 0)
     {
-        printf("error the NB is 0\n");
+        printf(PANGULUSTR_E_NB_IS_ZERO);
         exit(4);
     }
 }
@@ -97,8 +265,6 @@ void pangulu_init_pangulu_block_Smatrix(pangulu_block_Smatrix *block_Smatrix)
     block_Smatrix->block_Smatrix_non_zero_vector_L = NULL;
     block_Smatrix->block_Smatrix_non_zero_vector_U = NULL;
     block_Smatrix->mapper_Big_pangulu_Smatrix = NULL;
-    block_Smatrix->Big_pangulu_Smatrix_rowpointer = NULL;
-    block_Smatrix->Big_pangulu_Smatrix_columnindex = NULL;
     block_Smatrix->Big_pangulu_Smatrix_value = NULL;
     block_Smatrix->Big_pangulu_Smatrix_copy_value = NULL;
     block_Smatrix->L_pangulu_Smatrix_columnpointer = NULL;
@@ -188,6 +354,8 @@ void pangulu_init_pangulu_Smatrix(pangulu_Smatrix *S)
     S->nnzU = NULL;
     S->bin_rowpointer = NULL;
     S->bin_rowindex = NULL;
+    S->zip_flag = 0;
+    S->zip_id = 0;
 
 #ifdef GPU_OPEN
     S->CUDA_rowpointer = NULL;
@@ -204,206 +372,52 @@ void pangulu_init_pangulu_Smatrix(pangulu_Smatrix *S)
 #endif
 }
 
-void pangulu_binary_write_csc_pangulu_Smatrix(pangulu_Smatrix *S, char *filename)
+void pangulu_init_pangulu_origin_Smatrix(pangulu_origin_Smatrix *S)
 {
-    int_t nnz = S->nnz;
-    int_t nrow = S->row;
-    int_t ncol = S->column;
-    int_t *columnpointer = S->columnpointer;
-    idx_int *rowindex = S->rowindex;
-    FILE *fp = fopen(filename, "w+");
-    if (fp != NULL)
-    {
-        fwrite(&nrow, sizeof(int_t), 1, fp);
-        fwrite(&ncol, sizeof(int_t), 1, fp);
-        fwrite(&nnz, sizeof(int_t), 1, fp);
-        fwrite(columnpointer, sizeof(int_t), nrow + 1, fp);
-        fwrite(rowindex, sizeof(idx_int), nnz, fp);
-    }
-    else
-    {
-        printf("open error\n");
-        return;
-    }
-    fclose(fp);
+    S->value = NULL;
+    S->value_CSC = NULL;
+    S->CSR_to_CSC_index = NULL;
+    S->CSC_to_CSR_index = NULL;
+    S->rowpointer = NULL;
+    S->columnindex = NULL;
+    S->columnpointer = NULL;
+    S->rowindex = NULL;
+    S->column = 0;
+    S->row = 0;
+    S->nnz = 0;
+
+    S->nnzU = NULL;
+    S->bin_rowpointer = NULL;
+    S->bin_rowindex = NULL;
+    S->zip_flag = 0;
+    S->zip_id = 0;
+
+#ifdef GPU_OPEN
+    S->CUDA_rowpointer = NULL;
+    S->CUDA_columnindex = NULL;
+    S->CUDA_value = NULL;
+    S->CUDA_nnzU = NULL;
+    S->CUDA_bin_rowpointer = NULL;
+    S->CUDA_bin_rowindex = NULL;
+#else
+    S->num_lev = 0;
+    S->level_idx = NULL;
+    S->level_size = NULL;
+
+#endif
 }
 
-void pangulu_binary_write_csc_value_pangulu_Smatrix(pangulu_Smatrix *S, char *filename)
-{
-    int_t nnz = S->nnz;
-    int_t nrow = S->row;
-    int_t ncol = S->column;
-    int_t *columnpointer = S->columnpointer;
-    idx_int *rowindex = S->rowindex;
-    calculate_type *value_CSC = S->value_CSC;
-    FILE *fp = fopen(filename, "w+");
-    if (fp != NULL)
-    {
-        fwrite(&nrow, sizeof(int_t), 1, fp);
-        fwrite(&ncol, sizeof(int_t), 1, fp);
-        fwrite(&nnz, sizeof(int_t), 1, fp);
-        fwrite(columnpointer, sizeof(int_t), nrow + 1, fp);
-        fwrite(rowindex, sizeof(idx_int), nnz, fp);
-        fwrite(value_CSC, sizeof(calculate_type), nnz, fp);
-    }
-    else
-    {
-        printf("open error\n");
-        return;
-    }
-
-    fclose(fp);
-}
-
-void pangulu_binary_write_csv_pangulu_Smatrix(pangulu_Smatrix *S, char *filename)
-{
-    int_t nnz = S->nnz;
-    int_t nrow = S->row;
-    int_t ncol = S->column;
-    printf("write binary file %s\n", filename);
-    int_t *rowpointer = S->rowpointer;
-    idx_int *columnindex = S->columnindex;
-    calculate_type *value = S->value;
-    FILE *fp = fopen(filename, "w+");
-    if (fp != NULL)
-    {
-        printf("write nrow is %ld ncol is %ld nnz is %ld\n", nrow, ncol, nnz);
-        fwrite(&nrow, sizeof(int_t), 1, fp);
-        fwrite(&ncol, sizeof(int_t), 1, fp);
-        fwrite(&nnz, sizeof(int_t), 1, fp);
-        fwrite(rowpointer, sizeof(int_t), nrow + 1, fp);
-        fwrite(columnindex, sizeof(idx_int), nnz, fp);
-        fwrite(value, sizeof(calculate_type), nnz, fp);
-    }
-    else
-    {
-        printf("open error\n");
-        return;
-    }
-
-    fclose(fp);
-}
-
-int_t pangulu_binary_read_csv_pangulu_Smatrix(pangulu_Smatrix *S, char *filename)
-{
-    int_t nrow, ncol;
-    int_t nnz;
-    FILE *fp = NULL;
-    fp = fopen(filename, "r");
-    if (fp == NULL)
-    {
-        return -1;
-    }
-    if (1 != fread(&nrow, sizeof(int_t), 1, fp))
-    {
-        printf("read nrow error\n");
-        return -1;
-    }
-
-    if (1 != fread(&ncol, sizeof(int_t), 1, fp))
-    {
-        printf("read ncol error\n");
-        return -1;
-    }
-    if (1 != fread(&nnz, sizeof(int_t), 1, fp))
-    {
-        printf("read nnz error\n");
-        return -1;
-    }
-    int_t *rowpointer = (int_t *)pangulu_malloc(sizeof(int_t) * (nrow + 1));
-    if ((unsigned int_t)(nrow + 1) != fread(rowpointer, sizeof(int_t), nrow + 1, fp))
-    {
-        printf("read rowptr error\n");
-        return -1;
-    }
-    // printf("nnz = %ld\n",nnz);
-    idx_int *columnindex = (idx_int *)pangulu_malloc(sizeof(idx_int) * nnz);
-    calculate_type *value = (calculate_type *)pangulu_malloc(sizeof(calculate_type) * nnz);
-
-    if ((unsigned int_t)nnz != fread(columnindex, sizeof(idx_int), nnz, fp))
-    {
-        printf("read columnindex error\n");
-        return -1;
-    }
-    if ((unsigned int_t)nnz != fread(value, sizeof(calculate_type), nnz, fp))
-    {
-        printf("read value error\n");
-        return -1;
-    }
-
-    S->row = nrow;
-    S->column = ncol;
-    S->rowpointer = rowpointer;
-    S->columnindex = columnindex;
-    S->value = value;
-    S->nnz = nnz;
-    fclose(fp);
-
-    return 0;
-}
-
-void pangulu_read_pangulu_Smatrix(pangulu_Smatrix *S,
-                                  char *filename)
+void pangulu_read_pangulu_origin_Smatrix(pangulu_origin_Smatrix *S, int wcs_n, long long wcs_nnz, long *csr_rowptr, int *csr_colidx, calculate_type *csr_value)
 {
     int_t isSymmeticeR;
     int_t nnz;
     int_t nrow, ncol;
-    char binary_name[512];
-    int_t file_length = strlen(filename);
-    strcpy(binary_name, filename);
-    binary_name[file_length - 1] = 'v';
-    binary_name[file_length - 2] = 's';
-    binary_name[file_length - 3] = 't';
-    int_t flag = pangulu_binary_read_csv_pangulu_Smatrix(S, binary_name);
-    if (flag == -1)
-    {
-        // printf("matrix is %s\n",filename);
-        mmio_info(&nrow, &ncol, &nnz, &isSymmeticeR, filename);
-        int_t *rowpointer = (int_t *)pangulu_malloc(sizeof(int_t) * (nrow + 1));
-        idx_int *columnindex = (idx_int *)pangulu_malloc(sizeof(idx_int) * nnz);
-        VALUE_TYPE *save_value = (VALUE_TYPE *)pangulu_malloc(sizeof(VALUE_TYPE) * nnz);
-        mmio_data_csr(rowpointer, columnindex, save_value, filename);
-        S->row = nrow;
-        S->column = ncol;
-        S->rowpointer = rowpointer;
-        S->columnindex = columnindex;
-        calculate_type *value = (calculate_type *)pangulu_malloc(sizeof(calculate_type) * nnz);
-        for (int_t i = 0; i < nnz; i++)
-        {
-            value[i] = (calculate_type)(save_value[i]);
-        }
-        free(save_value);
-        S->nnz = nnz;
-        S->value = value;
-        pangulu_binary_write_csv_pangulu_Smatrix(S, binary_name);
-    }
-}
-
-void pangulu_write_pangulu_Smatrix(pangulu_Smatrix *S, char *string)
-{
-
-    FILE *fp = fopen(string, "w+");
-
-    if (fp == NULL)
-    {
-        printf("eeror the file don't open\n");
-        return;
-    }
-    int_t column = S->column;
-    int_t row = S->row;
-    fprintf(fp, "%%%%MatrixMarket matrix coordinate real general\n");
-    fprintf(fp, "%ld ", row);
-    fprintf(fp, "%ld ", column);
-    fprintf(fp, "%ld\n", S->rowpointer[row]);
-
-    for (int_t i = 0; i < row; i++)
-    {
-        for (int_t j = S->rowpointer[i]; j < S->rowpointer[i + 1]; j++)
-        {
-            fprintf(fp, "%d %ld %f\n", S->columnindex[j] + 1, i + 1, S->value[j]);
-        }
-    }
-    fclose(fp);
+    S->row = wcs_n;
+    S->column = wcs_n;
+    S->rowpointer = csr_rowptr;
+    S->columnindex = csr_colidx;
+    S->nnz = wcs_nnz;
+    S->value = csr_value;
 }
 
 void pangulu_time_start(pangulu_common *common)
@@ -422,42 +436,7 @@ int_t pangulu_mapper_A_Smatrix(int_t row, int_t col, int_t *mapper_A, int_t col_
     return mapper_index;
 }
 
-void pangulu_display_pangulu_Smatrix(pangulu_Smatrix *S)
-{
-    printf("------------------\n\n\n");
-    if (S == NULL)
-    {
-        printf("\nno i am null\n");
-        return;
-    }
-    printf("row is %ld column is %ld\n", S->row, S->column);
-    printf("rowpointer:");
-    for (int_t i = 0; i < S->row + 1; i++)
-    {
-        printf("%ld ", S->rowpointer[i]);
-    }
-    printf("\n");
-    printf("columnindex:\n");
-    for (int_t i = 0; i < S->row; i++)
-    {
-        for (int_t j = S->rowpointer[i]; j < S->rowpointer[i + 1]; j++)
-        {
-            printf("%d ", S->columnindex[j]);
-        }
-        printf("\n");
-    }
-    printf("\n");
-    printf("value:\n");
-    for (int_t i = 0; i < S->row; i++)
-    {
-        for (int_t j = S->rowpointer[i]; j < S->rowpointer[i + 1]; j++)
-        {
-            printf("%lf ", S->value[j]);
-        }
-        printf("\n");
-    }
-    printf("\n\n\n--------------------");
-}
+
 void pangulu_memcpy_zero_pangulu_Smatrix_CSC_value(pangulu_Smatrix *S)
 {
     for (int_t i = 0; i < S->nnz; i++)
@@ -484,7 +463,7 @@ void pangulu_display_pangulu_Smatrix_CSC(pangulu_Smatrix *S)
     printf("columnpointer:");
     for (int_t i = 0; i < S->row + 1; i++)
     {
-        printf("%ld ", S->columnpointer[i]);
+        printf("%u ", S->columnpointer[i]);
     }
     printf("\n");
     printf("rowindex:\n");
@@ -492,7 +471,7 @@ void pangulu_display_pangulu_Smatrix_CSC(pangulu_Smatrix *S)
     {
         for (int_t j = S->columnpointer[i]; j < S->columnpointer[i + 1]; j++)
         {
-            printf("%d ", S->rowindex[j]);
+            printf("%hu ", S->rowindex[j]);
         }
         printf("\n");
     }
@@ -500,7 +479,6 @@ void pangulu_display_pangulu_Smatrix_CSC(pangulu_Smatrix *S)
     printf("value_csc:\n");
     for (int_t i = 0; i < S->row; i++)
     {
-        // printf("i %ld\n",i);
         for (int_t j = S->columnpointer[i]; j < S->columnpointer[i + 1]; j++)
         {
             printf("%lf ", S->value_CSC[j]);
@@ -508,15 +486,6 @@ void pangulu_display_pangulu_Smatrix_CSC(pangulu_Smatrix *S)
         printf("\n");
     }
     printf("\n\n\n--------------------");
-}
-
-void pangulu_display_pangulu_vector(pangulu_vector *V)
-{
-    printf("this vector length is %ld\n", V->row);
-    for (int_t i = 0; i < V->row; i++)
-    {
-        printf("%ld %lf\n", i, V->value[i]);
-    }
 }
 
 double pangulu_get_spend_time(pangulu_common *common)
@@ -586,7 +555,7 @@ void pangulu_pangulu_Smatrix_memcpy_struct_CSC(pangulu_Smatrix *S, pangulu_Smatr
 
 void pangulu_pangulu_Smatrix_memcpy_columnpointer_CSC(pangulu_Smatrix *S, pangulu_Smatrix *copy_S)
 {
-    memcpy(S->columnpointer, copy_S->columnpointer, sizeof(int_t) * (copy_S->row + 1));
+    memcpy(S->columnpointer, copy_S->columnpointer, sizeof(pangulu_inblock_ptr) * (copy_S->row + 1));
 }
 
 void pangulu_pangulu_Smatrix_memcpy_value_CSC(pangulu_Smatrix *S, pangulu_Smatrix *copy_S)
@@ -622,6 +591,24 @@ void pangulu_pangulu_Smatrix_multiple_pangulu_vector_CSR(pangulu_Smatrix *A,
     }
 }
 
+void pangulu_origin_Smatrix_multiple_pangulu_vector_CSR(pangulu_origin_Smatrix *A,
+                                                        pangulu_vector *X,
+                                                        pangulu_vector *B)
+{
+    int_t n = A->row;
+    calculate_type *X_value = X->value;
+    calculate_type *B_value = B->value;
+    for (int_t i = 0; i < n; i++)
+    {
+        B_value[i] = 0.0;
+        for (int_t j = A->rowpointer[i]; j < A->rowpointer[i + 1]; j++)
+        {
+            int_t col = A->columnindex[j];
+            B_value[i] += A->value[j] * X_value[col];
+        }
+    }
+}
+
 void pangulu_pangulu_Smatrix_multiple_pangulu_vector(pangulu_Smatrix *A,
                                                      pangulu_vector *X,
                                                      pangulu_vector *B)
@@ -629,7 +616,8 @@ void pangulu_pangulu_Smatrix_multiple_pangulu_vector(pangulu_Smatrix *A,
     int_t n = A->row;
     calculate_type *X_value = X->value;
     calculate_type *B_value = B->value;
-    for(int_t i = 0 ; i < n; i++){
+    for (int_t i = 0; i < n; i++)
+    {
         B_value[i] = 0.0;
     }
     for (int_t i = 0; i < n; i++)
@@ -689,57 +677,20 @@ void pangulu_pangulu_Smatrix_multiply_block_pangulu_vector_CSC(pangulu_Smatrix *
     }
 }
 
-void pangulu_read_pangulu_vector(pangulu_vector *X, int_t n, char *filename)
-{
-    FILE *fp;
-    if (filename != NULL)
-    {
-        fp = fopen(filename, "r");
-        if (fp != NULL)
-        {
-            int_t vector_n = 0;
-            int rt = fscanf(fp, "%ld", &vector_n);
-            if (vector_n >= n)
-            {
-                printf("read vector is %s\n", filename);
-                X->value = (calculate_type *)pangulu_malloc(sizeof(calculate_type) * n);
-                for (int_t i = 0; i < n; i++)
-                {
-                    rt = fscanf(fp, "%lf", &(X->value[i]));
-                }
-                X->row = n;
-                fclose(fp);
-                return;
-            }
-            else
-            {
-                printf("read vector is %s row is %ld don't have enough element\n", filename, vector_n);
-                fclose(fp);
-            }
-        }
-    }
-    X->value = (calculate_type *)pangulu_malloc(sizeof(calculate_type) * n);
-    for (int_t i = 0; i < n; i++)
-    {
-        X->value[i] = 2.0;
-    }
-    X->row = n;
-}
-
 void pangulu_get_init_value_pangulu_vector(pangulu_vector *X, int_t n)
 {
-    X->value = (calculate_type *)pangulu_malloc(sizeof(calculate_type) * n);
+    X->value = (calculate_type *)pangulu_malloc(__FILE__, __LINE__, sizeof(calculate_type) * n);
     for (int_t i = 0; i < n; i++)
     {
-       //X->value[i] = (calculate_type)i;
-       X->value[i] = 2.0;
+        // X->value[i] = (calculate_type)i;
+        X->value[i] = 2.0;
     }
     X->row = n;
 }
 
 void pangulu_init_pangulu_vector(pangulu_vector *B, int_t n)
 {
-    B->value = (calculate_type *)pangulu_malloc(sizeof(calculate_type) * n);
+    B->value = (calculate_type *)pangulu_malloc(__FILE__, __LINE__, sizeof(calculate_type) * n);
     for (int_t i = 0; i < n; i++)
     {
         B->value[i] = (calculate_type)0.0;
@@ -756,78 +707,90 @@ void pangulu_zero_pangulu_vector(pangulu_vector *v)
     }
 }
 
-void pangulu_add_diagonal_element(pangulu_Smatrix *S){
-        int_t diagonal_add=0;
-        int_t n=S->row;
-        int_t *new_rowpointer=(int_t *)pangulu_malloc(sizeof(int_t)*(n+5));
-        for(int_t i=0;i<n;i++){
-            int_t flag=0;
-            for(int_t j=S->rowpointer[i];j<S->rowpointer[i+1];j++){
-                if(S->columnindex[j]==i){
-                    flag=1;
-                    break;
-                }
-            }
-            new_rowpointer[i]=S->rowpointer[i]+diagonal_add;
-            diagonal_add+=(!flag);
-        }
-        // if(diagonal_add==0){
-        //     free(new_rowpointer);
-        //     return ;
-        // }
-        new_rowpointer[n]=S->rowpointer[n]+diagonal_add;
-        
-        int_32t *new_columnindex=(int_32t *)pangulu_malloc(sizeof(int_32t)*new_rowpointer[n]);
-        calculate_type *new_value=(calculate_type *)pangulu_malloc(sizeof(calculate_type)*new_rowpointer[n]);
-        
-        for(int_t i=0;i<n;i++){
-            if((new_rowpointer[i+1]-new_rowpointer[i])==(S->rowpointer[i+1]-S->rowpointer[i])){
-                for(int_t j=new_rowpointer[i],k=S->rowpointer[i];j<new_rowpointer[i+1];j++,k++){
-                    new_columnindex[j]=S->columnindex[k];
-                    new_value[j]=S->value[k];
-                }
-            }
-            else{
-                int_t flag=0;
-                for(int_t j=new_rowpointer[i],k=S->rowpointer[i];k<S->rowpointer[i+1];j++,k++){
-                    if(S->columnindex[k]<i){
-                        new_columnindex[j]=S->columnindex[k];
-                        new_value[j]=S->value[k];
-                    }
-                    else if(S->columnindex[k]>i){
-                        if(flag==0){
-                            new_columnindex[j]=i;
-                            new_value[j]=ZERO_ELEMENT;
-                            k--;
-                            flag=1;
-                        }
-                        else{
-                            new_columnindex[j]=S->columnindex[k];
-                            new_value[j]=S->value[k];
-                        }
-                        
-                    }
-                    else{
-                        printf("error\n");
-                    }
-                    
-                }
-                if(flag==0){
-                    new_columnindex[new_rowpointer[i+1]-1]=i;
-                    new_value[new_rowpointer[i+1]-1]=ZERO_ELEMENT;
-                }
+void pangulu_add_diagonal_element(pangulu_origin_Smatrix *S)
+{
+    int_t diagonal_add = 0;
+    int_t n = S->row;
+    int_t *new_rowpointer = (int_t *)pangulu_malloc(__FILE__, __LINE__, sizeof(int_t) * (n + 5));
+    for (int_t i = 0; i < n; i++)
+    {
+        int_t flag = 0;
+        for (int_t j = S->rowpointer[i]; j < S->rowpointer[i + 1]; j++)
+        {
+            if (S->columnindex[j] == i)
+            {
+                flag = 1;
+                break;
             }
         }
+        new_rowpointer[i] = S->rowpointer[i] + diagonal_add;
+        diagonal_add += (!flag);
+    }
+    // if(diagonal_add==0){
+    //     pangulu_free(__FILE__, __LINE__, new_rowpointer);
+    //     return ;
+    // }
+    new_rowpointer[n] = S->rowpointer[n] + diagonal_add;
 
-        free(S->rowpointer);
-        free(S->columnindex);
-        free(S->value);
-        S->rowpointer=new_rowpointer;
-        S->columnindex=new_columnindex;
-        S->value=new_value;
-        S->nnz=new_rowpointer[n];
+    int_32t *new_columnindex = (int_32t *)pangulu_malloc(__FILE__, __LINE__, sizeof(int_32t) * new_rowpointer[n]);
+    calculate_type *new_value = (calculate_type *)pangulu_malloc(__FILE__, __LINE__, sizeof(calculate_type) * new_rowpointer[n]);
+
+    for (int_t i = 0; i < n; i++)
+    {
+        if ((new_rowpointer[i + 1] - new_rowpointer[i]) == (S->rowpointer[i + 1] - S->rowpointer[i]))
+        {
+            for (int_t j = new_rowpointer[i], k = S->rowpointer[i]; j < new_rowpointer[i + 1]; j++, k++)
+            {
+                new_columnindex[j] = S->columnindex[k];
+                new_value[j] = S->value[k];
+            }
+        }
+        else
+        {
+            int_t flag = 0;
+            for (int_t j = new_rowpointer[i], k = S->rowpointer[i]; k < S->rowpointer[i + 1]; j++, k++)
+            {
+                if (S->columnindex[k] < i)
+                {
+                    new_columnindex[j] = S->columnindex[k];
+                    new_value[j] = S->value[k];
+                }
+                else if (S->columnindex[k] > i)
+                {
+                    if (flag == 0)
+                    {
+                        new_columnindex[j] = i;
+                        new_value[j] = ZERO_ELEMENT;
+                        k--;
+                        flag = 1;
+                    }
+                    else
+                    {
+                        new_columnindex[j] = S->columnindex[k];
+                        new_value[j] = S->value[k];
+                    }
+                }
+                else
+                {
+                    printf(PANGULU_E_ADD_DIA);
+                }
+            }
+            if (flag == 0)
+            {
+                new_columnindex[new_rowpointer[i + 1] - 1] = i;
+                new_value[new_rowpointer[i + 1] - 1] = ZERO_ELEMENT;
+            }
+        }
     }
 
+    pangulu_free(__FILE__, __LINE__, S->rowpointer);
+    pangulu_free(__FILE__, __LINE__, S->columnindex);
+    pangulu_free(__FILE__, __LINE__, S->value);
+    S->rowpointer = new_rowpointer;
+    S->columnindex = new_columnindex;
+    S->value = new_value;
+    S->nnz = new_rowpointer[n];
+}
 
 void pangulu_send_pangulu_vector_value(pangulu_vector *S,
                                        int_t send_id, int_t signal, int_t vector_length)
@@ -1049,6 +1012,13 @@ void swap_index(int32_t *a, int32_t *b)
     *b = tmp;
 }
 
+void swap_index(pangulu_inblock_idx *a, pangulu_inblock_idx *b)
+{
+    pangulu_inblock_idx tmp = *a;
+    *a = *b;
+    *b = tmp;
+}
+
 void pangulu_sort(int32_t *key, calculate_type *val, int_t start, int_t end)
 {
     int_t pivot;
@@ -1120,14 +1090,57 @@ void pangulu_sort_struct(int32_t *key, int_t start, int_t end)
     }
 }
 
-void pangulu_sort_pangulu_matrix(int_t n, int_t *rowpointer, int_32t *columnindex)
+void pangulu_sort_struct(pangulu_inblock_idx *key, int_t start, int_t end)
+{
+    int_t pivot;
+    int_t i, j, k;
+
+    if (start < end)
+    {
+        k = choose_pivot(start, end);
+        swap_index(&key[start], &key[k]);
+        pivot = key[start];
+
+        i = start + 1;
+        j = end;
+        while (i <= j)
+        {
+            while ((i <= end) && (key[i] <= pivot))
+                i++;
+            while ((j >= start) && (key[j] > pivot))
+                j--;
+            if (i < j)
+            {
+                swap_index(&key[i], &key[j]);
+            }
+        }
+
+        // swap two elements
+        swap_index(&key[start], &key[j]);
+
+        // recursively sort the lesser key
+        pangulu_sort_struct(key, start, j - 1);
+        pangulu_sort_struct(key, j + 1, end);
+    }
+}
+
+// void pangulu_sort_pangulu_matrix(int_t n, int_t *rowpointer, pangulu_inblock_idx *columnindex)
+// {
+//     for (int_t i = 0; i < n; i++)
+//     {
+//         pangulu_sort_struct(columnindex, rowpointer[i], rowpointer[i + 1] - 1);
+//     }
+// }
+
+void pangulu_sort_pangulu_matrix(int_t n, int_t *rowpointer, idx_int *columnindex)
 {
     for (int_t i = 0; i < n; i++)
     {
         pangulu_sort_struct(columnindex, rowpointer[i], rowpointer[i + 1] - 1);
     }
 }
-void pangulu_sort_pangulu_matrix(pangulu_Smatrix *S)
+
+void pangulu_sort_pangulu_origin_Smatrix(pangulu_origin_Smatrix *S)
 {
     for (int_t i = 0; i < S->row; i++)
     {
@@ -1135,7 +1148,7 @@ void pangulu_sort_pangulu_matrix(pangulu_Smatrix *S)
     }
 }
 #ifdef GPU_OPEN
-void TRIANGLE_PRE_CPU(idx_int *L_rowindex,
+void TRIANGLE_PRE_CPU(pangulu_inblock_idx *L_rowindex,
                       const int_t n,
                       const int_t nnzL,
                       int *d_graphInDegree)

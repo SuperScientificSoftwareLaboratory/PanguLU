@@ -1,19 +1,18 @@
 #include "pangulu_cuda.h"
-#define zjwerror 1e-15
 
 #ifndef SUBSTITUTION_FORWARD
 #define SUBSTITUTION_FORWARD 1
 #endif
 
 __global__ void GESSM_Kernel_v2(int_t n,
-                                int_t *L_columnpointer,
-                                idx_int *L_rowindex,
+                                pangulu_inblock_ptr *L_columnpointer,
+                                pangulu_inblock_idx *L_rowindex,
                                 calculate_type *L_VALUE,
-                                int_t *X_columnpointer,
-                                idx_int *X_rowindex,
+                                pangulu_inblock_ptr *X_columnpointer,
+                                pangulu_inblock_idx *X_rowindex,
                                 calculate_type *X_VALUE,
-                                int_t *A_columnpointer,
-                                idx_int *A_rowindex,
+                                pangulu_inblock_ptr *A_columnpointer,
+                                pangulu_inblock_idx *A_rowindex,
                                 calculate_type *A_VALUE)
 {
     int_t warp_id = (blockDim.x * blockIdx.x + threadIdx.x) / 32;
@@ -41,7 +40,7 @@ __global__ void GESSM_Kernel_v2(int_t n,
             int_t colL2 = L_columnpointer[rowX + 1];
             for (int_t j = colL1 + 1 + lane_id, p = lane_id; j < colL2; j += WARP_SIZE, p += WARP_SIZE)
             {
-                idx_int f = binarySearch_idx(A_rowindex, colA1 + 1 + t + p, colA2 - colL2 + j, L_rowindex[j]);
+                pangulu_inblock_idx f = binarySearch_idx(A_rowindex, colA1 + 1 + t + p, colA2 - colL2 + j, L_rowindex[j]);
                 A_VALUE[f] -= valx * L_VALUE[j];
             }
             __syncthreads();
@@ -49,10 +48,10 @@ __global__ void GESSM_Kernel_v2(int_t n,
     }
     else
     {
-        __shared__ idx_int s_rowidxA[SM_LEN_DGESSM * WARP_PER_BLOCK_DGESSM];
+        __shared__ pangulu_inblock_idx s_rowidxA[SM_LEN_DGESSM * WARP_PER_BLOCK_DGESSM];
         __shared__ calculate_type s_valueA[SM_LEN_DGESSM * WARP_PER_BLOCK_DGESSM];
 
-        idx_int *idx_local = &s_rowidxA[warp_local_id * SM_LEN_DGESSM];
+        pangulu_inblock_idx *idx_local = &s_rowidxA[warp_local_id * SM_LEN_DGESSM];
         calculate_type *val_local = &s_valueA[warp_local_id * SM_LEN_DGESSM];
 
         for (int_t i = lane_id; i < colA2 - colA1; i += WARP_SIZE)
@@ -72,7 +71,7 @@ __global__ void GESSM_Kernel_v2(int_t n,
             for (int_t j = colL1 + 1 + lane_id, p = lane_id; j < colL2; j += WARP_SIZE, p += WARP_SIZE)
             {
                 // update A's Value;
-                idx_int f = binarySearch_idx(idx_local, 1 + t + p, colA2 - colA1 - colL2 + j, L_rowindex[j]);
+                pangulu_inblock_idx f = binarySearch_idx(idx_local, 1 + t + p, colA2 - colA1 - colL2 + j, L_rowindex[j]);
                 if (f != -1)
                     val_local[f] -= valx * L_VALUE[j];
             }
@@ -87,14 +86,14 @@ __global__ void GESSM_Kernel_v2(int_t n,
 }
 
 __global__ void GESSM_Kernel_v3(int_t n,
-                                int_t *L_columnpointer,
-                                idx_int *L_rowindex,
+                                pangulu_inblock_ptr *L_columnpointer,
+                                pangulu_inblock_idx *L_rowindex,
                                 calculate_type *L_VALUE,
-                                int_t *X_columnpointer,
-                                idx_int *X_rowindex,
+                                pangulu_inblock_ptr *X_columnpointer,
+                                pangulu_inblock_idx *X_rowindex,
                                 calculate_type *X_VALUE,
-                                int_t *A_columnpointer,
-                                idx_int *A_rowindex,
+                                pangulu_inblock_ptr *A_columnpointer,
+                                pangulu_inblock_idx *A_rowindex,
                                 calculate_type *A_VALUE)
 {
 
@@ -122,7 +121,7 @@ __global__ void GESSM_Kernel_v3(int_t n,
             for (int_t j = colL1 + 1 + threadIdx.x, p = threadIdx.x; j < colL2; j += blockDim.x, p += blockDim.x)
             {
                 // update A's Value;
-                idx_int f = binarySearch_idx(A_rowindex, colA1 + 1 + t + p, colA2 - colL2 + j, L_rowindex[j]);
+                pangulu_inblock_idx f = binarySearch_idx(A_rowindex, colA1 + 1 + t + p, colA2 - colL2 + j, L_rowindex[j]);
                 A_VALUE[f] -= valx * L_VALUE[j];
             }
             __syncthreads();
@@ -130,7 +129,7 @@ __global__ void GESSM_Kernel_v3(int_t n,
     }
     else
     {
-        __shared__ idx_int s_idxA[SM_LEN_DGESSM];
+        __shared__ pangulu_inblock_idx s_idxA[SM_LEN_DGESSM];
         __shared__ calculate_type s_valA[SM_LEN_DGESSM];
 
         for (int_t i = threadIdx.x; i < colA2 - colA1; i += blockDim.x)
@@ -152,7 +151,7 @@ __global__ void GESSM_Kernel_v3(int_t n,
             for (int_t j = colL1 + 1 + threadIdx.x, p = threadIdx.x; j < colL2; j += blockDim.x, p += blockDim.x)
             {
                 // update A's Value;
-                idx_int f = binarySearch_idx(s_idxA, 1 + t + p, colA2 - colA1 - colL2 + j, L_rowindex[j]);
+                pangulu_inblock_idx f = binarySearch_idx(s_idxA, 1 + t + p, colA2 - colA1 - colL2 + j, L_rowindex[j]);
                 s_valA[f] -= valx * L_VALUE[j];
             }
             __syncthreads();
@@ -167,14 +166,14 @@ __global__ void GESSM_Kernel_v3(int_t n,
 }
 
 __global__ void TSTRF_Kernel_v2(int_t n,
-                                int_t *U_rowpointer,
-                                idx_int *U_columnindex,
+                                pangulu_inblock_ptr *U_rowpointer,
+                                pangulu_inblock_idx *U_columnindex,
                                 calculate_type *U_VALUE,
-                                int_t *X_rowpointer,
-                                idx_int *X_columnindex,
+                                pangulu_inblock_ptr *X_rowpointer,
+                                pangulu_inblock_idx *X_columnindex,
                                 calculate_type *X_VALUE,
-                                int_t *A_rowpointer,
-                                idx_int *A_columnindex,
+                                pangulu_inblock_ptr *A_rowpointer,
+                                pangulu_inblock_idx *A_columnindex,
                                 calculate_type *A_VALUE)
 {
     int_t warp_id = (blockDim.x * blockIdx.x + threadIdx.x) / 32;
@@ -202,7 +201,7 @@ __global__ void TSTRF_Kernel_v2(int_t n,
             for (int_t j = colU1 + 1 + lane_id, p = lane_id; j < colU2; j += WARP_SIZE, p += WARP_SIZE)
             {
                 // update A's Value;
-                idx_int f = binarySearch_idx(A_columnindex, colA1 + t + 1 + p, colA2 - colU2 + j, U_columnindex[j]);
+                pangulu_inblock_idx f = binarySearch_idx(A_columnindex, colA1 + t + 1 + p, colA2 - colU2 + j, U_columnindex[j]);
                 A_VALUE[f] -= valx * U_VALUE[j];
             }
             __syncthreads();
@@ -210,10 +209,10 @@ __global__ void TSTRF_Kernel_v2(int_t n,
     }
     else
     {
-        __shared__ idx_int s_rowidxA[SM_LEN_DTSTRF * WARP_PER_BLOCK_DTSTRF];
+        __shared__ pangulu_inblock_idx s_rowidxA[SM_LEN_DTSTRF * WARP_PER_BLOCK_DTSTRF];
         __shared__ calculate_type s_valueA[SM_LEN_DTSTRF * WARP_PER_BLOCK_DTSTRF];
 
-        idx_int *idx_local = &s_rowidxA[warp_local_id * SM_LEN_DTSTRF];
+        pangulu_inblock_idx *idx_local = &s_rowidxA[warp_local_id * SM_LEN_DTSTRF];
         calculate_type *val_local = &s_valueA[warp_local_id * SM_LEN_DTSTRF];
 
         for (int_t i = lane_id; i < colA2 - colA1; i += WARP_SIZE)
@@ -233,7 +232,7 @@ __global__ void TSTRF_Kernel_v2(int_t n,
             for (int_t j = colU1 + 1 + lane_id, p = lane_id; j < colU2; j += WARP_SIZE, p += WARP_SIZE)
             {
                 // update A's Value;
-                idx_int f = binarySearch_idx(idx_local, 1 + t + p, colA2 - colA1 - colU2 + j, U_columnindex[j]);
+                pangulu_inblock_idx f = binarySearch_idx(idx_local, 1 + t + p, colA2 - colA1 - colU2 + j, U_columnindex[j]);
                 val_local[f] -= valx * U_VALUE[j];
             }
             __syncthreads();
@@ -246,14 +245,14 @@ __global__ void TSTRF_Kernel_v2(int_t n,
     }
 }
 __global__ void TSTRF_Kernel_v3(int_t n,
-                                int_t *U_rowpointer,
-                                idx_int *U_columnindex,
+                                pangulu_inblock_ptr *U_rowpointer,
+                                pangulu_inblock_idx *U_columnindex,
                                 calculate_type *U_VALUE,
-                                int_t *X_rowpointer,
-                                idx_int *X_columnindex,
+                                pangulu_inblock_ptr *X_rowpointer,
+                                pangulu_inblock_idx *X_columnindex,
                                 calculate_type *X_VALUE,
-                                int_t *A_rowpointer,
-                                idx_int *A_columnindex,
+                                pangulu_inblock_ptr *A_rowpointer,
+                                pangulu_inblock_idx *A_columnindex,
                                 calculate_type *A_VALUE)
 {
     int_t colidx = blockIdx.x;
@@ -279,7 +278,7 @@ __global__ void TSTRF_Kernel_v3(int_t n,
             for (int_t j = colU1 + 1 + threadIdx.x, p = threadIdx.x; j < colU2; j += blockDim.x, p += blockDim.x)
             {
                 // update A's Value;
-                idx_int f = binarySearch_idx(A_columnindex, colA1 + t + 1 + p, colA2 - colU2 + j, U_columnindex[j]);
+                pangulu_inblock_idx f = binarySearch_idx(A_columnindex, colA1 + t + 1 + p, colA2 - colU2 + j, U_columnindex[j]);
                 A_VALUE[f] -= valx * U_VALUE[j];
             }
             __syncthreads();
@@ -287,7 +286,7 @@ __global__ void TSTRF_Kernel_v3(int_t n,
     }
     else
     {
-        __shared__ idx_int s_rowidxA[SM_LEN_DTSTRF];
+        __shared__ pangulu_inblock_idx s_rowidxA[SM_LEN_DTSTRF];
         __shared__ calculate_type s_valueA[SM_LEN_DTSTRF];
 
         for (int_t i = threadIdx.x; i < colA2 - colA1; i += blockDim.x)
@@ -308,7 +307,7 @@ __global__ void TSTRF_Kernel_v3(int_t n,
             for (int_t j = colU1 + 1 + threadIdx.x, p = threadIdx.x; j < colU2; j += blockDim.x, p += blockDim.x)
             {
                 // update A's Value;
-                idx_int f = binarySearch_idx(s_rowidxA, 1 + t + p, colA2 - colA1 - colU2 + j, U_columnindex[j]);
+                pangulu_inblock_idx f = binarySearch_idx(s_rowidxA, 1 + t + p, colA2 - colA1 - colU2 + j, U_columnindex[j]);
                 s_valueA[f] -= valx * U_VALUE[j];
             }
             __syncthreads();
@@ -325,11 +324,11 @@ __global__ void syncfree_cuda_csr(
     int_t n,
     int_t rhs,
     int *degree,
-    int_t *L_columnpointer,
-    idx_int *L_rowindex,
+    pangulu_inblock_ptr *L_columnpointer,
+    pangulu_inblock_idx *L_rowindex,
     calculate_type *L_VALUE,
-    int_t *X_rowpointer,
-    idx_int *X_colindex,
+    pangulu_inblock_ptr *X_rowpointer,
+    pangulu_inblock_idx *X_colindex,
     calculate_type *X_VALUE,
     calculate_type *A_VALUE,
     int *d_id_extractor,
@@ -364,7 +363,7 @@ __global__ void syncfree_cuda_csr(
     if (loc1 != loc2)
         for (int_t jj = start_ptr + lane_id; jj < stop_ptr; jj += warpSize)
         {
-            const idx_int myidx = L_rowindex[jj];
+            const pangulu_inblock_idx myidx = L_rowindex[jj];
             const int_t mypos = X_rowpointer[myidx];
             const int_t mypos2 = X_rowpointer[myidx + 1];
             const calculate_type L_id_value = L_VALUE[jj];
@@ -373,7 +372,7 @@ __global__ void syncfree_cuda_csr(
             {
                 for (int_t k = loc1; k < loc2; k++)
                 {
-                    idx_int f = binarySearch_idx(X_colindex, mypos, mypos2, X_colindex[k]);
+                    pangulu_inblock_idx f = binarySearch_idx(X_colindex, mypos, mypos2, X_colindex[k]);
                     res = X_VALUE[k] * L_id_value;
                     // res = 0;
                     atomicAdd(&d_left_sum[f], res);
@@ -410,11 +409,11 @@ __global__ void syncfree_cuda_csr_U(
     int_t n,
     int_t rhs,
     int *degree,
-    int_t *L_columnpointer,
-    idx_int *L_rowindex,
+    pangulu_inblock_ptr *L_columnpointer,
+    pangulu_inblock_idx *L_rowindex,
     calculate_type *L_VALUE,
-    int_t *X_rowpointer,
-    idx_int *X_colindex,
+    pangulu_inblock_ptr *X_rowpointer,
+    pangulu_inblock_idx *X_colindex,
     calculate_type *X_VALUE,
     calculate_type *A_VALUE,
     int *d_id_extractor,
@@ -447,7 +446,7 @@ __global__ void syncfree_cuda_csr_U(
     if (loc1 != loc2)
         for (int_t jj = start_ptr + lane_id; jj < stop_ptr; jj += warpSize)
         {
-            const idx_int myidx = L_rowindex[jj];
+            const pangulu_inblock_idx myidx = L_rowindex[jj];
             const int_t mypos = X_rowpointer[myidx];
             const int_t mypos2 = X_rowpointer[myidx + 1];
             const calculate_type L_id_value = L_VALUE[jj];
@@ -456,7 +455,7 @@ __global__ void syncfree_cuda_csr_U(
             {
                 for (int_t k = loc1; k < loc2; k++)
                 {
-                    idx_int f = binarySearch_idx(X_colindex, mypos, mypos2, X_colindex[k]);
+                    pangulu_inblock_idx f = binarySearch_idx(X_colindex, mypos, mypos2, X_colindex[k]);
                     res = X_VALUE[k] * L_id_value;
                     atomicAdd(&d_left_sum[f], res);
                 }
@@ -492,14 +491,14 @@ void pangulu_tstrf_cuda_kernel_v8(int_t n,
                                   int *degree,
                                   int *d_id_extractor,
                                   calculate_type *d_left_sum,
-                                  int_t *U_rowpointer,
-                                  idx_int *U_columnindex,
+                                  pangulu_inblock_ptr *U_rowpointer,
+                                  pangulu_inblock_idx *U_columnindex,
                                   calculate_type *U_VALUE,
-                                  int_t *X_rowpointer,
-                                  idx_int *X_columnindex,
+                                  pangulu_inblock_ptr *X_rowpointer,
+                                  pangulu_inblock_idx *X_columnindex,
                                   calculate_type *X_VALUE,
-                                  int_t *A_rowpointer,
-                                  idx_int *A_columnindex,
+                                  pangulu_inblock_ptr *A_rowpointer,
+                                  pangulu_inblock_idx *A_columnindex,
                                   calculate_type *A_VALUE)
 {
 
@@ -510,8 +509,8 @@ void pangulu_tstrf_cuda_kernel_v8(int_t n,
     cudaDeviceSynchronize();
 }
 
-__global__ void sptrsv_syncfree_cuda_executor_update(const int_t *d_cscColPtr,
-                                                     const idx_int *d_cscRowIdx,
+__global__ void sptrsv_syncfree_cuda_executor_update(const pangulu_inblock_ptr *d_cscColPtr,
+                                                     const pangulu_inblock_idx *d_cscRowIdx,
                                                      const calculate_type *d_cscVal,
                                                      int *d_graphInDegree,
                                                      calculate_type *d_left_sum,
@@ -555,7 +554,7 @@ __global__ void sptrsv_syncfree_cuda_executor_update(const int_t *d_cscColPtr,
     for (int_t jj = start_ptr + lane_id; jj < stop_ptr; jj += WARP_SIZE)
     {
         const int_t j = substitution == SUBSTITUTION_FORWARD ? jj : stop_ptr - 1 - (jj - start_ptr);
-        const idx_int rowIdx = d_cscRowIdx[j];
+        const pangulu_inblock_idx rowIdx = d_cscRowIdx[j];
 
         atomicAdd(&d_left_sum[rowIdx], xi * d_cscVal[j]);
         __threadfence();
@@ -566,8 +565,8 @@ __global__ void sptrsv_syncfree_cuda_executor_update(const int_t *d_cscColPtr,
     if (!lane_id)
         d_x[global_x_id] = xi;
 }
-__global__ void sptrsm_syncfree_cuda_executor_update(const int_t *__restrict__ d_cscColPtr,
-                                                     const idx_int *__restrict__ d_cscRowIdx,
+__global__ void sptrsm_syncfree_cuda_executor_update(const pangulu_inblock_ptr *__restrict__ d_cscColPtr,
+                                                     const pangulu_inblock_idx *__restrict__ d_cscRowIdx,
                                                      const calculate_type *__restrict__ d_cscVal,
                                                      int *d_graphInDegree,
                                                      calculate_type *d_left_sum,
@@ -616,17 +615,17 @@ __global__ void sptrsm_syncfree_cuda_executor_update(const int_t *__restrict__ d
     for (int_t jj = start_ptr + lane_id; jj < stop_ptr; jj += WARP_SIZE)
     {
         const int_t j = substitution == SUBSTITUTION_FORWARD ? jj : stop_ptr - 1 - (jj - start_ptr);
-        const idx_int rowIdx = d_cscRowIdx[j];
+        const pangulu_inblock_idx rowIdx = d_cscRowIdx[j];
         for (int k = 0; k < rhs; k++)
             atomicAdd(&d_left_sum[rowIdx * rhs + k], d_x[global_x_id * rhs + k] * d_cscVal[j]);
         __threadfence();
         atomicSub(&d_graphInDegree[rowIdx], 1);
     }
 }
-__global__ void sptrsv_sparse_to_dense(const int_t *d_cscptrA,
-                                       const idx_int *d_cscidx,
+__global__ void sptrsv_sparse_to_dense(const pangulu_inblock_ptr *d_cscptrA,
+                                       const pangulu_inblock_idx *d_cscidx,
                                        const calculate_type *d_value,
-                                       int_t *Spointer,
+                                       pangulu_inblock_ptr *Spointer,
                                        const int_t rhs,
 
                                        calculate_type *d_b)
@@ -643,10 +642,10 @@ __global__ void sptrsv_sparse_to_dense(const int_t *d_cscptrA,
         }
     }
 }
-__global__ void sptrsv_dense_to_sparse(const int_t *d_cscptrA,
-                                       const idx_int *d_cscidx,
+__global__ void sptrsv_dense_to_sparse(const pangulu_inblock_ptr *d_cscptrA,
+                                       const pangulu_inblock_idx *d_cscidx,
                                        calculate_type *d_value,
-                                       int_t *Spointer,
+                                       pangulu_inblock_ptr *Spointer,
 
                                        const int_t rhs,
 
@@ -661,8 +660,6 @@ __global__ void sptrsv_dense_to_sparse(const int_t *d_cscptrA,
         int_t index = Spointer[global_x_id];
         for (int_t i = d_cscptrA[index] + threadIdx.x; i < d_cscptrA[index + 1]; i += WARP_SIZE)
         {
-            // printf("%lf ", d_x[global_x_id + d_cscidx[i] * rhs]);
-            // d_value[i] = 0;
             d_value[i] = d_x[global_x_id + d_cscidx[i] * rhs];
         }
     }
@@ -672,18 +669,18 @@ void pangulu_gessm_cuda_kernel_v9(int_t n,
                                   int_t nnzL,
                                   int_t rhs,
                                   int_t nnzA,
-                                  int_t *d_Spointer,
+                                  pangulu_inblock_ptr *d_Spointer,
                                   int *d_graphInDegree,
                                   int *d_id_extractor,
                                   int *d_while_profiler,
-                                  int_t *L_columnpointer,
-                                  idx_int *L_rowindex,
+                                  pangulu_inblock_ptr *L_columnpointer,
+                                  pangulu_inblock_idx *L_rowindex,
                                   calculate_type *L_VALUE,
-                                  int_t *X_columnpointer,
-                                  idx_int *X_rowindex,
+                                  pangulu_inblock_ptr *X_columnpointer,
+                                  pangulu_inblock_idx *X_rowindex,
                                   calculate_type *X_VALUE,
-                                  int_t *A_columnpointer_cuda,
-                                  idx_int *A_rowindex_cuda,
+                                  pangulu_inblock_ptr *A_columnpointer_cuda,
+                                  pangulu_inblock_idx *A_rowindex_cuda,
                                   calculate_type *A_VALUE_cuda,
                                   calculate_type *d_left_sum,
                                   calculate_type *d_x,
@@ -728,18 +725,18 @@ void pangulu_tstrf_cuda_kernel_v9(int_t n,
                                   int_t nnzL,
                                   int_t rhs,
                                   int_t nnzA,
-                                  int_t *d_Spointer,
+                                  pangulu_inblock_ptr *d_Spointer,
                                   int *d_graphInDegree,
                                   int *d_id_extractor,
                                   int *d_while_profiler,
-                                  int_t *L_columnpointer,
-                                  idx_int *L_rowindex,
+                                  pangulu_inblock_ptr *L_columnpointer,
+                                  pangulu_inblock_idx *L_rowindex,
                                   calculate_type *L_VALUE,
-                                  int_t *X_columnpointer,
-                                  idx_int *X_rowindex,
+                                  pangulu_inblock_ptr *X_columnpointer,
+                                  pangulu_inblock_idx *X_rowindex,
                                   calculate_type *X_VALUE,
-                                  int_t *A_columnpointer_cuda,
-                                  idx_int *A_rowindex_cuda,
+                                  pangulu_inblock_ptr *A_columnpointer_cuda,
+                                  pangulu_inblock_idx *A_rowindex_cuda,
                                   calculate_type *A_VALUE_cuda,
                                   calculate_type *d_left_sum,
                                   calculate_type *d_x,
@@ -781,14 +778,14 @@ void pangulu_tstrf_cuda_kernel_v9(int_t n,
 }
 
 __global__ void GESSM_Kernel_dense(int_t n,
-                                   int_t *L_columnpointer,
-                                   idx_int *L_rowindex,
+                                   pangulu_inblock_ptr *L_columnpointer,
+                                   pangulu_inblock_idx *L_rowindex,
                                    calculate_type *L_VALUE,
-                                   int_t *X_columnpointer,
-                                   idx_int *X_rowindex,
+                                   pangulu_inblock_ptr *X_columnpointer,
+                                   pangulu_inblock_idx *X_rowindex,
                                    calculate_type *X_VALUE,
-                                   int_t *A_columnpointer,
-                                   idx_int *A_rowindex,
+                                   pangulu_inblock_ptr *A_columnpointer,
+                                   pangulu_inblock_idx *A_rowindex,
                                    calculate_type *A_VALUE,
                                    calculate_type *dense)
 {
@@ -821,14 +818,14 @@ __global__ void GESSM_Kernel_dense(int_t n,
 }
 
 __global__ void TSTRF_Kernel_dense(int_t n,
-                                   int_t *U_rowpointer,
-                                   idx_int *U_columnindex,
+                                   pangulu_inblock_ptr *U_rowpointer,
+                                   pangulu_inblock_idx *U_columnindex,
                                    calculate_type *U_VALUE,
-                                   int_t *X_rowpointer,
-                                   idx_int *X_columnindex,
+                                   pangulu_inblock_ptr *X_rowpointer,
+                                   pangulu_inblock_idx *X_columnindex,
                                    calculate_type *X_VALUE,
-                                   int_t *A_rowpointer,
-                                   idx_int *A_columnindex,
+                                   pangulu_inblock_ptr *A_rowpointer,
+                                   pangulu_inblock_idx *A_columnindex,
                                    calculate_type *A_VALUE,
                                    calculate_type *dense)
 {
@@ -863,11 +860,11 @@ __global__ void syncfree_cuda_csr_dense_v11_L(
     int_t n,
     int_t rhs,
     int *degree,
-    int_t *L_columnpointer,
-    idx_int *L_rowindex,
+    pangulu_inblock_ptr *L_columnpointer,
+    pangulu_inblock_idx *L_rowindex,
     calculate_type *L_VALUE,
-    int_t *X_rowpointer,
-    idx_int *X_colindex,
+    pangulu_inblock_ptr *X_rowpointer,
+    pangulu_inblock_idx *X_colindex,
     calculate_type *X_VALUE,
     calculate_type *A_VALUE,
     int *d_id_extractor,
@@ -903,7 +900,7 @@ __global__ void syncfree_cuda_csr_dense_v11_L(
     if (loc1 != loc2)
         for (int_t jj = start_ptr + lane_id; jj < stop_ptr; jj += warpSize)
         {
-            const idx_int myidx = L_rowindex[jj];
+            const pangulu_inblock_idx myidx = L_rowindex[jj];
             const int_t mypos = X_rowpointer[myidx];
             const int_t mypos2 = X_rowpointer[myidx + 1];
             const calculate_type L_id_value = L_VALUE[jj];
@@ -931,14 +928,14 @@ void pangulu_gessm_cuda_kernel_v11(int_t n,
                                    int *degree,
                                    int *d_id_extractor,
                                    calculate_type *d_left_sum,
-                                   int_t *L_columnpointer,
-                                   idx_int *L_rowindex,
+                                   pangulu_inblock_ptr *L_columnpointer,
+                                   pangulu_inblock_idx *L_rowindex,
                                    calculate_type *L_VALUE,
-                                   int_t *X_columnpointer,
-                                   idx_int *X_rowindex,
+                                   pangulu_inblock_ptr *X_columnpointer,
+                                   pangulu_inblock_idx *X_rowindex,
                                    calculate_type *X_VALUE,
-                                   int_t *A_columnpointer,
-                                   idx_int *A_rowindex,
+                                   pangulu_inblock_ptr *A_columnpointer,
+                                   pangulu_inblock_idx *A_rowindex,
                                    calculate_type *A_VALUE)
 {
     int_t num_threads = WARP_SIZE * WARP_PER_BLOCK;
@@ -959,11 +956,11 @@ __global__ void syncfree_cuda_csr_dense_v11_U(
     int_t n,
     int_t rhs,
     int *degree,
-    int_t *L_columnpointer,
-    idx_int *L_rowindex,
+    pangulu_inblock_ptr *L_columnpointer,
+    pangulu_inblock_idx *L_rowindex,
     calculate_type *L_VALUE,
-    int_t *X_rowpointer,
-    idx_int *X_colindex,
+    pangulu_inblock_ptr *X_rowpointer,
+    pangulu_inblock_idx *X_colindex,
     calculate_type *X_VALUE,
     calculate_type *A_VALUE,
     int *d_id_extractor,
@@ -999,7 +996,7 @@ __global__ void syncfree_cuda_csr_dense_v11_U(
     if (loc1 != loc2)
         for (int_t jj = start_ptr + lane_id; jj < stop_ptr; jj += warpSize)
         {
-            const idx_int myidx = L_rowindex[jj];
+            const pangulu_inblock_idx myidx = L_rowindex[jj];
             const int_t mypos = X_rowpointer[myidx];
             const int_t mypos2 = X_rowpointer[myidx + 1];
             const calculate_type L_id_value = L_VALUE[jj];
@@ -1026,7 +1023,7 @@ void pangulu_cuda_malloc(void **cuda_address,
     GPU_MEMORY += size;
     if (cudaSuccess != cudaMalloc((cuda_address), size))
     {
-        printf("cuda malloc error\n");
+        printf(PANGULU_E_CUDA_MALLOC);
         exit(0);
     }
 }
@@ -1057,13 +1054,23 @@ void pangulu_cuda_memcpy_device_to_host_value(calculate_type *cpu_address,
                cudaMemcpyDeviceToHost);
 }
 
-void pangulu_cuda_memcpy_host_to_device_int(int_t *cuda_address,
-                                            int_t *cpu_address,
+void pangulu_cuda_memcpy_host_to_device_int(pangulu_inblock_idx *cuda_address,
+                                            pangulu_inblock_idx *cpu_address,
                                             size_t size)
 {
     cudaMemcpy(cuda_address,
                cpu_address,
-               size * sizeof(int_t),
+               size * sizeof(pangulu_inblock_idx),
+               cudaMemcpyHostToDevice);
+}
+
+void pangulu_cuda_memcpy_host_to_device_int32(pangulu_inblock_idx *cuda_address,
+                                              pangulu_inblock_idx *cpu_address,
+                                              size_t size)
+{
+    cudaMemcpy(cuda_address,
+               cpu_address,
+               size * sizeof(pangulu_inblock_idx),
                cudaMemcpyHostToDevice);
 }
 
@@ -1077,13 +1084,13 @@ void pangulu_cuda_memcpy_host_to_device_int32(int_32t *cuda_address,
                cudaMemcpyHostToDevice);
 }
 
-void pangulu_cuda_memcpy_device_to_host_int(int_t *cpu_address,
-                                            int_t *cuda_address,
+void pangulu_cuda_memcpy_device_to_host_int(pangulu_inblock_ptr *cpu_address,
+                                            pangulu_inblock_ptr *cuda_address,
                                             size_t size)
 {
     cudaMemcpy(cpu_address,
                cuda_address,
-               size * sizeof(int_t),
+               size * sizeof(pangulu_inblock_ptr),
                cudaMemcpyDeviceToHost);
 }
 
@@ -1107,14 +1114,14 @@ int_32t pangulu_cuda_setDevice(int_32t gpu_num,
 
 __global__ void WarpLevel_sflu(int_t n,
                                int_32t *d_nnzU,
-                               int_t *d_cscColPtrA,
-                               idx_int *d_cscRowIdxA,
+                               pangulu_inblock_ptr *d_cscColPtrA,
+                               pangulu_inblock_idx *d_cscRowIdxA,
                                calculate_type *d_cscValueA,
-                               int_t *d_cscColPtrL,
-                               idx_int *d_cscRowIdxL,
+                               pangulu_inblock_ptr *d_cscColPtrL,
+                               pangulu_inblock_idx *d_cscRowIdxL,
                                calculate_type *d_cscValueL,
-                               int_t *d_cscColPtrU,
-                               idx_int *d_cscRowIdxU,
+                               pangulu_inblock_ptr *d_cscColPtrU,
+                               pangulu_inblock_idx *d_cscRowIdxU,
                                calculate_type *d_cscValueU)
 {
     int_t warp_id = (blockDim.x * blockIdx.x + threadIdx.x) / 32;
@@ -1137,10 +1144,10 @@ __global__ void WarpLevel_sflu(int_t n,
     // use shared memory
     if (loadlen <= SM_LEN_WARPLEV)
     {
-        __shared__ idx_int s_idxA[WARP_NUM_WARPLU * SM_LEN_WARPLEV];
+        __shared__ pangulu_inblock_idx s_idxA[WARP_NUM_WARPLU * SM_LEN_WARPLEV];
         __shared__ calculate_type s_valA[WARP_NUM_WARPLU * SM_LEN_WARPLEV];
 
-        idx_int *s_idxA_local = &s_idxA[warp_local_id * SM_LEN_WARPLEV];
+        pangulu_inblock_idx *s_idxA_local = &s_idxA[warp_local_id * SM_LEN_WARPLEV];
         calculate_type *s_valA_local = &s_valA[warp_local_id * SM_LEN_WARPLEV];
 
         for (int_t i = lane_id; i < loadlen; i += WARP_SIZE)
@@ -1285,14 +1292,14 @@ __global__ void WarpLevel_sflu(int_t n,
 
 __global__ void BlockLevel_sflu_L1(int_t n,
                                    int_32t *d_nnzU,
-                                   int_t *d_cscColPtrA,
-                                   idx_int *d_cscRowIdxA,
+                                   pangulu_inblock_ptr *d_cscColPtrA,
+                                   pangulu_inblock_idx *d_cscRowIdxA,
                                    calculate_type *d_cscValueA,
-                                   int_t *d_cscColPtrL,
-                                   idx_int *d_cscRowIdxL,
+                                   pangulu_inblock_ptr *d_cscColPtrL,
+                                   pangulu_inblock_idx *d_cscRowIdxL,
                                    calculate_type *d_cscValueL,
-                                   int_t *d_cscColPtrU,
-                                   idx_int *d_cscRowIdxU,
+                                   pangulu_inblock_ptr *d_cscColPtrU,
+                                   pangulu_inblock_idx *d_cscRowIdxU,
                                    calculate_type *d_cscValueU)
 {
     const int_t colidx = blockIdx.x;
@@ -1307,7 +1314,7 @@ __global__ void BlockLevel_sflu_L1(int_t n,
     // use shared memory
     if (len_a <= smemlen)
     {
-        __shared__ idx_int s_rowidxA[256];
+        __shared__ pangulu_inblock_idx s_rowidxA[256];
         __shared__ calculate_type s_valueA[256];
 
         for (int_t i = threadIdx.x; i < len_a; i += blockDim.x)
@@ -1489,14 +1496,14 @@ __global__ void BlockLevel_sflu_L1(int_t n,
 
 __global__ void BlockLevel_sflu_L2(int_t n,
                                    int_32t *d_nnzU,
-                                   int_t *d_cscColPtrA,
-                                   idx_int *d_cscRowIdxA,
+                                   pangulu_inblock_ptr *d_cscColPtrA,
+                                   pangulu_inblock_idx *d_cscRowIdxA,
                                    calculate_type *d_cscValueA,
-                                   int_t *d_cscColPtrL,
-                                   idx_int *d_cscRowIdxL,
+                                   pangulu_inblock_ptr *d_cscColPtrL,
+                                   pangulu_inblock_idx *d_cscRowIdxL,
                                    calculate_type *d_cscValueL,
-                                   int_t *d_cscColPtrU,
-                                   idx_int *d_cscRowIdxU,
+                                   pangulu_inblock_ptr *d_cscColPtrU,
+                                   pangulu_inblock_idx *d_cscRowIdxU,
                                    calculate_type *d_cscValueU)
 {
     const int_t colidx = blockIdx.x;
@@ -1511,7 +1518,7 @@ __global__ void BlockLevel_sflu_L2(int_t n,
     // use shared memory
     if (len_a <= smemlen)
     {
-        __shared__ idx_int s_rowidxA[512];
+        __shared__ pangulu_inblock_idx s_rowidxA[512];
         __shared__ calculate_type s_valueA[512];
 
         for (int_t i = threadIdx.x; i < len_a; i += blockDim.x)
@@ -1696,14 +1703,14 @@ __global__ void BlockLevel_sflu_L2(int_t n,
 
 __global__ void BlockLevel_sflu_L3(int_t n,
                                    int_32t *d_nnzU,
-                                   int_t *d_cscColPtrA,
-                                   idx_int *d_cscRowIdxA,
+                                   pangulu_inblock_ptr *d_cscColPtrA,
+                                   pangulu_inblock_idx *d_cscRowIdxA,
                                    calculate_type *d_cscValueA,
-                                   int_t *d_cscColPtrL,
-                                   idx_int *d_cscRowIdxL,
+                                   pangulu_inblock_ptr *d_cscColPtrL,
+                                   pangulu_inblock_idx *d_cscRowIdxL,
                                    calculate_type *d_cscValueL,
-                                   int_t *d_cscColPtrU,
-                                   idx_int *d_cscRowIdxU,
+                                   pangulu_inblock_ptr *d_cscColPtrU,
+                                   pangulu_inblock_idx *d_cscRowIdxU,
                                    calculate_type *d_cscValueU)
 {
     const int_t colidx = blockIdx.x;
@@ -1718,7 +1725,7 @@ __global__ void BlockLevel_sflu_L3(int_t n,
     // use shared memory
     if (len_a <= smemlen)
     {
-        __shared__ idx_int s_rowidxA[1024];
+        __shared__ pangulu_inblock_idx s_rowidxA[1024];
         __shared__ calculate_type s_valueA[1024];
 
         for (int_t i = threadIdx.x; i < len_a; i += blockDim.x)
@@ -1903,14 +1910,14 @@ __global__ void BlockLevel_sflu_L3(int_t n,
 
 __global__ void BlockLevel_sflu_L4(int_t n,
                                    int_32t *d_nnzU,
-                                   int_t *d_cscColPtrA,
-                                   idx_int *d_cscRowIdxA,
+                                   pangulu_inblock_ptr *d_cscColPtrA,
+                                   pangulu_inblock_idx *d_cscRowIdxA,
                                    calculate_type *d_cscValueA,
-                                   int_t *d_cscColPtrL,
-                                   idx_int *d_cscRowIdxL,
+                                   pangulu_inblock_ptr *d_cscColPtrL,
+                                   pangulu_inblock_idx *d_cscRowIdxL,
                                    calculate_type *d_cscValueL,
-                                   int_t *d_cscColPtrU,
-                                   idx_int *d_cscRowIdxU,
+                                   pangulu_inblock_ptr *d_cscColPtrU,
+                                   pangulu_inblock_idx *d_cscRowIdxU,
                                    calculate_type *d_cscValueU)
 {
     const int_t colidx = blockIdx.x;
@@ -1925,7 +1932,7 @@ __global__ void BlockLevel_sflu_L4(int_t n,
     // use shared memory
     if (len_a <= smemlen)
     {
-        __shared__ idx_int s_rowidxA[2048];
+        __shared__ pangulu_inblock_idx s_rowidxA[2048];
         __shared__ calculate_type s_valueA[2048];
 
         for (int_t i = threadIdx.x; i < len_a; i += blockDim.x)
@@ -2130,7 +2137,7 @@ __device__ int_t binarySearch(int_t *ridx, int_t left, int_t right, int_t target
     return -1;
 }
 
-__device__ idx_int binarySearch_idx(idx_int *ridx, int_t left, int_t right, idx_int target)
+__device__ pangulu_inblock_idx binarySearch_idx(pangulu_inblock_idx *ridx, int_t left, int_t right, pangulu_inblock_idx target)
 {
     int_t mid;
     while (left <= right)
@@ -2153,8 +2160,8 @@ __device__ idx_int binarySearch_idx(idx_int *ridx, int_t left, int_t right, idx_
 }
 __global__ void cuda_Transform_s_to_d_col(int_t n,
                                           int stride,
-                                          int_t *d_rowPtrA,
-                                          idx_int *d_colIdxA,
+                                          pangulu_inblock_ptr *d_rowPtrA,
+                                          pangulu_inblock_idx *d_colIdxA,
                                           calculate_type *d_valueA,
                                           calculate_type *temp_value_A)
 {
@@ -2179,13 +2186,13 @@ __global__ void cuda_Transform_s_to_d_col(int_t n,
 }
 
 __global__ void cuda_Transform_d_to_s_lu_col(int_t n,
-                                             int_t *d_rowPtrA,
-                                             idx_int *d_colIdxA,
-                                             int_t *d_rowPtrL,
-                                             idx_int *d_colIdxL,
+                                             pangulu_inblock_ptr *d_rowPtrA,
+                                             pangulu_inblock_idx *d_colIdxA,
+                                             pangulu_inblock_ptr *d_rowPtrL,
+                                             pangulu_inblock_idx *d_colIdxL,
                                              calculate_type *d_valueL,
-                                             int_t *d_rowPtrU,
-                                             idx_int *d_colIdxU,
+                                             pangulu_inblock_ptr *d_rowPtrU,
+                                             pangulu_inblock_idx *d_colIdxU,
                                              calculate_type *d_valueU,
                                              calculate_type *temp_value_A)
 {
@@ -2219,10 +2226,10 @@ __global__ void cuda_Transform_d_to_s_lu_col(int_t n,
 __global__ void lunumeric_cuda_kernel_v2(int_t n,
                                          int_32t *d_nnzU,
                                          calculate_type *d_dense_tag_double,
-                                         int_t *d_cscColPtrL_upperbound,
-                                         idx_int *d_cscRowIdxL_upperbound,
-                                         int_t *d_cscColPtrU_upperbound,
-                                         idx_int *d_cscRowIdxU_upperbound)
+                                         pangulu_inblock_ptr *d_cscColPtrL_upperbound,
+                                         pangulu_inblock_idx *d_cscRowIdxL_upperbound,
+                                         pangulu_inblock_ptr *d_cscColPtrU_upperbound,
+                                         pangulu_inblock_idx *d_cscRowIdxU_upperbound)
 {
 
     const int_t colidx = blockIdx.x;
@@ -2242,7 +2249,7 @@ __global__ void lunumeric_cuda_kernel_v2(int_t n,
     // step one
     for (int_t j = baseU_colidx; j < baseU_colidx1 - 1; j++)
     {
-        const idx_int rowidx = d_cscRowIdxU_upperbound[j];
+        const pangulu_inblock_idx rowidx = d_cscRowIdxU_upperbound[j];
         // busy-wait until nnzU[rowidx] == 0
         if (!threadIdx.x)
         {
@@ -2280,7 +2287,7 @@ __global__ void lunumeric_cuda_kernel_v2(int_t n,
     }
 }
 
-__global__ void trans_cuda_CSC_to_CSR(int_t nnz, calculate_type *d_val_csr, int_t *d_idx, calculate_type *d_val_csc)
+__global__ void trans_cuda_CSC_to_CSR(int_t nnz, calculate_type *d_val_csr, pangulu_inblock_idx *d_idx, calculate_type *d_val_csc)
 {
 
     if (blockDim.x * blockIdx.x + threadIdx.x >= nnz)
@@ -2290,7 +2297,7 @@ __global__ void trans_cuda_CSC_to_CSR(int_t nnz, calculate_type *d_val_csr, int_
     d_val_csr[d_idx[i]] = d_val_csc[i];
 }
 
-__global__ void trans_cuda_CSR_to_CSC(int_t nnz, calculate_type *d_val_csc, int_t *d_idx, calculate_type *d_val_csr)
+__global__ void trans_cuda_CSR_to_CSC(int_t nnz, calculate_type *d_val_csc, pangulu_inblock_idx *d_idx, calculate_type *d_val_csr)
 {
 
     if (blockDim.x * blockIdx.x + threadIdx.x >= nnz)
@@ -2322,16 +2329,16 @@ void pangulu_cuda_vector_add_kernel(int_t nnz, calculate_type *d_now_val_csc, ca
 
 __global__ void WarpLevel_spgemm_32(int_t n,
                                     int_t layer,
-                                    int_t *d_bin_rowpointer,
-                                    int_t *d_bin_rowindex,
-                                    int_t *d_rowPtrA,
-                                    idx_int *d_colIdxA,
+                                    pangulu_inblock_ptr *d_bin_rowpointer,
+                                    pangulu_inblock_idx *d_bin_rowindex,
+                                    pangulu_inblock_ptr *d_rowPtrA,
+                                    pangulu_inblock_idx *d_colIdxA,
                                     calculate_type *d_valueA,
-                                    int_t *d_rowPtrB,
-                                    idx_int *d_colIdxB,
+                                    pangulu_inblock_ptr *d_rowPtrB,
+                                    pangulu_inblock_idx *d_colIdxB,
                                     calculate_type *d_valueB,
-                                    int_t *d_rowPtrC,
-                                    idx_int *d_colIdxC,
+                                    pangulu_inblock_ptr *d_rowPtrC,
+                                    pangulu_inblock_idx *d_colIdxC,
                                     calculate_type *d_valueC)
 {
     int_t warp_global_id = (blockDim.x * blockIdx.x + threadIdx.x) / 32;
@@ -2351,10 +2358,10 @@ __global__ void WarpLevel_spgemm_32(int_t n,
 
     int_t SM_LEN = 32;
 
-    __shared__ idx_int s_idxC[32 * WARP_PER_BLOCK_GEMM];
+    __shared__ pangulu_inblock_idx s_idxC[32 * WARP_PER_BLOCK_GEMM];
     __shared__ calculate_type s_valC[32 * WARP_PER_BLOCK_GEMM];
 
-    idx_int *s_idxC_local = &s_idxC[warp_local_id * SM_LEN];
+    pangulu_inblock_idx *s_idxC_local = &s_idxC[warp_local_id * SM_LEN];
     calculate_type *s_valC_local = &s_valC[warp_local_id * SM_LEN];
 
     if (lane_id < nextrowc - therowc)
@@ -2387,16 +2394,16 @@ __global__ void WarpLevel_spgemm_32(int_t n,
 
 __global__ void WarpLevel_spgemm_64(int_t n,
                                     int_t layer,
-                                    int_t *d_bin_rowpointer,
-                                    int_t *d_bin_rowindex,
-                                    int_t *d_rowPtrA,
-                                    idx_int *d_colIdxA,
+                                    pangulu_inblock_ptr *d_bin_rowpointer,
+                                    pangulu_inblock_idx *d_bin_rowindex,
+                                    pangulu_inblock_ptr *d_rowPtrA,
+                                    pangulu_inblock_idx *d_colIdxA,
                                     calculate_type *d_valueA,
-                                    int_t *d_rowPtrB,
-                                    idx_int *d_colIdxB,
+                                    pangulu_inblock_ptr *d_rowPtrB,
+                                    pangulu_inblock_idx *d_colIdxB,
                                     calculate_type *d_valueB,
-                                    int_t *d_rowPtrC,
-                                    idx_int *d_colIdxC,
+                                    pangulu_inblock_ptr *d_rowPtrC,
+                                    pangulu_inblock_idx *d_colIdxC,
                                     calculate_type *d_valueC)
 {
     int_t warp_global_id = (blockDim.x * blockIdx.x + threadIdx.x) / 32;
@@ -2416,10 +2423,10 @@ __global__ void WarpLevel_spgemm_64(int_t n,
 
     int_t SM_LEN = 64;
 
-    __shared__ idx_int s_idxC[64 * WARP_PER_BLOCK_GEMM];
+    __shared__ pangulu_inblock_idx s_idxC[64 * WARP_PER_BLOCK_GEMM];
     __shared__ calculate_type s_valC[64 * WARP_PER_BLOCK_GEMM];
 
-    idx_int *s_idxC_local = &s_idxC[warp_local_id * SM_LEN];
+    pangulu_inblock_idx *s_idxC_local = &s_idxC[warp_local_id * SM_LEN];
     calculate_type *s_valC_local = &s_valC[warp_local_id * SM_LEN];
 
     for (int_t i = lane_id; i < nextrowc - therowc; i += WARP_SIZE)
@@ -2453,16 +2460,16 @@ __global__ void WarpLevel_spgemm_64(int_t n,
 
 __global__ void WarpLevel_spgemm_128(int_t n,
                                      int_t layer,
-                                     int_t *d_bin_rowpointer,
-                                     int_t *d_bin_rowindex,
-                                     int_t *d_rowPtrA,
-                                     idx_int *d_colIdxA,
+                                     pangulu_inblock_ptr *d_bin_rowpointer,
+                                     pangulu_inblock_idx *d_bin_rowindex,
+                                     pangulu_inblock_ptr *d_rowPtrA,
+                                     pangulu_inblock_idx *d_colIdxA,
                                      calculate_type *d_valueA,
-                                     int_t *d_rowPtrB,
-                                     idx_int *d_colIdxB,
+                                     pangulu_inblock_ptr *d_rowPtrB,
+                                     pangulu_inblock_idx *d_colIdxB,
                                      calculate_type *d_valueB,
-                                     int_t *d_rowPtrC,
-                                     idx_int *d_colIdxC,
+                                     pangulu_inblock_ptr *d_rowPtrC,
+                                     pangulu_inblock_idx *d_colIdxC,
                                      calculate_type *d_valueC)
 {
     int_t warp_global_id = (blockDim.x * blockIdx.x + threadIdx.x) / 32;
@@ -2482,10 +2489,10 @@ __global__ void WarpLevel_spgemm_128(int_t n,
 
     int_t SM_LEN = 128;
 
-    __shared__ idx_int s_idxC[128 * WARP_PER_BLOCK_GEMM];
+    __shared__ pangulu_inblock_idx s_idxC[128 * WARP_PER_BLOCK_GEMM];
     __shared__ calculate_type s_valC[128 * WARP_PER_BLOCK_GEMM];
 
-    idx_int *s_idxC_local = &s_idxC[warp_local_id * SM_LEN];
+    pangulu_inblock_idx *s_idxC_local = &s_idxC[warp_local_id * SM_LEN];
     calculate_type *s_valC_local = &s_valC[warp_local_id * SM_LEN];
 
     for (int_t i = lane_id; i < nextrowc - therowc; i += WARP_SIZE)
@@ -2520,16 +2527,16 @@ __global__ void WarpLevel_spgemm_128(int_t n,
 
 __global__ void ThreadLevel_spgemm(int_t n,
                                    int_t layer,
-                                   int_t *d_bin_rowpointer,
-                                   int_t *d_bin_rowindex,
-                                   int_t *d_rowPtrA,
-                                   idx_int *d_colIdxA,
+                                   pangulu_inblock_ptr *d_bin_rowpointer,
+                                   pangulu_inblock_idx *d_bin_rowindex,
+                                   pangulu_inblock_ptr *d_rowPtrA,
+                                   pangulu_inblock_idx *d_colIdxA,
                                    calculate_type *d_valueA,
-                                   int_t *d_rowPtrB,
-                                   idx_int *d_colIdxB,
+                                   pangulu_inblock_ptr *d_rowPtrB,
+                                   pangulu_inblock_idx *d_colIdxB,
                                    calculate_type *d_valueB,
-                                   int_t *d_rowPtrC,
-                                   idx_int *d_colIdxC,
+                                   pangulu_inblock_ptr *d_rowPtrC,
+                                   pangulu_inblock_idx *d_colIdxC,
                                    calculate_type *d_valueC)
 {
     const int_t rowidx = d_bin_rowindex[d_bin_rowpointer[layer] + blockDim.x * blockIdx.x + threadIdx.x];
@@ -2558,16 +2565,16 @@ __global__ void ThreadLevel_spgemm(int_t n,
 
 __global__ void BlockLevel_spgemm_256(int_t n,
                                       int_t layer,
-                                      int_t *d_bin_rowpointer,
-                                      int_t *d_bin_rowindex,
-                                      int_t *d_rowPtrA,
-                                      idx_int *d_colIdxA,
+                                      pangulu_inblock_ptr *d_bin_rowpointer,
+                                      pangulu_inblock_idx *d_bin_rowindex,
+                                      pangulu_inblock_ptr *d_rowPtrA,
+                                      pangulu_inblock_idx *d_colIdxA,
                                       calculate_type *d_valueA,
-                                      int_t *d_rowPtrB,
-                                      idx_int *d_colIdxB,
+                                      pangulu_inblock_ptr *d_rowPtrB,
+                                      pangulu_inblock_idx *d_colIdxB,
                                       calculate_type *d_valueB,
-                                      int_t *d_rowPtrC,
-                                      idx_int *d_colIdxC,
+                                      pangulu_inblock_ptr *d_rowPtrC,
+                                      pangulu_inblock_idx *d_colIdxC,
                                       calculate_type *d_valueC)
 {
     int_t warp_local_id = threadIdx.x / 32;
@@ -2576,7 +2583,7 @@ __global__ void BlockLevel_spgemm_256(int_t n,
 
     const int_t rowidx = d_bin_rowindex[d_bin_rowpointer[layer] + blockIdx.x];
 
-    __shared__ idx_int s_idxC[256];
+    __shared__ pangulu_inblock_idx s_idxC[256];
     __shared__ calculate_type s_valC[256];
 
     int_t therowc = d_rowPtrC[rowidx];
@@ -2617,16 +2624,16 @@ __global__ void BlockLevel_spgemm_256(int_t n,
 
 __global__ void BlockLevel_spgemm_512(int_t n,
                                       int_t layer,
-                                      int_t *d_bin_rowpointer,
-                                      int_t *d_bin_rowindex,
-                                      int_t *d_rowPtrA,
-                                      idx_int *d_colIdxA,
+                                      pangulu_inblock_ptr *d_bin_rowpointer,
+                                      pangulu_inblock_idx *d_bin_rowindex,
+                                      pangulu_inblock_ptr *d_rowPtrA,
+                                      pangulu_inblock_idx *d_colIdxA,
                                       calculate_type *d_valueA,
-                                      int_t *d_rowPtrB,
-                                      idx_int *d_colIdxB,
+                                      pangulu_inblock_ptr *d_rowPtrB,
+                                      pangulu_inblock_idx *d_colIdxB,
                                       calculate_type *d_valueB,
-                                      int_t *d_rowPtrC,
-                                      idx_int *d_colIdxC,
+                                      pangulu_inblock_ptr *d_rowPtrC,
+                                      pangulu_inblock_idx *d_colIdxC,
                                       calculate_type *d_valueC)
 {
     int_t warp_local_id = threadIdx.x / 32;
@@ -2635,7 +2642,7 @@ __global__ void BlockLevel_spgemm_512(int_t n,
 
     const int_t rowidx = d_bin_rowindex[d_bin_rowpointer[layer] + blockIdx.x];
 
-    __shared__ idx_int s_idxC[512];
+    __shared__ pangulu_inblock_idx s_idxC[512];
     __shared__ calculate_type s_valC[512];
 
     int_t therowc = d_rowPtrC[rowidx];
@@ -2676,16 +2683,16 @@ __global__ void BlockLevel_spgemm_512(int_t n,
 
 __global__ void BlockLevel_spgemm_1024(int_t n,
                                        int_t layer,
-                                       int_t *d_bin_rowpointer,
-                                       int_t *d_bin_rowindex,
-                                       int_t *d_rowPtrA,
-                                       idx_int *d_colIdxA,
+                                       pangulu_inblock_ptr *d_bin_rowpointer,
+                                       pangulu_inblock_idx *d_bin_rowindex,
+                                       pangulu_inblock_ptr *d_rowPtrA,
+                                       pangulu_inblock_idx *d_colIdxA,
                                        calculate_type *d_valueA,
-                                       int_t *d_rowPtrB,
-                                       idx_int *d_colIdxB,
+                                       pangulu_inblock_ptr *d_rowPtrB,
+                                       pangulu_inblock_idx *d_colIdxB,
                                        calculate_type *d_valueB,
-                                       int_t *d_rowPtrC,
-                                       idx_int *d_colIdxC,
+                                       pangulu_inblock_ptr *d_rowPtrC,
+                                       pangulu_inblock_idx *d_colIdxC,
                                        calculate_type *d_valueC)
 {
     int_t warp_local_id = threadIdx.x / 32;
@@ -2694,7 +2701,7 @@ __global__ void BlockLevel_spgemm_1024(int_t n,
 
     const int_t rowidx = d_bin_rowindex[d_bin_rowpointer[layer] + blockIdx.x];
 
-    __shared__ idx_int s_idxC[1024];
+    __shared__ pangulu_inblock_idx s_idxC[1024];
     __shared__ calculate_type s_valC[1024];
 
     int_t therowc = d_rowPtrC[rowidx];
@@ -2735,16 +2742,16 @@ __global__ void BlockLevel_spgemm_1024(int_t n,
 
 __global__ void BlockLevel_spgemm_2048(int_t n,
                                        int_t layer,
-                                       int_t *d_bin_rowpointer,
-                                       int_t *d_bin_rowindex,
-                                       int_t *d_rowPtrA,
-                                       idx_int *d_colIdxA,
+                                       pangulu_inblock_ptr *d_bin_rowpointer,
+                                       pangulu_inblock_idx *d_bin_rowindex,
+                                       pangulu_inblock_ptr *d_rowPtrA,
+                                       pangulu_inblock_idx *d_colIdxA,
                                        calculate_type *d_valueA,
-                                       int_t *d_rowPtrB,
-                                       idx_int *d_colIdxB,
+                                       pangulu_inblock_ptr *d_rowPtrB,
+                                       pangulu_inblock_idx *d_colIdxB,
                                        calculate_type *d_valueB,
-                                       int_t *d_rowPtrC,
-                                       idx_int *d_colIdxC,
+                                       pangulu_inblock_ptr *d_rowPtrC,
+                                       pangulu_inblock_idx *d_colIdxC,
                                        calculate_type *d_valueC)
 {
     int_t warp_local_id = threadIdx.x / 32;
@@ -2753,7 +2760,7 @@ __global__ void BlockLevel_spgemm_2048(int_t n,
 
     const int_t rowidx = d_bin_rowindex[d_bin_rowpointer[layer] + blockIdx.x];
 
-    __shared__ idx_int s_idxC[2048];
+    __shared__ pangulu_inblock_idx s_idxC[2048];
     __shared__ calculate_type s_valC[2048];
 
     int_t therowc = d_rowPtrC[rowidx];
@@ -2794,16 +2801,16 @@ __global__ void BlockLevel_spgemm_2048(int_t n,
 
 __global__ void BlockLevel_spgemm_4097(int_t n,
                                        int_t layer,
-                                       int_t *d_bin_rowpointer,
-                                       int_t *d_bin_rowindex,
-                                       int_t *d_rowPtrA,
-                                       idx_int *d_colIdxA,
+                                       pangulu_inblock_ptr *d_bin_rowpointer,
+                                       pangulu_inblock_idx *d_bin_rowindex,
+                                       pangulu_inblock_ptr *d_rowPtrA,
+                                       pangulu_inblock_idx *d_colIdxA,
                                        calculate_type *d_valueA,
-                                       int_t *d_rowPtrB,
-                                       idx_int *d_colIdxB,
+                                       pangulu_inblock_ptr *d_rowPtrB,
+                                       pangulu_inblock_idx *d_colIdxB,
                                        calculate_type *d_valueB,
-                                       int_t *d_rowPtrC,
-                                       idx_int *d_colIdxC,
+                                       pangulu_inblock_ptr *d_rowPtrC,
+                                       pangulu_inblock_idx *d_colIdxC,
                                        calculate_type *d_valueC)
 {
     int_t warp_local_id = threadIdx.x / 32;
@@ -2847,10 +2854,10 @@ __forceinline__ __device__ calculate_type sum_32_shfl(calculate_type sum)
 
     return sum;
 }
-__global__ void spmv_warpvec_csr_cuda_executor(const int_t *d_csrRowPtr,
-                                               const int_t *d_csrColIdx,
+__global__ void spmv_warpvec_csr_cuda_executor(const pangulu_inblock_ptr *d_csrRowPtr,
+                                               const pangulu_inblock_idx *d_csrColIdx,
                                                const calculate_type *d_csrVal,
-                                               const int_t m,
+                                               const pangulu_inblock_ptr m,
                                                const calculate_type *d_x,
                                                calculate_type *d_y)
 {
@@ -2883,7 +2890,7 @@ __global__ void spmv_warpvec_csr_cuda_executor(const int_t *d_csrRowPtr,
     if (!lane_id)
         d_y[rowid] = sum;
 }
-__global__ void cuda_Transform_csc_to_coo(int_t n, int_t *d_colPtr, idx_int *d_rowIdx, idx_int *idx_col)
+__global__ void cuda_Transform_csc_to_coo(int_t n, pangulu_inblock_ptr *d_colPtr, pangulu_inblock_idx *d_rowIdx, pangulu_inblock_idx *idx_col)
 {
     int_t warp_id = (blockDim.x * blockIdx.x + threadIdx.x) / 32;
     int_t lane_id = threadIdx.x % 32;
@@ -2904,16 +2911,16 @@ __global__ void cuda_Transform_csc_to_coo(int_t n, int_t *d_colPtr, idx_int *d_r
 }
 __global__ void WrapLevel_spgemm_dense_nnz(int_t n,
                                            int_t nnz,
-                                           int_t *d_rowPtrA,
-                                           idx_int *d_colIdxA,
+                                           pangulu_inblock_ptr *d_rowPtrA,
+                                           pangulu_inblock_idx *d_colIdxA,
                                            calculate_type *d_valueA,
-                                           int_t *d_rowPtrB,
-                                           idx_int *d_colIdxB,
+                                           pangulu_inblock_ptr *d_rowPtrB,
+                                           pangulu_inblock_idx *d_colIdxB,
                                            calculate_type *d_valueB,
-                                           int_t *d_rowPtrC,
-                                           idx_int *d_colIdxC,
+                                           pangulu_inblock_ptr *d_rowPtrC,
+                                           pangulu_inblock_idx *d_colIdxC,
                                            calculate_type *d_valueC,
-                                           idx_int *coo_col_B,
+                                           pangulu_inblock_idx *coo_col_B,
                                            calculate_type *temp_value_C)
 {
     int_t warp_id = (blockDim.x * blockIdx.x + threadIdx.x) / 32;
@@ -2939,8 +2946,8 @@ __global__ void WrapLevel_spgemm_dense_nnz(int_t n,
 }
 __global__ void cuda_Transform_d_to_s_col(int_t n,
                                           int stride,
-                                          int_t *d_rowPtrA,
-                                          idx_int *d_colIdxA,
+                                          pangulu_inblock_ptr *d_rowPtrA,
+                                          pangulu_inblock_idx *d_colIdxA,
                                           calculate_type *d_valueA,
                                           calculate_type *temp_value_A)
 {
@@ -2964,7 +2971,7 @@ __global__ void cuda_Transform_d_to_s_col(int_t n,
     }
 }
 
-void pangulu_cuda_transport_kernel_CSC_to_CSR(int_t nnz, calculate_type *d_val_csr, int_t *d_idx, calculate_type *d_val_csc)
+void pangulu_cuda_transport_kernel_CSC_to_CSR(int_t nnz, calculate_type *d_val_csr, pangulu_inblock_idx *d_idx, calculate_type *d_val_csc)
 {
 
     int_t num_threads = WARP_SIZE * 2;
@@ -2974,7 +2981,7 @@ void pangulu_cuda_transport_kernel_CSC_to_CSR(int_t nnz, calculate_type *d_val_c
     cudaDeviceSynchronize();
 }
 
-void pangulu_cuda_transport_kernel_CSR_to_CSC(int_t nnz, calculate_type *d_val_csc, int_t *d_idx, calculate_type *d_val_csr)
+void pangulu_cuda_transport_kernel_CSR_to_CSC(int_t nnz, calculate_type *d_val_csc, pangulu_inblock_idx *d_idx, calculate_type *d_val_csr)
 {
 
     int_t num_threads = WARP_SIZE * 2;
@@ -2987,14 +2994,14 @@ void pangulu_cuda_transport_kernel_CSR_to_CSC(int_t nnz, calculate_type *d_val_c
 void pangulu_getrf_cuda_kernel(int_t n,
                                int_t nnzA,
                                int_32t *d_nnzU,
-                               int_t *A_CUDA_rowpointer,
-                               idx_int *A_CUDA_columnindex,
+                               pangulu_inblock_ptr *A_CUDA_rowpointer,
+                               pangulu_inblock_idx *A_CUDA_columnindex,
                                calculate_type *A_CUDA_value,
-                               int_t *L_CUDA_rowpointer,
-                               idx_int *L_CUDA_columnindex,
+                               pangulu_inblock_ptr *L_CUDA_rowpointer,
+                               pangulu_inblock_idx *L_CUDA_columnindex,
                                calculate_type *L_CUDA_value,
-                               int_t *U_CUDA_rowpointer,
-                               idx_int *U_CUDA_columnindex,
+                               pangulu_inblock_ptr *U_CUDA_rowpointer,
+                               pangulu_inblock_idx *U_CUDA_columnindex,
                                calculate_type *U_CUDA_value)
 {
     int_t nnz_avrg = nnzA / n;
@@ -3047,14 +3054,14 @@ void pangulu_getrf_cuda_kernel(int_t n,
 void pangulu_getrf_cuda_dense_kernel(int_t n,
                                      int_t nnzA,
                                      int_32t *d_nnzU,
-                                     int_t *A_CUDA_rowpointer,
-                                     idx_int *A_CUDA_columnindex,
+                                     pangulu_inblock_ptr *A_CUDA_rowpointer,
+                                     pangulu_inblock_idx *A_CUDA_columnindex,
                                      calculate_type *A_CUDA_value,
-                                     int_t *L_CUDA_rowpointer,
-                                     idx_int *L_CUDA_columnindex,
+                                     pangulu_inblock_ptr *L_CUDA_rowpointer,
+                                     pangulu_inblock_idx *L_CUDA_columnindex,
                                      calculate_type *L_CUDA_value,
-                                     int_t *U_CUDA_rowpointer,
-                                     idx_int *U_CUDA_columnindex,
+                                     pangulu_inblock_ptr *U_CUDA_rowpointer,
+                                     pangulu_inblock_idx *U_CUDA_columnindex,
                                      calculate_type *U_CUDA_value)
 {
 
@@ -3081,14 +3088,14 @@ void pangulu_getrf_cuda_dense_kernel(int_t n,
 
 void pangulu_tstrf_cuda_kernel_v7(int_t n,
                                   int_t nnzU,
-                                  int_t *U_rowpointer,
-                                  idx_int *U_columnindex,
+                                  pangulu_inblock_ptr *U_rowpointer,
+                                  pangulu_inblock_idx *U_columnindex,
                                   calculate_type *U_VALUE,
-                                  int_t *X_rowpointer,
-                                  idx_int *X_columnindex,
+                                  pangulu_inblock_ptr *X_rowpointer,
+                                  pangulu_inblock_idx *X_columnindex,
                                   calculate_type *X_VALUE,
-                                  int_t *A_rowpointer,
-                                  idx_int *A_columnindex,
+                                  pangulu_inblock_ptr *A_rowpointer,
+                                  pangulu_inblock_idx *A_columnindex,
                                   calculate_type *A_VALUE)
 {
     int_t nnzU_avrg = nnzU / n;
@@ -3112,14 +3119,14 @@ void pangulu_tstrf_cuda_kernel_v7(int_t n,
 
 void pangulu_tstrf_cuda_kernel_v10(int_t n,
                                    int_t nnzU,
-                                   int_t *U_rowpointer,
-                                   idx_int *U_columnindex,
+                                   pangulu_inblock_ptr *U_rowpointer,
+                                   pangulu_inblock_idx *U_columnindex,
                                    calculate_type *U_VALUE,
-                                   int_t *X_rowpointer,
-                                   idx_int *X_columnindex,
+                                   pangulu_inblock_ptr *X_rowpointer,
+                                   pangulu_inblock_idx *X_columnindex,
                                    calculate_type *X_VALUE,
-                                   int_t *A_rowpointer,
-                                   idx_int *A_columnindex,
+                                   pangulu_inblock_ptr *A_rowpointer,
+                                   pangulu_inblock_idx *A_columnindex,
                                    calculate_type *A_VALUE)
 {
 
@@ -3142,14 +3149,14 @@ void pangulu_tstrf_cuda_kernel_v11(int_t n,
                                    int *degree,
                                    int *d_id_extractor,
                                    calculate_type *d_left_sum,
-                                   int_t *U_rowpointer,
-                                   idx_int *U_columnindex,
+                                   pangulu_inblock_ptr *U_rowpointer,
+                                   pangulu_inblock_idx *U_columnindex,
                                    calculate_type *U_VALUE,
-                                   int_t *X_rowpointer,
-                                   idx_int *X_columnindex,
+                                   pangulu_inblock_ptr *X_rowpointer,
+                                   pangulu_inblock_idx *X_columnindex,
                                    calculate_type *X_VALUE,
-                                   int_t *A_rowpointer,
-                                   idx_int *A_columnindex,
+                                   pangulu_inblock_ptr *A_rowpointer,
+                                   pangulu_inblock_idx *A_columnindex,
                                    calculate_type *A_VALUE)
 {
     int_t num_threads = WARP_SIZE * WARP_PER_BLOCK;
@@ -3168,14 +3175,14 @@ void pangulu_tstrf_cuda_kernel_v11(int_t n,
 
 void pangulu_gessm_cuda_kernel_v7(int_t n,
                                   int_t nnzL,
-                                  int_t *L_columnpointer,
-                                  idx_int *L_rowindex,
+                                  pangulu_inblock_ptr *L_columnpointer,
+                                  pangulu_inblock_idx *L_rowindex,
                                   calculate_type *L_VALUE,
-                                  int_t *X_columnpointer,
-                                  idx_int *X_rowindex,
+                                  pangulu_inblock_ptr *X_columnpointer,
+                                  pangulu_inblock_idx *X_rowindex,
                                   calculate_type *X_VALUE,
-                                  int_t *A_columnpointer,
-                                  idx_int *A_rowindex,
+                                  pangulu_inblock_ptr *A_columnpointer,
+                                  pangulu_inblock_idx *A_rowindex,
                                   calculate_type *A_VALUE)
 {
     int_t nnzL_avrg = nnzL / n;
@@ -3204,14 +3211,14 @@ void pangulu_gessm_cuda_kernel_v8(int_t n,
                                   int *degree,
                                   int *d_id_extractor,
                                   calculate_type *d_left_sum,
-                                  int_t *L_columnpointer,
-                                  idx_int *L_rowindex,
+                                  pangulu_inblock_ptr *L_columnpointer,
+                                  pangulu_inblock_idx *L_rowindex,
                                   calculate_type *L_VALUE,
-                                  int_t *X_columnpointer,
-                                  idx_int *X_rowindex,
+                                  pangulu_inblock_ptr *X_columnpointer,
+                                  pangulu_inblock_idx *X_rowindex,
                                   calculate_type *X_VALUE,
-                                  int_t *A_columnpointer,
-                                  idx_int *A_rowindex,
+                                  pangulu_inblock_ptr *A_columnpointer,
+                                  pangulu_inblock_idx *A_rowindex,
                                   calculate_type *A_VALUE)
 {
 
@@ -3224,14 +3231,14 @@ void pangulu_gessm_cuda_kernel_v8(int_t n,
 
 void pangulu_gessm_cuda_kernel_v10(int_t n,
                                    int_t nnzL,
-                                   int_t *L_columnpointer,
-                                   idx_int *L_rowindex,
+                                   pangulu_inblock_ptr *L_columnpointer,
+                                   pangulu_inblock_idx *L_rowindex,
                                    calculate_type *L_VALUE,
-                                   int_t *X_columnpointer,
-                                   idx_int *X_rowindex,
+                                   pangulu_inblock_ptr *X_columnpointer,
+                                   pangulu_inblock_idx *X_rowindex,
                                    calculate_type *X_VALUE,
-                                   int_t *A_columnpointer,
-                                   idx_int *A_rowindex,
+                                   pangulu_inblock_ptr *A_columnpointer,
+                                   pangulu_inblock_idx *A_rowindex,
                                    calculate_type *A_VALUE)
 {
     int_t num_threads = WARP_SIZE * WARP_PER_BLOCK;
@@ -3250,17 +3257,17 @@ void pangulu_gessm_cuda_kernel_v10(int_t n,
 }
 
 void pangulu_ssssm_cuda_kernel(int_t n,
-                               int_t *h_bin_rowpointer,
-                               int_t *d_bin_rowpointer,
-                               int_t *d_bin_rowindex,
-                               int_t *d_rowPtrA,
-                               idx_int *d_colIdxA,
+                               pangulu_inblock_ptr *h_bin_rowpointer,
+                               pangulu_inblock_ptr *d_bin_rowpointer,
+                               pangulu_inblock_idx *d_bin_rowindex,
+                               pangulu_inblock_ptr *d_rowPtrA,
+                               pangulu_inblock_idx *d_colIdxA,
                                calculate_type *d_valueA,
-                               int_t *d_rowPtrB,
-                               idx_int *d_colIdxB,
+                               pangulu_inblock_ptr *d_rowPtrB,
+                               pangulu_inblock_idx *d_colIdxB,
                                calculate_type *d_valueB,
-                               int_t *d_rowPtrC,
-                               idx_int *d_colIdxC,
+                               pangulu_inblock_ptr *d_rowPtrC,
+                               pangulu_inblock_idx *d_colIdxC,
                                calculate_type *d_valueC)
 {
 
@@ -3395,14 +3402,14 @@ void pangulu_ssssm_cuda_kernel(int_t n,
 void pangulu_ssssm_dense_cuda_kernel(int_t n,
                                      int_t nnzC,
                                      int_t nnzB,
-                                     int_t *d_rowPtrA,
-                                     idx_int *d_colIdxA,
+                                     pangulu_inblock_ptr *d_rowPtrA,
+                                     pangulu_inblock_idx *d_colIdxA,
                                      calculate_type *d_valueA,
-                                     int_t *d_rowPtrB,
-                                     idx_int *d_colIdxB,
+                                     pangulu_inblock_ptr *d_rowPtrB,
+                                     pangulu_inblock_idx *d_colIdxB,
                                      calculate_type *d_valueB,
-                                     int_t *d_rowPtrC,
-                                     idx_int *d_colIdxC,
+                                     pangulu_inblock_ptr *d_rowPtrC,
+                                     pangulu_inblock_idx *d_colIdxC,
                                      calculate_type *d_valueC)
 {
 

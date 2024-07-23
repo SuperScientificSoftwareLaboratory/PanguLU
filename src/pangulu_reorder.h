@@ -8,10 +8,8 @@
 #include "math.h"
 #include "float.h"
 
-#define PANGULU_MC64_FLAG -5
 
-
-
+#ifdef PANGULU_MC64
 void pangulu_MC64dd(int_t col, int_t n, int_t *queue, calculate_type *row_scale_value, int_t *save_tmp)
 {
     int_t loc = save_tmp[col];
@@ -143,7 +141,7 @@ void pangulu_MC64fd(int_t loc_origin, int_t *queue_length, int_t n, int_t *queue
     return;
 }
 
-void pangulu_mc64(pangulu_Smatrix *S, int_t **perm, int_t **iperm,
+void pangulu_mc64(pangulu_origin_Smatrix *S, int_t **perm, int_t **iperm,
                   calculate_type **row_scale, calculate_type **col_scale)
 {
 
@@ -156,23 +154,23 @@ void pangulu_mc64(pangulu_Smatrix *S, int_t **perm, int_t **iperm,
     int_32t *colidx = S->columnindex;
     calculate_type *val = S->value;
 
-    int_t *col_perm = (int_t *)pangulu_malloc(sizeof(int_t) * n);
-    int_t *row_perm = (int_t *)pangulu_malloc(sizeof(int_t) * n);
-    int_t *rowptr_tmp = (int_t *)pangulu_malloc(sizeof(int_t) * n);
-    int_t *queue = (int_t *)pangulu_malloc(sizeof(int_t) * n);
-    int_t *save_tmp = (int_t *)pangulu_malloc(sizeof(int_t) * n);
-    int_t *ans_queue = (int_t *)pangulu_malloc(sizeof(int_t) * n);
+    int_t *col_perm = (int_t *)pangulu_malloc(__FILE__, __LINE__, sizeof(int_t) * n);
+    int_t *row_perm = (int_t *)pangulu_malloc(__FILE__, __LINE__, sizeof(int_t) * n);
+    int_t *rowptr_tmp = (int_t *)pangulu_malloc(__FILE__, __LINE__, sizeof(int_t) * n);
+    int_t *queue = (int_t *)pangulu_malloc(__FILE__, __LINE__, sizeof(int_t) * n);
+    int_t *save_tmp = (int_t *)pangulu_malloc(__FILE__, __LINE__, sizeof(int_t) * n);
+    int_t *ans_queue = (int_t *)pangulu_malloc(__FILE__, __LINE__, sizeof(int_t) * n);
 
-    calculate_type *fabs_value = (calculate_type *)pangulu_malloc(sizeof(calculate_type) * nnz);
-    calculate_type *max_value = (calculate_type *)pangulu_malloc(sizeof(calculate_type) * n);
-    calculate_type *col_scale_value = (calculate_type *)pangulu_malloc(sizeof(calculate_type) * n);
-    calculate_type *row_scale_value = (calculate_type *)pangulu_malloc(sizeof(calculate_type) * n);
+    calculate_type *fabs_value = (calculate_type *)pangulu_malloc(__FILE__, __LINE__, sizeof(calculate_type) * nnz);
+    calculate_type *max_value = (calculate_type *)pangulu_malloc(__FILE__, __LINE__, sizeof(calculate_type) * n);
+    calculate_type *col_scale_value = (calculate_type *)pangulu_malloc(__FILE__, __LINE__, sizeof(calculate_type) * n);
+    calculate_type *row_scale_value = (calculate_type *)pangulu_malloc(__FILE__, __LINE__, sizeof(calculate_type) * n);
 
     for (int_t i = 0; i < n; i++)
     {
         if (rowptr[i] >= rowptr[i + 1])
         {
-            printf("error this matrix exist row is nuLL\n");
+            printf(PANGULU_E_ROW_IS_NULL);
             fflush(NULL);
             exit(-1);
         }
@@ -210,7 +208,7 @@ void pangulu_mc64(pangulu_Smatrix *S, int_t **perm, int_t **iperm,
     {
         if (rowptr[i] >= rowptr[i + 1])
         {
-            printf("error exit zero row in matrix\n");
+            printf(PANGULU_E_ROW_IS_NULL);
             fflush(NULL);
             exit(-1);
         }
@@ -222,7 +220,7 @@ void pangulu_mc64(pangulu_Smatrix *S, int_t **perm, int_t **iperm,
         for (int_t j = rowptr[i]; j < rowptr[i + 1]; j++)
         {
 
-            fabs_value[j] = PANGULU_ABS(val[j]);
+            fabs_value[j] = fabs(val[j]);
             max_value[i] = PANGULU_MAX(fabs_value[j], max_value[i]);
         }
 
@@ -234,7 +232,7 @@ void pangulu_mc64(pangulu_Smatrix *S, int_t **perm, int_t **iperm,
         }
         else
         {
-            printf("now max is NULL\n");
+            printf(PANGULU_E_MAX_NULL);
             fflush(NULL);
             exit(0);
         }
@@ -647,13 +645,13 @@ void pangulu_mc64(pangulu_Smatrix *S, int_t **perm, int_t **iperm,
         row_scale_value[i] = exp(row_scale_value[i]);
     }
 
-    free(rowptr_tmp);
-    free(queue);
-    free(save_tmp);
-    free(ans_queue);
+    pangulu_free(__FILE__, __LINE__, rowptr_tmp);
+    pangulu_free(__FILE__, __LINE__, queue);
+    pangulu_free(__FILE__, __LINE__, save_tmp);
+    pangulu_free(__FILE__, __LINE__, ans_queue);
 
-    free(fabs_value);
-    free(max_value);
+    pangulu_free(__FILE__, __LINE__, fabs_value);
+    pangulu_free(__FILE__, __LINE__, max_value);
 
     *perm = row_perm;
     *iperm = col_perm;
@@ -663,14 +661,51 @@ void pangulu_mc64(pangulu_Smatrix *S, int_t **perm, int_t **iperm,
 
     return;
 }
+#endif
 
-void pangulu_Smatrix_transport_transport_iperm(pangulu_Smatrix *S, pangulu_Smatrix *new_S, int_t *metis_perm)
+// void pangulu_Smatrix_transport_transport_iperm(pangulu_Smatrix *S, pangulu_Smatrix *new_S, int_t *metis_perm)
+// {
+//     int_t n = S->row;
+//     int_t nnz = S->nnz;
+//     int_t *rowpointer = (int_t *)pangulu_malloc(__FILE__, __LINE__, sizeof(int_t) * (n + 1));
+//     int_32t *columnindex = (int_32t *)pangulu_malloc(__FILE__, __LINE__, sizeof(int_32t) * nnz);
+//     calculate_type *value = (calculate_type *)pangulu_malloc(__FILE__, __LINE__, sizeof(calculate_type) * nnz);
+//     for (int_t i = 0; i < n; i++)
+//     {
+//         int_t row_num = S->rowpointer[i + 1] - S->rowpointer[i];
+//         int_t index = metis_perm[i];
+//         rowpointer[index + 1] = row_num;
+//     }
+//     rowpointer[0] = 0;
+//     for (int_t i = 0; i < n; i++)
+//     {
+//         rowpointer[i + 1] += rowpointer[i];
+//     }
+//     for (int_t i = 0; i < n; i++)
+//     {
+//         int_t index = metis_perm[i];
+//         int_t before_row_begin = S->rowpointer[i];
+//         for (int_t row_begin = rowpointer[index]; row_begin < rowpointer[index + 1]; row_begin++, before_row_begin++)
+//         {
+//             columnindex[row_begin] = metis_perm[S->columnindex[before_row_begin]];
+//             value[row_begin] = S->value[before_row_begin];
+//         }
+//     }
+//     new_S->row = n;
+//     new_S->column = n;
+//     new_S->rowpointer = rowpointer;
+//     new_S->columnindex = columnindex;
+//     new_S->value = value;
+//     new_S->nnz = nnz;
+// }
+
+void pangulu_origin_Smatrix_transport_transport_iperm(pangulu_origin_Smatrix *S, pangulu_origin_Smatrix *new_S, int_t *metis_perm)
 {
     int_t n = S->row;
     int_t nnz = S->nnz;
-    int_t *rowpointer = (int_t *)pangulu_malloc(sizeof(int_t) * (n + 1));
-    int_32t *columnindex = (int_32t *)pangulu_malloc(sizeof(int_32t) * nnz);
-    calculate_type *value = (calculate_type *)pangulu_malloc(sizeof(calculate_type) * nnz);
+    int_t *rowpointer = (int_t *)pangulu_malloc(__FILE__, __LINE__, sizeof(int_t) * (n + 1));
+    int_32t *columnindex = (int_32t *)pangulu_malloc(__FILE__, __LINE__, sizeof(int_32t) * nnz);
+    calculate_type *value = (calculate_type *)pangulu_malloc(__FILE__, __LINE__, sizeof(calculate_type) * nnz);
     for (int_t i = 0; i < n; i++)
     {
         int_t row_num = S->rowpointer[i + 1] - S->rowpointer[i];
@@ -701,12 +736,12 @@ void pangulu_Smatrix_transport_transport_iperm(pangulu_Smatrix *S, pangulu_Smatr
 }
 
 #ifdef METIS
-#include <metis.h>
-void pangulu_get_graph_struct(pangulu_Smatrix *S, int_t **xadj_adress, int_t **adjincy_adress)
+#include <parmetis.h>
+void pangulu_get_graph_struct(pangulu_origin_Smatrix *S, int_t **xadj_adress, int_t **adjincy_adress)
 {
     pangulu_add_diagonal_element(S);
-    pangulu_Smatrix_add_CSC(S);
-    int_t *xadj = (int_t *)pangulu_malloc(sizeof(int_t) * (S->row + 1));
+    pangulu_origin_Smatrix_add_CSC(S);
+    int_t *xadj = (int_t *)pangulu_malloc(__FILE__, __LINE__, sizeof(int_t) * (S->row + 1));
     xadj[0] = 0;
 
     for (int_t i = 0; i < S->row; i++)
@@ -775,7 +810,7 @@ void pangulu_get_graph_struct(pangulu_Smatrix *S, int_t **xadj_adress, int_t **a
         }
         if (diagonal_flag == 0)
         {
-            printf("ERROR the row %ld don't have diagonal\n", i);
+            printf(PANGULU_E_ROW_DONT_HAVE_DIA);
         }
         xadj[i + 1] = sum_num - diagonal_flag;
     }
@@ -784,7 +819,7 @@ void pangulu_get_graph_struct(pangulu_Smatrix *S, int_t **xadj_adress, int_t **a
         xadj[i + 1] += xadj[i];
     }
 
-    int_t *adjincy = (int_t *)pangulu_malloc(sizeof(int_t) * (xadj[S->row]));
+    int_t *adjincy = (int_t *)pangulu_malloc(__FILE__, __LINE__, sizeof(int_t) * (xadj[S->row]));
 
     for (int_t i = 0; i < S->row; i++)
     {
@@ -877,43 +912,238 @@ void pangulu_get_graph_struct(pangulu_Smatrix *S, int_t **xadj_adress, int_t **a
     *adjincy_adress = adjincy;
 }
 
-void pangulu_metis_interface(pangulu_Smatrix *S, char *filename)
+void pangulu_get_graph_struct_MPI(pangulu_origin_Smatrix *S, int_t **xadj_adress, int_t **adjncy_address, int_t **vtxdist_address)
 {
-    pangulu_Smatrix *A = (pangulu_Smatrix *)pangulu_malloc(sizeof(pangulu_Smatrix));
-    pangulu_init_pangulu_Smatrix(A);
-    pangulu_read_pangulu_Smatrix(A, filename);
+    if(RANK==0){
+        pangulu_add_diagonal_element(S);
+        pangulu_origin_Smatrix_add_CSC(S);
+    }
 
-    int_t n = A->row;
-    int_t *iperm = (int_t *)pangulu_malloc(sizeof(int_t) * (n + 5));
-    int_t *perm = (int_t *)pangulu_malloc(sizeof(int_t) * (n + 5));
 
-    int_t *xadj = NULL;
-    int_t *adjincy = NULL;
-    pangulu_get_graph_struct(A, &xadj, &adjincy);
-    METIS_NodeND(&n, xadj, adjincy, NULL, NULL, perm, iperm);
-    pangulu_Smatrix_transport_transport_iperm(A, S, iperm);
-    pangulu_sort_pangulu_matrix(S);
-    free(iperm);
-    free(perm);
-    free(xadj);
-    free(adjincy);
+    int_t *xadj;
+    int_t *adjncy;
+    int sum_rank_size;
+    MPI_Comm_size(MPI_COMM_WORLD, &sum_rank_size);
+    int_t* vtxdist = (int_t*)pangulu_malloc(__FILE__, __LINE__, sizeof(int_t) * (sum_rank_size+1));
 
-    free(A->rowpointer);
-    free(A->columnindex);
-    free(A->value);
-    free(A->columnpointer);
-    free(A->CSC_to_CSR_index);
-    free(A);
-    A = NULL;
+    if(RANK==0){
+        vtxdist[0] = 0;
+        for(int i=0;i<sum_rank_size;i++){
+            vtxdist[i+1] = S->row / sum_rank_size;
+            if(i < (S->row % sum_rank_size)){
+                vtxdist[i+1]++;
+            }
+        }
+        for(int i=1;i<sum_rank_size;i++){
+            vtxdist[i+1] += vtxdist[i];
+        }
+    }
+
+    MPI_Bcast(vtxdist, sum_rank_size+1, MPI_INT64_T, 0, MPI_COMM_WORLD);
+
+    if(RANK==0){
+        xadj = (int_t *)pangulu_malloc(__FILE__, __LINE__, sizeof(int_t) * (S->row + 1));
+        xadj[0] = 0;
+        for (int_t i = 0; i < S->row; i++)
+        {
+            int_t index1 = S->rowpointer[i];
+            int_t index2 = S->columnpointer[i];
+            int_t end1 = S->rowpointer[i + 1];
+            int_t end2 = S->columnpointer[i + 1];
+            int_t diagonal_flag = 0;
+            int_t sum_num = 0;
+            int_t col1 = S->columnindex[index1];
+            int_t col2 = S->rowindex[index2];
+            while ((index1 < end1) && (index2 < end2))
+            {
+                if (col1 == col2)
+                {
+                    if ((diagonal_flag == 0) && (col1 == i))
+                    {
+                        diagonal_flag = 1;
+                    }
+                    index1++;
+                    index2++;
+                    col1 = S->columnindex[index1];
+                    col2 = S->rowindex[index2];
+                }
+                else if (col1 < col2)
+                {
+                    if ((diagonal_flag == 0) && (col1 == i))
+                    {
+                        diagonal_flag = 1;
+                    }
+                    index1++;
+                    col1 = S->columnindex[index1];
+                }
+                else
+                {
+                    if ((diagonal_flag == 0) && (col2 == i))
+                    {
+                        diagonal_flag = 1;
+                    }
+                    index2++;
+                    col2 = S->rowindex[index2];
+                }
+                sum_num++;
+            }
+            while (index1 < end1)
+            {
+                sum_num++;
+                if ((diagonal_flag == 0) && (col1 == i))
+                {
+                    diagonal_flag = 1;
+                }
+                index1++;
+                col1 = S->columnindex[index1];
+            }
+
+            while (index2 < end2)
+            {
+                sum_num++;
+                if ((diagonal_flag == 0) && (col2 == i))
+                {
+                    diagonal_flag = 1;
+                }
+                index2++;
+                col2 = S->rowindex[index2];
+            }
+            if (diagonal_flag == 0)
+            {
+                printf(PANGULU_E_ROW_DONT_HAVE_DIA);
+            }
+            xadj[i + 1] = sum_num - diagonal_flag;
+        }
+        for (int_t i = 0; i < S->row; i++)
+        {
+            xadj[i + 1] += xadj[i];
+        }
+
+        adjncy = (int_t *)pangulu_malloc(__FILE__, __LINE__, sizeof(int_t) * (xadj[S->row]));
+
+        for (int_t i = 0; i < S->row; i++)
+        {
+            int_t now_adjncy_index = xadj[i];
+            int_t index1 = S->rowpointer[i];
+            int_t index2 = S->columnpointer[i];
+            int_t end1 = S->rowpointer[i + 1];
+            int_t end2 = S->columnpointer[i + 1];
+            int_t diagonal_flag = 0;
+            int_t col1 = S->columnindex[index1];
+            int_t col2 = S->rowindex[index2];
+            while ((index1 < end1) && (index2 < end2))
+            {
+                if (col1 == col2)
+                {
+                    if ((diagonal_flag == 0) && (col1 == i))
+                    {
+                        diagonal_flag = 1;
+                    }
+                    else
+                    {
+                        adjncy[now_adjncy_index] = col1;
+                        now_adjncy_index++;
+                    }
+                    index1++;
+                    index2++;
+                    col1 = S->columnindex[index1];
+                    col2 = S->rowindex[index2];
+                }
+                else if (col1 < col2)
+                {
+                    if ((diagonal_flag == 0) && (col1 == i))
+                    {
+                        diagonal_flag = 1;
+                    }
+                    else
+                    {
+                        adjncy[now_adjncy_index] = col1;
+                        now_adjncy_index++;
+                    }
+                    index1++;
+                    col1 = S->columnindex[index1];
+                }
+                else
+                {
+                    if ((diagonal_flag == 0) && (col2 == i))
+                    {
+                        diagonal_flag = 1;
+                    }
+                    else
+                    {
+                        adjncy[now_adjncy_index] = col2;
+                        now_adjncy_index++;
+                    }
+                    index2++;
+                    col2 = S->rowindex[index2];
+                }
+            }
+            while (index1 < end1)
+            {
+                if ((diagonal_flag == 0) && (col1 == i))
+                {
+                    diagonal_flag = 1;
+                }
+                else
+                {
+                    adjncy[now_adjncy_index] = col1;
+                    now_adjncy_index++;
+                }
+                index1++;
+                col1 = S->columnindex[index1];
+            }
+
+            while (index2 < end2)
+            {
+                if ((diagonal_flag == 0) && (col2 == i))
+                {
+                    diagonal_flag = 1;
+                }
+                else
+                {
+                    adjncy[now_adjncy_index] = col2;
+                    now_adjncy_index++;
+                }
+                index2++;
+                col2 = S->rowindex[index2];
+            }
+        }
+
+        for(int i=1;i<sum_rank_size;i++){
+            MPI_Send(xadj + vtxdist[i], vtxdist[i+1]-vtxdist[i] + 1, MPI_INT64_T, i, 1, MPI_COMM_WORLD);
+            MPI_Send(
+                adjncy + xadj[vtxdist[i]],
+                xadj[vtxdist[i+1]] - xadj[vtxdist[i]],
+                MPI_INT64_T, i, 2, MPI_COMM_WORLD);
+        }
+    }else{
+        MPI_Status stat;
+        xadj = (int_t *)pangulu_malloc(__FILE__, __LINE__, sizeof(int_t) * (vtxdist[RANK+1] - vtxdist[RANK] + 1));
+        MPI_Recv(xadj, vtxdist[RANK+1] - vtxdist[RANK] + 1, MPI_INT64_T, 0, 1, MPI_COMM_WORLD, &stat);
+
+        adjncy = (int_t *)pangulu_malloc(__FILE__, __LINE__, sizeof(int_t) * (xadj[vtxdist[RANK+1] - vtxdist[RANK]] - xadj[0]));
+        MPI_Recv(adjncy, xadj[vtxdist[RANK+1] - vtxdist[RANK]] - xadj[0], MPI_INT64_T, 0, 2, MPI_COMM_WORLD, &stat);
+
+        int omp_threads_num = 20;
+        int_t xadj_first = xadj[0];
+        #pragma omp parallel for num_threads(omp_threads_num)
+        for(int i=0;i<vtxdist[RANK+1]-vtxdist[RANK]+1;i++){
+            xadj[i] -= xadj_first;
+        }
+    }
+    
+    *xadj_adress = xadj;
+    *adjncy_address = adjncy;
+    *vtxdist_address = vtxdist;
 }
 
-void pangulu_metis(pangulu_Smatrix *A, int_t **metis_perm)
+void pangulu_metis(pangulu_origin_Smatrix *A, int_t **metis_perm)
 {
 
     int_t n = A->row;
 
-    int_t *iperm = (int_t *)pangulu_malloc(sizeof(int_t) * n);
-    int_t *perm = (int_t *)pangulu_malloc(sizeof(int_t) * n);
+    int_t *iperm = (int_t *)pangulu_malloc(__FILE__, __LINE__, sizeof(int_t) * n);
+    int_t *perm = (int_t *)pangulu_malloc(__FILE__, __LINE__, sizeof(int_t) * n);
 
     int_t *xadj = NULL;
     int_t *adjincy = NULL;
@@ -921,17 +1151,89 @@ void pangulu_metis(pangulu_Smatrix *A, int_t **metis_perm)
     pangulu_get_graph_struct(A, &xadj, &adjincy);
     METIS_NodeND(&n, xadj, adjincy, NULL, NULL, perm, iperm);
 
-    free(perm);
-    free(xadj);
-    free(adjincy);
+    pangulu_free(__FILE__, __LINE__, perm);
+    pangulu_free(__FILE__, __LINE__, xadj);
+    pangulu_free(__FILE__, __LINE__, adjincy);
 
     *metis_perm = iperm;
-    free(A->columnpointer);
-    free(A->CSC_to_CSR_index);
+    pangulu_free(__FILE__, __LINE__, A->columnpointer);
+    pangulu_free(__FILE__, __LINE__, A->CSC_to_CSR_index);
     A->columnpointer = NULL;
     A->rowindex = NULL;
     A->value_CSC = NULL;
 }
+
+void pangulu_parmetis(pangulu_origin_Smatrix *A, int_t **metis_perm){
+    int_t n = A->row;
+    MPI_Bcast(&n, 1, MPI_INT64_T, 0, MPI_COMM_WORLD);
+    int sum_rank_size;
+    MPI_Comm_size(MPI_COMM_WORLD, &sum_rank_size);
+
+    // int_t *iperm = (int_t *)pangulu_malloc(__FILE__, __LINE__, sizeof(int_t) * n);
+    int_t *perm = (int_t *)pangulu_malloc(__FILE__, __LINE__, sizeof(int_t) * n);
+    int_t *sizes = (int_t *)pangulu_malloc(__FILE__, __LINE__, sizeof(int_t) * (n + 5));
+    int_t *optionsnodeND = (int_t *)pangulu_malloc(__FILE__, __LINE__, sizeof(int_t) * (4));
+    optionsnodeND[0] = 0;
+    optionsnodeND[1] = 1;
+    optionsnodeND[2] = 2;
+
+    int_t *vtxdist = NULL;
+    int_t *xadj = NULL;
+    int_t *adjncy = NULL;
+    int_t numflag = 0;
+    MPI_Comm mpi_comm_world = MPI_COMM_WORLD;
+
+    pangulu_get_graph_struct_MPI(A, &xadj, &adjncy, &vtxdist);
+    MPI_Barrier(MPI_COMM_WORLD);
+
+    // for(int i=0;i<sum_rank_size;i++){
+    //     if(i==RANK){
+    //         printf("rank %d\n", RANK);
+    //         for(int j=0;j<sum_rank_size+1;j++){
+    //             printf("%ld ", vtxdist[j]);
+    //         }
+    //         printf("\n");
+    //         for(int j=0;j<vtxdist[RANK+1]-vtxdist[RANK]+1;j++){
+    //             printf("%ld ", xadj[j]);
+    //         }
+    //         printf("\n");
+    //         for(int j=0;j<xadj[vtxdist[RANK+1]-vtxdist[RANK]];j++){
+    //             printf("%ld ", adjncy[j]);
+    //         }
+    //         printf("\n\n");
+    //     }
+    //     sleep(1);
+    //     MPI_Barrier(MPI_COMM_WORLD);
+    // }
+
+    ParMETIS_V3_NodeND(
+        vtxdist, xadj, adjncy, &numflag, optionsnodeND, perm,
+        sizes, &mpi_comm_world);
+    MPI_Abort(MPI_COMM_WORLD, 0);
+    
+
+    
+    if(RANK==0){
+        MPI_Status stat;
+        for(int i=1;i<sum_rank_size;i++){
+            int_t offset = perm[vtxdist[i]];
+            MPI_Recv(perm + vtxdist[i], vtxdist[i+1] - vtxdist[i] + 1, MPI_INT64_T, i, 3, MPI_COMM_WORLD, &stat);
+            for(int j=vtxdist[i];j<=vtxdist[i+1];j++){
+                vtxdist[i]+=offset;
+            }
+        }
+    }else{
+        MPI_Send(perm, vtxdist[RANK+1] - vtxdist[RANK] + 1, MPI_INT64_T, 0, 3, MPI_COMM_WORLD);
+    }
+
+
+    if(RANK==0){
+        *metis_perm = perm;
+    }else{
+        *metis_perm = NULL;
+    }
+}
+
 #endif
 void pangulu_reorder_vector_X_tran(pangulu_block_Smatrix *block_Smatrix,
                                    pangulu_vector *X_origin,
@@ -968,10 +1270,9 @@ void pangulu_reorder_vector_B_tran(pangulu_block_Smatrix *block_Smatrix,
 }
 
 void pangulu_reorder(pangulu_block_Smatrix *block_Smatrix,
-                     pangulu_Smatrix *origin_matrix,
-                     pangulu_Smatrix *reorder_matrix)
+                     pangulu_origin_Smatrix *origin_matrix,
+                     pangulu_origin_Smatrix *reorder_matrix)
 {
-
     int_t n = origin_matrix->row;
     int_t nnz = origin_matrix->nnz;
     int_t *perm = NULL;
@@ -979,107 +1280,118 @@ void pangulu_reorder(pangulu_block_Smatrix *block_Smatrix,
     int_t *metis_perm = NULL;
     calculate_type *row_scale = NULL;
     calculate_type *col_scale = NULL;
-    //printf("begin\n");
-#ifdef PANGULU_MC64
-    pangulu_mc64(origin_matrix, &perm, &iperm, &row_scale, &col_scale);
+    pangulu_origin_Smatrix *tmp;
+    if(RANK==0){
+#if defined(PANGULU_MC64)
+        pangulu_mc64(origin_matrix, &perm, &iperm, &row_scale, &col_scale);
 #else
-    perm = (int_t *)pangulu_malloc(sizeof(int_t) * n);
-    iperm = (int_t *)pangulu_malloc(sizeof(int_t) * n);
-    row_scale = (calculate_type *)pangulu_malloc(sizeof(calculate_type) * n);
-    col_scale = (calculate_type *)pangulu_malloc(sizeof(calculate_type) * n);
+        perm = (int_t *)pangulu_malloc(__FILE__, __LINE__, sizeof(int_t) * n);
+        iperm = (int_t *)pangulu_malloc(__FILE__, __LINE__, sizeof(int_t) * n);
+        row_scale = (calculate_type *)pangulu_malloc(__FILE__, __LINE__, sizeof(calculate_type) * n);
+        col_scale = (calculate_type *)pangulu_malloc(__FILE__, __LINE__, sizeof(calculate_type) * n);
 
-    for (int_t i = 0; i < n; i++)
-    {
-        perm[i] = i;
-    }
+        for (int_t i = 0; i < n; i++)
+        {
+            perm[i] = i;
+        }
 
-    for (int_t i = 0; i < n; i++)
-    {
-        iperm[i] = i;
-    }
+        for (int_t i = 0; i < n; i++)
+        {
+            iperm[i] = i;
+        }
 
-    for (int_t i = 0; i < n; i++)
-    {
-        row_scale[i] = 1.0;
-    }
+        for (int_t i = 0; i < n; i++)
+        {
+            row_scale[i] = 1.0;
+        }
 
-    for (int_t i = 0; i < n; i++)
-    {
-        col_scale[i] = 1.0;
-    }
+        for (int_t i = 0; i < n; i++)
+        {
+            col_scale[i] = 1.0;
+        }
 
 #endif
-    pangulu_Smatrix *tmp = (pangulu_Smatrix *)pangulu_malloc(sizeof(pangulu_Smatrix));
-    pangulu_init_pangulu_Smatrix(tmp);
-    tmp->row = n;
-    tmp->column = n;
-    tmp->nnz = nnz;
-    tmp->rowpointer = (int_t *)pangulu_malloc(sizeof(int_t) * (n + 1));
-    tmp->columnindex = (idx_int *)pangulu_malloc(sizeof(idx_int) * nnz);
-    tmp->value = (calculate_type *)pangulu_malloc(sizeof(calculate_type) * nnz);
+        tmp = (pangulu_origin_Smatrix *)pangulu_malloc(__FILE__, __LINE__, sizeof(pangulu_origin_Smatrix));
+        pangulu_init_pangulu_origin_Smatrix(tmp);
+        tmp->row = n;
+        tmp->column = n;
+        tmp->nnz = nnz;
+        tmp->rowpointer = (int_t *)pangulu_malloc(__FILE__, __LINE__, sizeof(int_t) * (n + 1));
+        tmp->columnindex = (idx_int *)pangulu_malloc(__FILE__, __LINE__, sizeof(idx_int) * nnz);
+        tmp->value = (calculate_type *)pangulu_malloc(__FILE__, __LINE__, sizeof(calculate_type) * nnz);
 
-    tmp->rowpointer[0] = 0;
+        tmp->rowpointer[0] = 0;
 
-    for (int_t i = 0; i < n; i++)
-    {
-        int_t row = perm[i];
-        tmp->rowpointer[row + 1] = origin_matrix->rowpointer[i + 1] - origin_matrix->rowpointer[i];
-    }
-
-    for (int_t i = 0; i < n; i++)
-    {
-        tmp->rowpointer[i + 1] += tmp->rowpointer[i];
-    }
-
-    for (int_t i = 0; i < n; i++)
-    {
-        int_t row = perm[i];
-        calculate_type rs = row_scale[i];
-        int_t tmp_index = tmp->rowpointer[row];
-        for (int_t j = origin_matrix->rowpointer[i]; j < origin_matrix->rowpointer[i + 1]; j++)
+        for (int_t i = 0; i < n; i++)
         {
-            int_t col = origin_matrix->columnindex[j];
-            tmp->columnindex[tmp_index] = col;
-            tmp->value[tmp_index] = (origin_matrix->value[j] * rs * col_scale[col]);
-            if (col == row)
+            int_t row = perm[i];
+            tmp->rowpointer[row + 1] = origin_matrix->rowpointer[i + 1] - origin_matrix->rowpointer[i];
+        }
+
+        for (int_t i = 0; i < n; i++)
+        {
+            tmp->rowpointer[i + 1] += tmp->rowpointer[i];
+        }
+
+        for (int_t i = 0; i < n; i++)
+        {
+            int_t row = perm[i];
+            calculate_type rs = row_scale[i];
+            int_t tmp_index = tmp->rowpointer[row];
+            for (int_t j = origin_matrix->rowpointer[i]; j < origin_matrix->rowpointer[i + 1]; j++)
             {
-                if (PANGULU_ABS(PANGULU_ABS(tmp->value[tmp_index]) - 1.0) > 1e-10)
+                int_t col = origin_matrix->columnindex[j];
+                tmp->columnindex[tmp_index] = col;
+                tmp->value[tmp_index] = (origin_matrix->value[j] * rs * col_scale[col]);
+                if (col == row)
                 {
-                    //printf("error in row %ld %lf\n", row, tmp->value[tmp_index]);
+                    if (fabs(fabs(tmp->value[tmp_index]) - 1.0) > 1e-10)
+                    {
+                    }
                 }
+                tmp_index++;
             }
-            tmp_index++;
         }
     }
+
 #ifdef METIS
-    pangulu_metis(tmp, &metis_perm);
+    if(RANK==0){
+        pangulu_metis(tmp, &metis_perm);
+    }
+    // MPI_Barrier(MPI_COMM_WORLD);
+    // pangulu_parmetis(tmp, &metis_perm);
+    // MPI_Barrier(MPI_COMM_WORLD);
 #else
-    pangulu_add_diagonal_element(tmp);
-    metis_perm = (int_t *)pangulu_malloc(sizeof(int_t) * n);
-    for (int_t i = 0; i < n; i++)
-    {
-        metis_perm[i] = i;
+    if(RANK==0){
+        pangulu_add_diagonal_element(tmp);
+        metis_perm = (int_t *)pangulu_malloc(__FILE__, __LINE__, sizeof(int_t) * n);
+        for (int_t i = 0; i < n; i++)
+        {
+            metis_perm[i] = i;
+        }
     }
 
 #endif
-    //pangulu_display_pangulu_Smatrix(tmp);
-    pangulu_Smatrix_transport_transport_iperm(tmp, reorder_matrix, metis_perm);
-    pangulu_sort_pangulu_matrix(reorder_matrix);
+    if(RANK==0){
+        //pangulu_display_pangulu_Smatrix(tmp);
+        pangulu_origin_Smatrix_transport_transport_iperm(tmp, reorder_matrix, metis_perm);
+        pangulu_sort_pangulu_origin_Smatrix(reorder_matrix);
 
-    block_Smatrix->row_perm = perm;
-    block_Smatrix->col_perm = iperm;
-    block_Smatrix->row_scale = row_scale;
-    block_Smatrix->col_scale = col_scale;
-    block_Smatrix->metis_perm = metis_perm;
+        block_Smatrix->row_perm = perm;
+        block_Smatrix->col_perm = iperm;
+        block_Smatrix->row_scale = row_scale;
+        block_Smatrix->col_scale = col_scale;
+        block_Smatrix->metis_perm = metis_perm;
 
-    // pangulu_display_pangulu_Smatrix(origin_matrix);
-    // pangulu_display_pangulu_Smatrix(tmp);
-    // pangulu_display_pangulu_Smatrix(reorder_matrix);
+        // pangulu_display_pangulu_Smatrix(origin_matrix);
+        // pangulu_display_pangulu_Smatrix(tmp);
+        // pangulu_display_pangulu_Smatrix(reorder_matrix);
 
-    free(tmp->rowpointer);
-    free(tmp->columnindex);
-    free(tmp->value);
-    free(tmp);
+        pangulu_free(__FILE__, __LINE__, tmp->rowpointer);
+        pangulu_free(__FILE__, __LINE__, tmp->columnindex);
+        pangulu_free(__FILE__, __LINE__, tmp->value);
+        pangulu_free(__FILE__, __LINE__, tmp);
+    }
 }
 
 #endif

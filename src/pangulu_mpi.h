@@ -8,6 +8,19 @@
 #include "pangulu_time.h"
 #endif
 
+int have_msg;
+void pangulu_probe_message(MPI_Status *status)
+{
+    have_msg=0;
+    do{
+        MPI_Iprobe(MPI_ANY_SOURCE, MPI_ANY_TAG, MPI_COMM_WORLD, &have_msg, status);
+        if(have_msg){
+            return;
+        }
+        usleep(10);
+    }while(!have_msg);
+}
+
 int_t pangulu_Bcast_N(int_t N, int_t send_rank)
 {
     MPI_Bcast(&N, 1, MPI_INT_TYPE, send_rank, MPI_COMM_WORLD);
@@ -69,6 +82,7 @@ void pangulu_recv_vector_char(char *A, int_t N, int_t receive_id, int signal)
     {
         A[i] = 0;
     }
+    pangulu_probe_message(&status);
     MPI_Recv(A, N, MPI_CHAR, receive_id, signal, MPI_COMM_WORLD, &status);
 }
 
@@ -163,15 +177,15 @@ void pangulu_recv_whole_pangulu_Smatrix_CSR(pangulu_Smatrix *S,
     struct timeval GET_TIME_START;
     pangulu_time_check_begin(&GET_TIME_START);
 #endif
-    int_t length = sizeof(int_t) * (NB + 1) + sizeof(idx_int) * nnz + sizeof(calculate_type) * nnz;
+    int_t length = sizeof(pangulu_inblock_ptr) * (NB + 1) + sizeof(pangulu_inblock_idx) * nnz + sizeof(calculate_type) * nnz;
     MPI_Status status;
     char *now_vector = (char *)(S->rowpointer);
     for (int_t i = 0; i < length; i++)
     {
         now_vector[i] = 0;
     }
-    S->columnindex = (idx_int *)(now_vector + sizeof(int_t) * (NB + 1));
-    S->value = (calculate_type *)(now_vector + sizeof(int_t) * (NB + 1) + sizeof(idx_int) * nnz);
+    S->columnindex = (pangulu_inblock_idx *)(now_vector + sizeof(pangulu_inblock_ptr) * (NB + 1));
+    S->value = (calculate_type *)(now_vector + sizeof(pangulu_inblock_ptr) * (NB + 1) + sizeof(pangulu_inblock_idx) * nnz);
     MPI_Recv(now_vector, length, MPI_CHAR, receive_id, signal, MPI_COMM_WORLD, &status);
     S->nnz = nnz;
 #ifdef CHECK_TIME
@@ -257,25 +271,20 @@ void pangulu_recv_whole_pangulu_Smatrix_CSC(pangulu_Smatrix *S,
     struct timeval GET_TIME_START;
     pangulu_time_check_begin(&GET_TIME_START);
 #endif
-    int_t length = sizeof(int_t) * (NB + 1) + sizeof(idx_int) * nnz + sizeof(calculate_type) * nnz;
+    int_t length = sizeof(pangulu_inblock_ptr) * (NB + 1) + sizeof(pangulu_inblock_idx) * nnz + sizeof(calculate_type) * nnz;
     MPI_Status status;
     char *now_vector = (char *)(S->columnpointer);
     for (int_t i = 0; i < length; i++)
     {
         now_vector[i] = 0;
     }
-    S->rowindex = (idx_int *)(now_vector + sizeof(int_t) * (NB + 1));
-    S->value_CSC = (calculate_type *)(now_vector + sizeof(int_t) * (NB + 1) + sizeof(idx_int) * nnz);
+    S->rowindex = (pangulu_inblock_idx *)(now_vector + sizeof(pangulu_inblock_ptr) * (NB + 1));
+    S->value_CSC = (calculate_type *)(now_vector + sizeof(pangulu_inblock_ptr) * (NB + 1) + sizeof(pangulu_inblock_idx) * nnz);
     MPI_Recv(now_vector, length, MPI_CHAR, receive_id, signal, MPI_COMM_WORLD, &status);
     S->nnz = nnz;
 #ifdef CHECK_TIME
     TIME_receive += pangulu_time_check_end(&GET_TIME_START);
 #endif
-}
-
-void pangulu_probe_message(MPI_Status *status)
-{
-    MPI_Probe(MPI_ANY_SOURCE, MPI_ANY_TAG, MPI_COMM_WORLD, status);
 }
 
 int pangulu_iprobe_message(MPI_Status *status)
@@ -312,13 +321,13 @@ void pangulu_isend_whole_pangulu_Smatrix_CSR(pangulu_Smatrix *S,
                                              int_t receive_id, int signal, int_t NB)
 {
     int_t nnz = S->nnz;
-    int_t length = sizeof(int_t) * (NB + 1) + sizeof(idx_int) * nnz + sizeof(calculate_type) * nnz;
+    int_t length = sizeof(pangulu_inblock_ptr) * (NB + 1) + sizeof(pangulu_inblock_idx) * nnz + sizeof(calculate_type) * nnz;
     MPI_Request req;
     char *now_vector = (char *)(S->rowpointer);
-    calculate_type *value = (calculate_type *)(now_vector + sizeof(int_t) * (NB + 1) + sizeof(idx_int) * nnz);
+    calculate_type *value = (calculate_type *)(now_vector + sizeof(pangulu_inblock_ptr) * (NB + 1) + sizeof(pangulu_inblock_idx) * nnz);
     if (value != S->value)
     {
-        printf("error\n");
+        printf(PANGULU_E_ISEND_CSR);
     }
     MPI_Isend(now_vector, length, MPI_CHAR, receive_id, signal, MPI_COMM_WORLD, &req);
 }
@@ -357,13 +366,13 @@ void pangulu_isend_whole_pangulu_Smatrix_CSC(pangulu_Smatrix *S,
                                              int_t receive_id, int signal, int_t NB)
 {
     int_t nnz = S->nnz;
-    int_t length = sizeof(int_t) * (NB + 1) + sizeof(idx_int) * nnz + sizeof(calculate_type) * nnz;
+    int_t length = sizeof(pangulu_inblock_ptr) * (NB + 1) + sizeof(pangulu_inblock_idx) * nnz + sizeof(calculate_type) * nnz;
     MPI_Request req;
     char *now_vector = (char *)(S->columnpointer);
-    calculate_type *value = (calculate_type *)(now_vector + sizeof(int_t) * (NB + 1) + sizeof(idx_int) * nnz);
+    calculate_type *value = (calculate_type *)(now_vector + sizeof(pangulu_inblock_ptr) * (NB + 1) + sizeof(pangulu_inblock_idx) * nnz);
     if (value != S->value_CSC)
     {
-        printf("error\n");
+        printf(PANGULU_E_ISEND_CSC);
     }
     MPI_Isend(now_vector, length, MPI_CHAR, receive_id, signal, MPI_COMM_WORLD, &req);
 }

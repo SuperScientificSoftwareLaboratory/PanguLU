@@ -11,8 +11,8 @@ PanguLU is an open source software package for solving a linear system *Ax = b* 
 ```
 PanguLU/README      instructions on installation
 PanguLU/src         C and CUDA source code, to be compiled into libpangulu.a and libpangulu.so
-PanguLU/test        testing code
-PanguLU/icnlude     contains headers archieve libpangulu.a and libpangulu.so
+PanguLU/examples    example code
+PanguLU/include     contains headers archieve libpangulu.a and libpangulu.so
 PanguLU/lib         contains library archieve libpangulu.a and libpangulu.so
 PanguLU/Makefile    top-level Makefile that does installation and testing
 PanguLU/make.inc    compiler, compiler flags included in all Makefiles
@@ -23,17 +23,28 @@ we use the method is to use make automatic build system.
 installation method:
 You will need install make.
 Frist, in order to use MPI, you need to install mpich (recommended version: OpenMPI-4.1.2).
-Second, in order to use NVCC, you need to install CUDA (recommended version: CUDA-12.1).
+Second, if GPUs are used, NVCC is required. in order to use NVCC, you need to install CUDA (recommended version: CUDA-12.2).
 Third, Specify the installation path to be used in make.inc.
 Fianlly, use make for automatic installation.
 > **make**
 
 ## Compilation options
-One type of compilation are provided.
+Three compilation options are provided.
 
 
-1.You need to open the GPU run option in pangulu_common.h:
-> **#define   GPU_OPEN**
+1 If you want to disable GPU:
+
+1.1 Remove **-DGPU_OPEN** of variable PANGULU_FLAGS in **make.inc**;
+
+1.2 Remove **GPU_CUDA** in file **build_list.csv**.
+
+2 If you want to solve complex matrices:
+
+2.1 Append **-DCALCULATE_TYPE_R64** after variable PANGULU_FLAGS in **make.inc**;
+
+2.2 Use driver routine **driver_cr64.cpp** in directory **examples**.
+
+Note : Solving complex matrices on GPU is not supported in this version.
 
 ## Preprocess methods
 Now offering two types of preprocessing options.
@@ -52,34 +63,17 @@ You will need the following two actions:
 
 note: METIS needs to be 64-bit.
 
-## Calculation Type
-PanguLU currently offer two types of accuracy.
-
-### Double
-If you want use double in calculation, You need to change the calculation type in pangulu_common.h:
->**#define calculate_type double**
-
-Then you need to open the MPI_double option in pangulu_common.h:
->**#define MPI_VAL_TYPE MPI_DOUBLE**
-
-
-### Float
-If you want use float in calculation, You need to change the calculation type in pangulu_common.h:
->**#define calculate_type float**
-
-Then you need to open the MPI_float option in pangulu_common.h:
->**#define MPI_VAL_TYPE MPI_FLOAT**
-
-
 ## Execution of PanguLU
-PanguLU is to complete the operation of solving *Ax = b*, and the test file is placed in the test folder. The test is to first perform the LU numeric decomposition of the matrix test.mtx, and use *Ly = b* to complete the lower triangular solution and *Ux = y* to complete the upper triangular solution test method.
+PanguLU is to complete the operation of solving *Ax = b*, and the test files are placed in the **examples** folder. The driver_r64.cpp file is to first perform the LU numeric decomposition of the matrix test.mtx, and use *Ly = b* to complete the lower triangular solution and *Ux = y* to complete the upper triangular solution test method.
 ### run command
 
-> **mpirun -np process_number ./PanguLU -NB NB_number -F Smatrix_name**
+> **mpirun -np process_count ./pangulu_driver.elf -NB NB_number -F Smatrix_name**
  
-process_number : this process number 
-NB_number : the number of processes required is equal to the product of P and Q; 
-Smatrix_name : the Matrix name in csr format.(This matrix needs to be decomposed symbolically)
+process_count : MPI process number to launch PanguLU;
+
+NB_number : Block size of each non-zero block;
+
+Smatrix_name : the Matrix name in mtx format.(This matrix needs to be decomposed symbolically)
 
 You can also use the run.sh, for example:
 
@@ -87,16 +81,23 @@ You can also use the run.sh, for example:
 
 ### test sample
 
-> **mpirun -np 6 ./PanguLU -NB 2 -F test.mtx**
+> **mpirun -np 6 ./pangulu_driver.elf -NB 2 -F test.mtx**
 
 or use the run.sh:
 > **bash run.sh test.mtx 2 6**
 
 
-In this example,six processes are used to test, the  NB_number is 2 ,P_number is 2,Q_number is 3, matrix name is test.mtx
+In this example,six processes are used to test, the  NB_number is 2, matrix name is test.mtx.
 
 
 ## Release versions
+
+#### <p align='left'>Version 4.0.0 (Jul. 24, 2024) </p>
+
+* Optimized user interfaces of solver routines;
+* Optimized performamce of numeric factorisation phase on CPU platform;
+* Added support on complex matrix solving;
+* Optimized preprocessing performance;
 
 #### <p align='left'>Version 3.5.0 (Aug. 06, 2023) </p>
 

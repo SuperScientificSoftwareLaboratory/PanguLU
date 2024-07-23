@@ -2,7 +2,7 @@
 #define PANGULU_TSTRF_FP64_CUDA_H
 
 #include "pangulu_common.h"
-#include "pangulu_cuda.h"
+#include "platforms/02_GPU/01_CUDA/000_CUDA/pangulu_cuda.h"
 
 void pangulu_tstrf_fp64_cuda_v8(pangulu_Smatrix *A,
                                 pangulu_Smatrix *X,
@@ -52,7 +52,7 @@ void pangulu_tstrf_fp64_cuda_v9(pangulu_Smatrix *A,
     int *d_while_profiler;
     cudaMalloc((void **)&d_while_profiler, sizeof(int) * n);
     cudaMemset(d_while_profiler, 0, sizeof(int) * n);
-    int_t *Spointer = (int_t *)malloc(sizeof(int_t) * (n + 1));
+    pangulu_inblock_ptr *Spointer = (pangulu_inblock_ptr *)pangulu_malloc(__FILE__, __LINE__, sizeof(pangulu_inblock_ptr) * (n + 1));
     memset(Spointer, 0, sizeof(int_t) * (n + 1));
     int_t rhs = 0;
     for (int i = 0; i < n; i++)
@@ -73,10 +73,10 @@ void pangulu_tstrf_fp64_cuda_v9(pangulu_Smatrix *A,
     cudaMemset(d_x, 0, n * rhs * sizeof(calculate_type));
     cudaMemset(d_b, 0, n * rhs * sizeof(calculate_type));
 
-    int_t *d_Spointer;
-    cudaMalloc((void **)&d_Spointer, sizeof(int_t) * (n + 1));
-    cudaMemset(d_Spointer, 0, sizeof(int_t) * (n + 1));
-    cudaMemcpy(d_Spointer, Spointer, sizeof(int_t) * (n + 1), cudaMemcpyHostToDevice);
+    pangulu_inblock_ptr *d_Spointer;
+    cudaMalloc((void **)&d_Spointer, sizeof(pangulu_inblock_ptr) * (n + 1));
+    cudaMemset(d_Spointer, 0, sizeof(pangulu_inblock_ptr) * (n + 1));
+    cudaMemcpy(d_Spointer, Spointer, sizeof(pangulu_inblock_ptr) * (n + 1), cudaMemcpyHostToDevice);
 
     pangulu_gessm_cuda_kernel_v9(n,
                                  nnzU,

@@ -1,20 +1,13 @@
 include ../make.inc
 
-
-
-all:pangulu.o pangulu_cuda.o
+all:pangulu.o pangulu_platforms
 
 pangulu.o:pangulu.cpp
-	$(MPICPP) $(MPICPPFLAGS) $(METIS_INC) -c $< -o $@ -fPIC
+	$(MPICPP) $(MPICPPFLAGS) $(METISFLAGS) $(PANGULU_FLAGS) -c $< -o $@ -fPIC
+	mv ./*.o ../lib
 
-pangulu_cuda.o:pangulu_cuda.cu
-	$(NVCC) $(NVCCFLAGS) $(METIS_INC) -Xcompiler -fPIC  -c $< -o $@ 
-
-
-
+pangulu_platforms:
+	cd .. && python3 build_helper.py compile_platform_code
 
 clean:
-	rm -f pangulu.o pangulu_cuda.o
-
-
-
+	rm -f ../lib/pangulu*.o

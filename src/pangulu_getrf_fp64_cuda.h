@@ -2,7 +2,7 @@
 #define PANGULU_GETRF_FP64_CUDA_H
 
 #include "pangulu_common.h"
-#include "pangulu_cuda.h"
+#include "platforms/02_GPU/01_CUDA/000_CUDA/pangulu_cuda.h"
 #include "pangulu_cuda_interface.h"
 
 void pangulu_getrf_fp64_cuda(pangulu_Smatrix *A,

@@ -4,7 +4,7 @@
 #include "pangulu_common.h"
 #include "pangulu_utils.h"
 
-void pangulu_sptrsv_preprocess(pangulu_block_common *block_common,
+void pangulu_sptrsv_preprocessing(pangulu_block_common *block_common,
                                pangulu_block_Smatrix *block_Smatrix,
                                pangulu_vector *vector)
 {
@@ -19,7 +19,7 @@ void pangulu_sptrsv_preprocess(pangulu_block_common *block_common,
     int_32t rank_row_length = block_common->rank_row_length;
     int_32t rank_col_length = block_common->rank_col_length;
     calculate_type *save_vector;
-    int_t *diagonal_num = (int_t *)pangulu_malloc(sizeof(int_t) * (P * Q + 1));
+    int_t *diagonal_num = (int_t *)pangulu_malloc(__FILE__, __LINE__, sizeof(int_t) * (P * Q + 1));
     if (rank == 0)
     {
         for (int_t i = 0; i < P * Q + 1; i++)
@@ -39,9 +39,9 @@ void pangulu_sptrsv_preprocess(pangulu_block_common *block_common,
     pangulu_Bcast_vector(diagonal_num, P * Q + 1, 0);
     if (rank == 0)
     {
-        save_vector = (calculate_type *)pangulu_malloc(sizeof(calculate_type) * (block_length * NB));
+        save_vector = (calculate_type *)pangulu_malloc(__FILE__, __LINE__, sizeof(calculate_type) * (block_length * NB));
 
-        int_t *save_diagonal_num = (int_t *)pangulu_malloc(sizeof(int_t) * (P * Q + 1));
+        int_t *save_diagonal_num = (int_t *)pangulu_malloc(__FILE__, __LINE__, sizeof(int_t) * (P * Q + 1));
         for (int_t i = 0; i < P * Q + 1; i++)
         {
             save_diagonal_num[i] = diagonal_num[i];
@@ -64,17 +64,17 @@ void pangulu_sptrsv_preprocess(pangulu_block_common *block_common,
             pangulu_send_vector_value(save_vector + diagonal_num[i],
                                       diagonal_num[i + 1] - diagonal_num[i], i, i);
         }
-        free(save_diagonal_num);
+        pangulu_free(__FILE__, __LINE__, save_diagonal_num);
     }
     else
     {
-        save_vector = (calculate_type *)pangulu_malloc(sizeof(calculate_type) * (diagonal_num[rank + 1] - diagonal_num[rank]));
+        save_vector = (calculate_type *)pangulu_malloc(__FILE__, __LINE__, sizeof(calculate_type) * (diagonal_num[rank + 1] - diagonal_num[rank]));
         pangulu_recv_vector_value(save_vector, diagonal_num[rank + 1] - diagonal_num[rank], 0, rank);
     }
     int_t offset_row_init = rank / Q;
     int_t offset_col_init = rank % Q;
-    pangulu_vector **Big_col_vector = (pangulu_vector **)pangulu_malloc(sizeof(pangulu_vector *) * rank_col_length);
-    int_t *diagonal_flag = (int_t *)pangulu_malloc(sizeof(int_t) * rank_col_length);
+    pangulu_vector **Big_col_vector = (pangulu_vector **)pangulu_malloc(__FILE__, __LINE__, sizeof(pangulu_vector *) * rank_col_length);
+    int_t *diagonal_flag = (int_t *)pangulu_malloc(__FILE__, __LINE__, sizeof(int_t) * rank_col_length);
     for (int_t i = 0; i < rank_col_length; i++)
     {
         diagonal_flag[i] = 0;
@@ -82,7 +82,7 @@ void pangulu_sptrsv_preprocess(pangulu_block_common *block_common,
     for (int_t i = offset_col_init, now_diagonal_num = 0, k = 0; i < block_length; i += Q, k++)
     {
         int_t offset_row = calculate_offset(offset_row_init, i, P);
-        pangulu_vector *new_vector = (pangulu_vector *)pangulu_malloc(sizeof(pangulu_vector));
+        pangulu_vector *new_vector = (pangulu_vector *)pangulu_malloc(__FILE__, __LINE__, sizeof(pangulu_vector));
         pangulu_init_pangulu_vector(new_vector, NB * vector_number);
         Big_col_vector[k] = new_vector;
         if (offset_row == 0)
@@ -99,30 +99,30 @@ void pangulu_sptrsv_preprocess(pangulu_block_common *block_common,
             now_diagonal_num += NB;
         }
     }
-    free(save_vector);
-    free(diagonal_num);
+    pangulu_free(__FILE__, __LINE__, save_vector);
+    pangulu_free(__FILE__, __LINE__, diagonal_num);
 
-    pangulu_vector **Big_row_vector = (pangulu_vector **)pangulu_malloc(sizeof(pangulu_vector *) * rank_row_length);
+    pangulu_vector **Big_row_vector = (pangulu_vector **)pangulu_malloc(__FILE__, __LINE__, sizeof(pangulu_vector *) * rank_row_length);
     for (int_t i = 0; i < rank_row_length; i++)
     {
-        pangulu_vector *new_vector = (pangulu_vector *)pangulu_malloc(sizeof(pangulu_vector));
+        pangulu_vector *new_vector = (pangulu_vector *)pangulu_malloc(__FILE__, __LINE__, sizeof(pangulu_vector));
         pangulu_init_pangulu_vector(new_vector, NB * vector_number);
         Big_row_vector[i] = new_vector;
     }
 
     int_t *block_Smatrix_nnzA_num = block_Smatrix->block_Smatrix_nnzA_num;
-    int_t *L_row_task_nnz = (int_t *)pangulu_malloc(sizeof(int_t) * rank_row_length);
-    int_t *L_col_task_nnz = (int_t *)pangulu_malloc(sizeof(int_t) * rank_col_length);
+    int_t *L_row_task_nnz = (int_t *)pangulu_malloc(__FILE__, __LINE__, sizeof(int_t) * rank_row_length);
+    int_t *L_col_task_nnz = (int_t *)pangulu_malloc(__FILE__, __LINE__, sizeof(int_t) * rank_col_length);
 
-    int_t *row_flag = (int_t *)pangulu_malloc(sizeof(int_t) * Q);
-    int_t *col_flag = (int_t *)pangulu_malloc(sizeof(int_t) * P);
+    int_t *row_flag = (int_t *)pangulu_malloc(__FILE__, __LINE__, sizeof(int_t) * Q);
+    int_t *col_flag = (int_t *)pangulu_malloc(__FILE__, __LINE__, sizeof(int_t) * P);
 
-    int_t *L_send_flag = (int_t *)pangulu_malloc(sizeof(int_t) * rank_col_length * (P - 1));
+    int_t *L_send_flag = (int_t *)pangulu_malloc(__FILE__, __LINE__, sizeof(int_t) * rank_col_length * (P - 1));
 
-    int_t *U_row_task_nnz = (int_t *)pangulu_malloc(sizeof(int_t) * rank_row_length);
-    int_t *U_col_task_nnz = (int_t *)pangulu_malloc(sizeof(int_t) * rank_col_length);
+    int_t *U_row_task_nnz = (int_t *)pangulu_malloc(__FILE__, __LINE__, sizeof(int_t) * rank_row_length);
+    int_t *U_col_task_nnz = (int_t *)pangulu_malloc(__FILE__, __LINE__, sizeof(int_t) * rank_col_length);
 
-    int_t *U_send_flag = (int_t *)pangulu_malloc(sizeof(int_t) * rank_col_length * (P - 1));
+    int_t *U_send_flag = (int_t *)pangulu_malloc(__FILE__, __LINE__, sizeof(int_t) * rank_col_length * (P - 1));
 
     for (int_t i = 0; i < rank_row_length; i++)
     {
@@ -155,7 +155,7 @@ void pangulu_sptrsv_preprocess(pangulu_block_common *block_common,
     }
 
     int_t L_sum_task_num = 0;
-    int_t *L_columnpointer = (int_t *)pangulu_malloc(sizeof(int_t) * (rank_col_length + 1));
+    int_t *L_columnpointer = (int_t *)pangulu_malloc(__FILE__, __LINE__, sizeof(int_t) * (rank_col_length + 1));
 
     for (int_t i = 0; i < (rank_col_length + 1); i++)
     {
@@ -237,7 +237,7 @@ void pangulu_sptrsv_preprocess(pangulu_block_common *block_common,
     // return ;
 
     int_t U_sum_task_num = 0;
-    int_t *U_columnpointer = (int_t *)pangulu_malloc(sizeof(int_t) * (rank_col_length + 1));
+    int_t *U_columnpointer = (int_t *)pangulu_malloc(__FILE__, __LINE__, sizeof(int_t) * (rank_col_length + 1));
 
     for (int_t i = 0; i < (rank_col_length + 1); i++)
     {
@@ -318,11 +318,11 @@ void pangulu_sptrsv_preprocess(pangulu_block_common *block_common,
         }
     }
 
-    free(row_flag);
-    free(col_flag);
+    pangulu_free(__FILE__, __LINE__, row_flag);
+    pangulu_free(__FILE__, __LINE__, col_flag);
 
-    int_t *L_rowindex = (int_t *)pangulu_malloc(sizeof(int_t) * L_sum_task_num);
-    int_t *U_rowindex = (int_t *)pangulu_malloc(sizeof(int_t) * U_sum_task_num);
+    int_t *L_rowindex = (int_t *)pangulu_malloc(__FILE__, __LINE__, sizeof(int_t) * L_sum_task_num);
+    int_t *U_rowindex = (int_t *)pangulu_malloc(__FILE__, __LINE__, sizeof(int_t) * U_sum_task_num);
 
     for (int_t i = 0; i < rank_col_length; i++)
     {
@@ -367,77 +367,11 @@ void pangulu_sptrsv_preprocess(pangulu_block_common *block_common,
     }
     U_columnpointer[0] = 0;
 
-    pangulu_heap *sptrsv_heap = (pangulu_heap *)pangulu_malloc(sizeof(pangulu_heap));
+    pangulu_heap *sptrsv_heap = (pangulu_heap *)pangulu_malloc(__FILE__, __LINE__, sizeof(pangulu_heap));
     pangulu_init_pangulu_heap(sptrsv_heap, PANGULU_MAX(L_sum_task_num, U_sum_task_num));
 
-    pangulu_vector *S_vector = (pangulu_vector *)malloc(sizeof(pangulu_vector));
+    pangulu_vector *S_vector = (pangulu_vector *)pangulu_malloc(__FILE__, __LINE__, sizeof(pangulu_vector));
     pangulu_init_pangulu_vector(S_vector, NB);
-
-    if (rank == -1)
-    {
-        printf("\ndiagonal_flag:\n");
-        for (int_t i = 0; i < rank_col_length; i++)
-        {
-            printf("%ld ", diagonal_flag[i]);
-        }
-        printf("\nL_row_task_nnz:\n");
-        for (int_t i = 0; i < rank_row_length; i++)
-        {
-            printf("%ld ", L_row_task_nnz[i]);
-        }
-        printf("\nL_col_task_nnz:\n");
-        for (int_t i = 0; i < rank_col_length; i++)
-        {
-            printf("%ld ", L_col_task_nnz[i]);
-        }
-        printf("\nL_send_flag:\n");
-        for (int_t i = 0; i < rank_col_length * (P - 1); i++)
-        {
-            printf("%ld ", L_send_flag[i]);
-        }
-        printf("\nU_row_task_nnz:\n");
-        for (int_t i = 0; i < rank_row_length; i++)
-        {
-            printf("%ld ", U_row_task_nnz[i]);
-        }
-        printf("\nU_col_task_nnz:\n");
-        for (int_t i = 0; i < rank_col_length; i++)
-        {
-            printf("%ld ", U_col_task_nnz[i]);
-        }
-        printf("\nU_send_flag:\n");
-        for (int_t i = 0; i < rank_col_length * (P - 1); i++)
-        {
-            printf("%ld ", U_send_flag[i]);
-        }
-        printf("\nsimply_L:\n");
-        for (int_t i = 0; i < rank_col_length + 1; i++)
-        {
-            printf("%ld ", L_columnpointer[i]);
-        }
-        printf("\n");
-        for (int_t i = 0; i < rank_col_length; i++)
-        {
-            for (int_t j = L_columnpointer[i]; j < L_columnpointer[i + 1]; j++)
-            {
-                printf("%ld ", L_rowindex[j]);
-            }
-        }
-        printf("\nsimply_U:\n");
-        for (int_t i = 0; i < rank_col_length + 1; i++)
-        {
-            printf("%ld ", U_columnpointer[i]);
-        }
-        printf("\n");
-        for (int_t i = 0; i < rank_col_length; i++)
-        {
-            for (int_t j = U_columnpointer[i]; j < U_columnpointer[i + 1]; j++)
-            {
-                printf("%ld ", U_rowindex[j]);
-            }
-        }
-        printf("\nheap length is %ld\n", PANGULU_MAX(L_sum_task_num, U_sum_task_num));
-    }
 
     block_Smatrix->Big_row_vector = Big_row_vector;
     block_Smatrix->Big_col_vector = Big_col_vector;
@@ -522,7 +456,7 @@ void L_pangulu_sptrsv_work(compare_struct *flag,
     if (kernel_id == 0)
     {
         int_t mapper_index = block_Smatrix->mapper_Big_pangulu_Smatrix[block_length * row + col];
-        pangulu_Smatrix *A = block_Smatrix->Big_pangulu_Smatrix_value[mapper_index];
+        pangulu_Smatrix *A = &block_Smatrix->Big_pangulu_Smatrix_value[mapper_index];
 
         pangulu_spmv(A, col_vector, save_vector, 1);
         pangulu_vector_add(row_vector, save_vector);
@@ -560,7 +494,7 @@ void L_pangulu_sptrsv_work(compare_struct *flag,
     }
     else
     {
-        printf("work error \n");
+        printf(PANGULU_E_WORK_ERR);
         exit(1);
     }
     return;
@@ -710,7 +644,7 @@ void U_pangulu_sptrsv_work(compare_struct *flag,
     if (kernel_id == 0)
     {
         int_t mapper_index = block_Smatrix->mapper_Big_pangulu_Smatrix[block_length * row + col];
-        pangulu_Smatrix *A = block_Smatrix->Big_pangulu_Smatrix_value[mapper_index];
+        pangulu_Smatrix *A = &block_Smatrix->Big_pangulu_Smatrix_value[mapper_index];
 
         pangulu_spmv(A, col_vector, save_vector, 1);
         pangulu_vector_add(row_vector, save_vector);
@@ -748,7 +682,7 @@ void U_pangulu_sptrsv_work(compare_struct *flag,
     }
     else
     {
-        printf("work error \n");
+        printf(PANGULU_E_WORK_ERR);
         exit(1);
     }
     return;
@@ -855,7 +789,7 @@ void pangulu_sptrsv_vector_gather(pangulu_block_common *block_common,
 
     calculate_type *save_vector;
 
-    int_t *diagonal_num = (int_t *)pangulu_malloc(sizeof(int_t) * (P * Q + 1));
+    int_t *diagonal_num = (int_t *)pangulu_malloc(__FILE__, __LINE__, sizeof(int_t) * (P * Q + 1));
     if (rank == 0)
     {
         for (int_t i = 0; i < P * Q + 1; i++)
@@ -875,13 +809,13 @@ void pangulu_sptrsv_vector_gather(pangulu_block_common *block_common,
     pangulu_Bcast_vector(diagonal_num, P * Q + 1, 0);
     if (rank == 0)
     {
-        save_vector = (calculate_type *)pangulu_malloc(sizeof(calculate_type) * (diagonal_num[P * Q]));
+        save_vector = (calculate_type *)pangulu_malloc(__FILE__, __LINE__, sizeof(calculate_type) * (diagonal_num[P * Q]));
     }
     else
     {
-        save_vector = (calculate_type *)pangulu_malloc(sizeof(calculate_type) * (diagonal_num[rank + 1] - diagonal_num[rank]));
+        save_vector = (calculate_type *)pangulu_malloc(__FILE__, __LINE__, sizeof(calculate_type) * (diagonal_num[rank + 1] - diagonal_num[rank]));
     }
-    int_t *diagonal_flag = (int_t *)pangulu_malloc(sizeof(int_t) * rank_col_length);
+    int_t *diagonal_flag = (int_t *)pangulu_malloc(__FILE__, __LINE__, sizeof(int_t) * rank_col_length);
     for (int_t i = 0; i < rank_col_length; i++)
     {
         diagonal_flag[i] = 0;
@@ -920,7 +854,7 @@ void pangulu_sptrsv_vector_gather(pangulu_block_common *block_common,
 
     if (rank == 0)
     {
-        int_t *save_diagonal_num = (int_t *)pangulu_malloc(sizeof(int_t) * (P * Q + 1));
+        int_t *save_diagonal_num = (int_t *)pangulu_malloc(__FILE__, __LINE__, sizeof(int_t) * (P * Q + 1));
         for (int_t i = 0; i < P * Q + 1; i++)
         {
             save_diagonal_num[i] = diagonal_num[i];
@@ -937,10 +871,10 @@ void pangulu_sptrsv_vector_gather(pangulu_block_common *block_common,
             }
             save_diagonal_num[now_add_rank] += NB;
         }
-        free(save_diagonal_num);
+        pangulu_free(__FILE__, __LINE__, save_diagonal_num);
     }
 
-    free(save_vector);
-    free(diagonal_num);
+    pangulu_free(__FILE__, __LINE__, save_vector);
+    pangulu_free(__FILE__, __LINE__, diagonal_num);
 }
 #endif

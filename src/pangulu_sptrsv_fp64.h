@@ -4,8 +4,6 @@
 #include "pangulu_common.h"
 #include "pangulu_utils.h"
 
-#define SPTRSV_ERROR 1e-8
-
 void  pangulu_sptrsv_cpu_choumi(pangulu_Smatrix *S,pangulu_vector *X,pangulu_vector *B)
 {
     calculate_type *value=S->value;
@@ -27,8 +25,8 @@ void  pangulu_sptrsv_cpu_choumi(pangulu_Smatrix *S,pangulu_vector *X,pangulu_vec
 void pangulu_sptrsv_cpu_xishu(pangulu_Smatrix *S,pangulu_vector *X,pangulu_vector *B,int_t vector_number)
 {
     int_t row=S->row;  
-    int_t *csrRowPtr_tmp=S->rowpointer;
-    int_32t *csrColIdx_tmp=S->columnindex;
+    pangulu_inblock_ptr *csrRowPtr_tmp=S->rowpointer;
+    pangulu_inblock_idx *csrColIdx_tmp=S->columnindex;
     calculate_type *csrVal_tmp=S->value;
     for(int_t vector_index=0;vector_index<vector_number;vector_index++){
         calculate_type *x=X->value+vector_index*row;
@@ -55,8 +53,8 @@ void pangulu_sptrsv_cpu_xishu(pangulu_Smatrix *S,pangulu_vector *X,pangulu_vecto
 void pangulu_sptrsv_cpu_xishu_csc(pangulu_Smatrix *S,pangulu_vector *X,pangulu_vector *B,int_t vector_number,int_t tag)
 {
     int_t col=S->column;  
-    int_t *cscColumnPtr_tmp=S->columnpointer;
-    int_32t *cscRowIdx_tmp=S->rowindex;
+    pangulu_inblock_ptr *cscColumnPtr_tmp=S->columnpointer;
+    pangulu_inblock_idx *cscRowIdx_tmp=S->rowindex;
     calculate_type *cscVal_tmp=S->value_CSC;
     if(tag==0){
         for(int_t vector_index=0;vector_index<vector_number;vector_index++){
@@ -76,7 +74,7 @@ void pangulu_sptrsv_cpu_xishu_csc(pangulu_Smatrix *S,pangulu_vector *X,pangulu_v
                 }
 		        for(int_t j=cscColumnPtr_tmp[i]+1;j<cscColumnPtr_tmp[i+1];j++)
     		    {
-                    int_32t row=cscRowIdx_tmp[j];
+                    pangulu_inblock_idx row=cscRowIdx_tmp[j];
                     b[row]-=cscVal_tmp[j]*x[i];
 	    	    }
 	        }
@@ -98,11 +96,12 @@ void pangulu_sptrsv_cpu_xishu_csc(pangulu_Smatrix *S,pangulu_vector *X,pangulu_v
                     x[i]=0.0;
                     continue;
                 }
-		        for(int_t j=cscColumnPtr_tmp[i+1]-2;j>=cscColumnPtr_tmp[i];j--)
-    		    {
-                    
-                    int_32t row=cscRowIdx_tmp[j];
-                    b[row]-=cscVal_tmp[j]*x[i];
+                if(cscColumnPtr_tmp[i+1]>=2){ // Don't modify this to cscColumnPtr_tmp[i+1]-2>=0, because values in array cscColumnPtr_tmp are unsigned.
+                    for(int_t j=cscColumnPtr_tmp[i+1]-2;j>=cscColumnPtr_tmp[i];j--)
+                    {
+                        pangulu_inblock_idx row=cscRowIdx_tmp[j];
+                        b[row]-=cscVal_tmp[j]*x[i];
+                    }
                 }
 	        }
         }

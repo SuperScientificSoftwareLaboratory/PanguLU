@@ -150,9 +150,14 @@ void pangulu_tstrf_interface(pangulu_Smatrix *A, pangulu_Smatrix *save_X, pangul
 #endif
 
 #else
+    pangulu_transport_pangulu_Smatrix_CSC_to_CSR(A);
     pangulu_pangulu_Smatrix_memcpy_value_CSC_copy_length(calculate_X, A);
-    pangulu_tstrf_interface_CPU_CSR(A, calculate_X, U);
+    pangulu_tstrf_fp64_CPU_6(A, calculate_X, U);
+    pangulu_transport_pangulu_Smatrix_CSR_to_CSC(A);
     pangulu_pangulu_Smatrix_memcpy_columnpointer_CSC(save_X, A);
+    // pangulu_pangulu_Smatrix_memcpy_value_CSC_copy_length(calculate_X, A);
+    // pangulu_tstrf_interface_CPU_CSR(A, calculate_X, U);
+    // pangulu_pangulu_Smatrix_memcpy_columnpointer_CSC(save_X, A);
 #endif
 
 #ifdef CHECK_TIME
@@ -238,11 +243,14 @@ void pangulu_gessm_interface(pangulu_Smatrix *A, pangulu_Smatrix *save_X, pangul
 #endif
 
 #else
-    pangulu_transport_pangulu_Smatrix_CSC_to_CSR(A);
     pangulu_pangulu_Smatrix_memcpy_value_CSR_copy_length(calculate_X, A);
-    pangulu_gessm_interface_CPU_CSR(A, L, calculate_X);
-    pangulu_transport_pangulu_Smatrix_CSR_to_CSC(A);
+    pangulu_gessm_fp64_CPU_6(A, L, calculate_X);
     pangulu_pangulu_Smatrix_memcpy_columnpointer_CSC(save_X, A);
+    // pangulu_transport_pangulu_Smatrix_CSC_to_CSR(A);
+    // pangulu_pangulu_Smatrix_memcpy_value_CSR_copy_length(calculate_X, A);
+    // pangulu_gessm_interface_CPU_CSR(A, L, calculate_X);
+    // pangulu_transport_pangulu_Smatrix_CSR_to_CSC(A);
+    // pangulu_pangulu_Smatrix_memcpy_columnpointer_CSC(save_X, A);
 #endif
 
 #ifdef CHECK_TIME

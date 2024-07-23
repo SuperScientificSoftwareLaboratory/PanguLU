@@ -26,7 +26,7 @@ void pangulu_solve_A_to_LU(int_t level, int_t row, int_t col,
     int_t *grid_process_id = block_Smatrix->grid_process_id;
 
     int_t mapper_index = block_Smatrix->mapper_Big_pangulu_Smatrix[block_length * row + col];
-    pangulu_Smatrix *A = block_Smatrix->Big_pangulu_Smatrix_value[mapper_index];
+    pangulu_Smatrix *A = &block_Smatrix->Big_pangulu_Smatrix_value[mapper_index];
     int_t diagonal_index = block_Smatrix->mapper_diagonal[level];
     pangulu_Smatrix *L = block_Smatrix->diagonal_Smatrix_L[diagonal_index];
     pangulu_Smatrix *U = block_Smatrix->diagonal_Smatrix_U[diagonal_index];
@@ -166,7 +166,7 @@ void pangulu_solve_XU_A(int_t level, int_t now_level, int_t row, int_t col,
     pangulu_heap *heap = block_Smatrix->heap;
 
     int_t mapper_index = block_Smatrix->mapper_Big_pangulu_Smatrix[block_length * row + col];
-    pangulu_Smatrix *A = block_Smatrix->Big_pangulu_Smatrix_value[mapper_index];
+    pangulu_Smatrix *A = &block_Smatrix->Big_pangulu_Smatrix_value[mapper_index];
 
     int_t diagonal_index = block_Smatrix->mapper_diagonal[col];
     pangulu_Smatrix *U = block_Smatrix->diagonal_Smatrix_U[diagonal_index];
@@ -180,8 +180,10 @@ void pangulu_solve_XU_A(int_t level, int_t now_level, int_t row, int_t col,
 
     if (block_Smatrix->flag_dignon_U[diagonal_index] == 0)
     {
+#ifdef GPU_OPEN
         pangulu_Smatrix_CUDA_memcpy_complete_CSR(U, U);
         pangulu_tstrf_preprocess(U);
+#endif
         block_Smatrix->flag_dignon_U[diagonal_index] = 1;
     }
 
@@ -274,7 +276,7 @@ void pangulu_solve_LX_A(int_t level, int_t now_level, int_t row, int_t col,
     pangulu_heap *heap = block_Smatrix->heap;
 
     int_t mapper_index = block_Smatrix->mapper_Big_pangulu_Smatrix[block_length * row + col];
-    pangulu_Smatrix *A = block_Smatrix->Big_pangulu_Smatrix_value[mapper_index];
+    pangulu_Smatrix *A = &block_Smatrix->Big_pangulu_Smatrix_value[mapper_index];
 
     int_t diagonal_index = block_Smatrix->mapper_diagonal[row];
     pangulu_Smatrix *L = block_Smatrix->diagonal_Smatrix_L[diagonal_index];
@@ -288,8 +290,10 @@ void pangulu_solve_LX_A(int_t level, int_t now_level, int_t row, int_t col,
 
     if (block_Smatrix->flag_dignon_L[diagonal_index] == 0)
     {
+#ifdef GPU_OPEN
         pangulu_Smatrix_CUDA_memcpy_complete_CSC(L, L);
         pangulu_gessm_preprocess(L);
+#endif
         block_Smatrix->flag_dignon_L[diagonal_index] = 1;
     }
 
@@ -376,7 +380,7 @@ void pangulu_solve_A_LU(int_t level, int_t row, int_t col,
         return;
     }
 
-    pangulu_Smatrix *A = block_Smatrix->Big_pangulu_Smatrix_value[mapper_index];
+    pangulu_Smatrix *A = &block_Smatrix->Big_pangulu_Smatrix_value[mapper_index];
     int_t mapper_index_L = block_Smatrix->mapper_LU[block_length * row + level];
     int_t mapper_index_U = block_Smatrix->mapper_LU[block_length * level + col];
     pangulu_Smatrix *L = block_Smatrix->L_pangulu_Smatrix_value[mapper_index_L];
@@ -392,13 +396,17 @@ void pangulu_solve_A_LU(int_t level, int_t row, int_t col,
 
     if (block_Smatrix->flag_save_L[mapper_index_L] == 0)
     {
+#ifdef GPU_OPEN
         pangulu_Smatrix_CUDA_memcpy_complete_CSC(L, L);
+#endif
         block_Smatrix->flag_save_L[mapper_index_L] = 1;
     }
 
     if (block_Smatrix->flag_save_U[mapper_index_U] == 0)
     {
+#ifdef GPU_OPEN
         pangulu_Smatrix_CUDA_memcpy_complete_CSC(U, U);
+#endif
         block_Smatrix->flag_save_U[mapper_index_U] = 1;
     }
 
@@ -487,13 +495,15 @@ void pangulu_add_A_to_A_old(int_t level, int_t row, int_t col,
                             pangulu_block_Smatrix *block_Smatrix,
                             pangulu_Smatrix *calculate_X)
 {
-
+    printf(PANGULU_I_A_A_OLD);
+    MPI_Abort(MPI_COMM_WORLD, 0);
+    
     int_t *task_flag_id = block_Smatrix->task_flag_id;
     int_t block_length = block_common->block_length;
 
     int_t mapper_index = block_Smatrix->mapper_Big_pangulu_Smatrix[row * block_length + col];
     pangulu_Smatrix *receive_A = block_Smatrix->Big_pangulu_Smatrix_copy_value[mapper_index];
-    pangulu_Smatrix *A = block_Smatrix->Big_pangulu_Smatrix_value[mapper_index];
+    pangulu_Smatrix *A = &block_Smatrix->Big_pangulu_Smatrix_value[mapper_index];
 
 #ifdef GPU_OPEN
     pangulu_Smatrix_CUDA_memcpy_to_device_value_CSC(calculate_X, receive_A);
@@ -545,11 +555,10 @@ void pangulu_numerical_work(compare_struct *flag,
     int_t row = flag->row;
     int_t col = flag->col;
     int_t level = flag->task_level;
-    // printf("rank %d do the kernel %ld row is %ld col is %ld level %ld\n",RANK,kernel_id,row,col,level);
 
     if (block_Smatrix->mapper_Big_pangulu_Smatrix[row * (block_common->block_length) + col] == -1)
     {
-        printf("error in rank %d row is %ld col is %ld level is %ld\n", RANK, row, col, level);
+        printf(PANGULU_E_ERR_IN_RRCL);
         exit(0);
         return;
     }
@@ -595,7 +604,7 @@ void pangulu_numerical_work(compare_struct *flag,
     }
     else
     {
-        printf("error don't have this kernel id %ld\n", kernel_id);
+        printf(PANGULU_E_K_ID);
         exit(0);
     }
 }
@@ -840,7 +849,20 @@ void pangulu_numerical_receive_message(MPI_Status status,
 
 void *thread_GPU_work(void *param)
 {
-
+    cpu_set_t cpuset;
+    CPU_ZERO(&cpuset);
+    int_t cpu_thread_count_per_node = sysconf(_SC_NPROCESSORS_ONLN);
+    for(int i=0;i<PANGU_OMP_NUM_THREADS;i++){
+    #ifdef HT_IS_OPEN
+        CPU_SET((2*(PANGU_OMP_NUM_THREADS*RANK+i))%cpu_thread_count_per_node, &cpuset);
+    #else
+        CPU_SET((PANGU_OMP_NUM_THREADS*RANK+i)%cpu_thread_count_per_node, &cpuset);
+    #endif
+    }
+    if (pthread_setaffinity_np(pthread_self(), sizeof(cpuset), &cpuset) != 0) {
+        perror("pthread_setaffinity_np error");
+    }
+    
     // init
     thread_param *work_param = (thread_param *)param;
     pangulu_block_common *block_common = work_param->common;
@@ -892,7 +914,7 @@ void *thread_GPU_work(void *param)
         pthread_mutex_lock(heap_mutex);
         if (heap->length != 0)
         {
-            printf("rank %ld heap don't nuLL error have %ld task\n", rank, heap->length);
+            printf(PANGULU_W_RANK_HEAP_DONT_NULL);
 
             while (!heap_empty(heap))
             {
@@ -928,9 +950,16 @@ void pangulu_create_pthread(pangulu_block_common *block_common,
 }
 #endif
 
-void pangulu_numerical(pangulu_block_common *block_common,
+void pangulu_numeric(pangulu_block_common *block_common,
                        pangulu_block_Smatrix *block_Smatrix)
 {
+    int_t cpu_thread_count_per_node = sysconf(_SC_NPROCESSORS_ONLN);
+    #ifdef HT_IS_OPEN
+        bind_to_core((2*PANGU_OMP_NUM_THREADS*RANK)%cpu_thread_count_per_node);
+    #else
+        bind_to_core((PANGU_OMP_NUM_THREADS*RANK)%cpu_thread_count_per_node);
+    #endif
+
     int_32t rank = block_common->rank;
     int_32t block_length = block_common->block_length;
     int_32t P = block_common->P;
@@ -975,6 +1004,10 @@ void pangulu_numerical(pangulu_block_common *block_common,
         }
 
         LEVEL = level;
+        for (int_t i = 0; i < block_Smatrix->L_Smatrix_nzz * every_level_length; i++)
+        {
+            (block_Smatrix->L_pangulu_Smatrix_value[i])->zip_flag = 0 ;
+        }
 
         pthread_mutex_lock(heap_mutex);
 
@@ -1014,7 +1047,6 @@ void pangulu_numerical(pangulu_block_common *block_common,
 
         while (now_receive_num != 0)
         {
-
             pangulu_probe_message(&status);
             now_receive_num--;
             pangulu_numerical_receive_message(status, level, block_common, block_Smatrix);
@@ -1034,101 +1066,7 @@ void pangulu_numerical(pangulu_block_common *block_common,
         int_t flag = pangulu_iprobe_message(&status);
         if (flag == 1)
         {
-            printf("error rank is %d reiceive message\n", rank);
-            pangulu_numerical_receive_message(status, level, block_common, block_Smatrix);
-        }
-    }
-
-#else
-
-    int_t *task_level_num = block_Smatrix->task_level_num;
-    compare_struct *compare_queue = heap->comapre_queue;
-
-    pangulu_Smatrix *calculate_L = block_Smatrix->calculate_L;
-    pangulu_Smatrix *calculate_U = block_Smatrix->calculate_U;
-    pangulu_Smatrix *calculate_X = block_Smatrix->calculate_X;
-
-    for (int_t level = 0; level < block_length; level += every_level_length)
-    {
-        int_t receive_flag = 0;
-        fflush(NULL);
-        MPI_Barrier(MPI_COMM_WORLD);
-        LEVEL = level;
-        pangulu_zero_pangulu_heap(heap);
-        // init
-
-        int_t big_level = ((level + every_level_length) > block_length) ? block_length : (level + every_level_length);
-        for (int_t k = level; k < big_level; k++)
-        {
-            int_t now_level = level_index[k];
-            int_t now_rank = grid_process_id[(now_level % P) * Q + (now_level % Q)];
-            int_t flag = level_task_rank_id[now_level * (P * Q) + now_rank];
-            if (flag == rank)
-            {
-                task_flag_id[now_level * block_length + now_level]--;
-                if (task_flag_id[now_level * block_length + now_level] == 0)
-                {
-                    pangulu_heap_insert(heap, now_level, now_level, now_level, 1, now_level);
-                }
-            }
-        }
-        for (int_t i = 0; i < every_level_length; i++)
-        {
-            now_level_L_length[i] = 0;
-        }
-        for (int_t i = 0; i < every_level_length; i++)
-        {
-            now_level_U_length[i] = 0;
-        }
-        int_t now_task_num = task_level_num[level / every_level_length];
-        int_t now_receive_num = receive_level_num[level / every_level_length];
-        while (((now_task_num != 0) || (now_receive_num != 0)))
-        {
-            if (heap_empty(heap))
-            {
-                MPI_Status status;
-                pangulu_probe_message(&status);
-                now_receive_num--;
-                receive_flag++;
-                pangulu_numerical_receive_message(status, level, block_common, block_Smatrix);
-            }
-            else
-            {
-
-                MPI_Status status;
-                // iprobe
-                int_t flag = pangulu_iprobe_message(&status);
-                if (flag == 1)
-                {
-                    now_receive_num--;
-                    receive_flag++;
-                    pangulu_numerical_receive_message(status, level, block_common, block_Smatrix);
-                }
-            }
-            if (!heap_empty(heap))
-            {
-                // work
-                int_t compare_flag = pangulu_heap_delete(heap);
-                now_task_num--;
-                pangulu_numerical_work(compare_queue + compare_flag, block_common, block_Smatrix,
-                                       calculate_L, calculate_U, calculate_X, level);
-            }
-        }
-        if (heap->length != 0)
-        {
-            printf("rank %d heap don't nuLL error have %ld task\n", rank, heap->length);
-            while (!heap_empty(heap))
-            {
-                int_t compare_flag = pangulu_heap_delete(heap);
-                pangulu_numerical_work(compare_queue + compare_flag, block_common, block_Smatrix,
-                                       calculate_L, calculate_U, calculate_X, level);
-            }
-        }
-        MPI_Status status;
-        int_t flag = pangulu_iprobe_message(&status);
-        if (flag == 1)
-        {
-            printf("error rank is %d reiceive message\n", rank);
+            printf(PANGULU_W_ERR_RANK);
             pangulu_numerical_receive_message(status, level, block_common, block_Smatrix);
         }
     }

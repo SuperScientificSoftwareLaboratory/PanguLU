@@ -6,14 +6,14 @@ void pangulu_tstrf_fp64_CPU_1(pangulu_Smatrix *A,
                               pangulu_Smatrix *X,
                               pangulu_Smatrix *U)
 {
-    int_t *X_colpointer = A->columnpointer;
-    idx_int *X_rowindex = A->rowindex;
+    pangulu_inblock_ptr *X_colpointer = A->columnpointer;
+    pangulu_inblock_idx *X_rowindex = A->rowindex;
     calculate_type *X_value = A->value_CSC;
-    int_t *U_rowpointer = U->rowpointer;
-    idx_int *U_columnindex = U->columnindex;
+    pangulu_inblock_ptr *U_rowpointer = U->rowpointer;
+    pangulu_inblock_idx *U_columnindex = U->columnindex;
     calculate_type *U_value = U->value;
-    int_t *A_colpointer = A->columnpointer;
-    idx_int *A_rowindex = A->rowindex;
+    pangulu_inblock_ptr *A_colpointer = A->columnpointer;
+    pangulu_inblock_idx *A_rowindex = A->rowindex;
     calculate_type *A_value = X->value_CSC;
     int_t n = A->row;
 
@@ -24,7 +24,7 @@ void pangulu_tstrf_fp64_CPU_1(pangulu_Smatrix *A,
     for (int_t i = 0; i < n; i++)
     {
         calculate_type t = U_value[U_rowpointer[i]];
-        if (t < ERROR && t > -ERROR)
+        if (fabs(t) < ERROR)
         {
             t = ERROR;
         }
@@ -56,9 +56,9 @@ void pangulu_tstrf_fp64_CPU_1(pangulu_Smatrix *A,
     }
 }
 
-int findlevel(const int_t *cscColPtr,
-              const idx_int *cscRowIdx,
-              const int_t *csrRowPtr,
+int findlevel(const pangulu_inblock_ptr *cscColPtr,
+              const pangulu_inblock_idx *cscRowIdx,
+              const pangulu_inblock_ptr *csrRowPtr,
               const int_t m,
               int *nlevel,
               int *levelPtr,
@@ -68,20 +68,20 @@ void pangulu_tstrf_fp64_CPU_2(pangulu_Smatrix *A,
                               pangulu_Smatrix *U)
 {
 
-    int_t *A_columnpointer = A->rowpointer;
-    idx_int *A_rowidx = A->columnindex;
+    pangulu_inblock_ptr *A_columnpointer = A->rowpointer;
+    pangulu_inblock_idx *A_rowidx = A->columnindex;
 
     calculate_type *A_value = A->value;
 
-    int_t *L_rowpointer = U->columnpointer;
+    pangulu_inblock_ptr *L_rowpointer = U->columnpointer;
 
-    int_t *L_colpointer = U->rowpointer;
-    idx_int *L_rowindex = U->columnindex;
+    pangulu_inblock_ptr *L_colpointer = U->rowpointer;
+    pangulu_inblock_idx *L_rowindex = U->columnindex;
     calculate_type *L_value = U->value;
 
     int_t n = A->row;
 
-    int_t *Spointer = (int_t *)malloc(sizeof(int_t) * (n + 1));
+    int_t *Spointer = (int_t *)pangulu_malloc(__FILE__, __LINE__, sizeof(int_t) * (n + 1));
     memset(Spointer, 0, sizeof(int_t) * (n + 1));
     int rhs = 0;
     for (int_t i = 0; i < n; i++)
@@ -93,13 +93,13 @@ void pangulu_tstrf_fp64_CPU_2(pangulu_Smatrix *A,
         }
     }
 
-    calculate_type *C_b = (calculate_type *)malloc(sizeof(calculate_type) * n * rhs);
-    calculate_type *D_x = (calculate_type *)malloc(sizeof(calculate_type) * n * rhs);
+    calculate_type *C_b = (calculate_type *)pangulu_malloc(__FILE__, __LINE__, sizeof(calculate_type) * n * rhs);
+    calculate_type *D_x = (calculate_type *)pangulu_malloc(__FILE__, __LINE__, sizeof(calculate_type) * n * rhs);
 
     memset(C_b, 0.0, sizeof(calculate_type) * n * rhs);
     memset(D_x, 0.0, sizeof(calculate_type) * n * rhs);
 
-#pragma omp parallel for
+#pragma omp parallel for num_threads(PANGU_OMP_NUM_THREADS)
     for (int i = 0; i < rhs; i++)
     {
         int index = Spointer[i];
@@ -110,8 +110,8 @@ void pangulu_tstrf_fp64_CPU_2(pangulu_Smatrix *A,
     }
 
     int nlevel = 0;
-    int *levelPtr = (int *)malloc(sizeof(int) * (n + 1));
-    int *levelItem = (int *)malloc(sizeof(int) * n);
+    int *levelPtr = (int *)pangulu_malloc(__FILE__, __LINE__, sizeof(int) * (n + 1));
+    int *levelItem = (int *)pangulu_malloc(__FILE__, __LINE__, sizeof(int) * n);
     findlevel(L_colpointer, L_rowindex, L_rowpointer, n, &nlevel, levelPtr, levelItem);
 
 #pragma omp parallel for num_threads(PANGU_OMP_NUM_THREADS)
@@ -141,27 +141,27 @@ void pangulu_tstrf_fp64_CPU_2(pangulu_Smatrix *A,
         }
     }
 
-    free(Spointer);
-    free(C_b);
-    free(D_x);
+    pangulu_free(__FILE__, __LINE__, Spointer);
+    pangulu_free(__FILE__, __LINE__, C_b);
+    pangulu_free(__FILE__, __LINE__, D_x);
 }
 void pangulu_tstrf_fp64_CPU_3(pangulu_Smatrix *A,
                               pangulu_Smatrix *X,
                               pangulu_Smatrix *U)
 {
 
-    int_t *A_columnpointer = A->rowpointer;
-    idx_int *A_rowidx = A->columnindex;
+    pangulu_inblock_ptr *A_columnpointer = A->rowpointer;
+    pangulu_inblock_idx *A_rowidx = A->columnindex;
 
     calculate_type *A_value = A->value;
 
-    int_t *L_columnpointer = U->rowpointer;
-    idx_int *L_rowidx = U->columnindex;
+    pangulu_inblock_ptr *L_columnpointer = U->rowpointer;
+    pangulu_inblock_idx *L_rowidx = U->columnindex;
     calculate_type *L_value = U->value;
 
     int_t n = A->row;
 
-    calculate_type *C_b = (calculate_type *)malloc(sizeof(calculate_type) * n * n);
+    calculate_type *C_b = (calculate_type *)pangulu_malloc(__FILE__, __LINE__, sizeof(calculate_type) * n * n);
 
 #pragma omp parallel for num_threads(PANGU_OMP_NUM_THREADS)
     for (int i = 0; i < n; i++) // jth column of U
@@ -179,7 +179,7 @@ void pangulu_tstrf_fp64_CPU_3(pangulu_Smatrix *A,
         for (int_t j = A_columnpointer[i]; j < A_columnpointer[i + 1]; j++)
         {
             C_b[i * n + A_rowidx[j]] /= L_value[L_columnpointer[A_rowidx[j]]];
-            idx_int idx = A_rowidx[j];
+            pangulu_inblock_idx idx = A_rowidx[j];
             for (int_t k = L_columnpointer[idx] + 1; k < L_columnpointer[idx + 1]; k++)
             {
                 C_b[i * n + L_rowidx[k]] -= L_value[k] * C_b[i * n + A_rowidx[j]];
@@ -196,20 +196,20 @@ void pangulu_tstrf_fp64_CPU_3(pangulu_Smatrix *A,
             A_value[j] = C_b[i * n + idx];
         }
     }
-    free(C_b);
+    pangulu_free(__FILE__, __LINE__, C_b);
 }
 void pangulu_tstrf_fp64_CPU_4(pangulu_Smatrix *A,
                               pangulu_Smatrix *X,
                               pangulu_Smatrix *U)
 {
 
-    int_t *A_columnpointer = A->rowpointer;
-    idx_int *A_rowidx = A->columnindex;
+    pangulu_inblock_ptr *A_columnpointer = A->rowpointer;
+    pangulu_inblock_idx *A_rowidx = A->columnindex;
 
     calculate_type *A_value = A->value;
 
-    int_t *L_columnpointer = U->rowpointer;
-    idx_int *L_rowidx = U->columnindex;
+    pangulu_inblock_ptr *L_columnpointer = U->rowpointer;
+    pangulu_inblock_idx *L_rowidx = U->columnindex;
     calculate_type *L_value = U->value;
 
     int_t n = A->row;
@@ -219,7 +219,7 @@ void pangulu_tstrf_fp64_CPU_4(pangulu_Smatrix *A,
     {
         for (int_t j = A_columnpointer[i]; j < A_columnpointer[i + 1]; j++)
         {
-            idx_int idx = A_rowidx[j];
+            pangulu_inblock_idx idx = A_rowidx[j];
             A_value[j] /= L_value[L_columnpointer[idx]];
             for (int_t k = L_columnpointer[idx] + 1, p = j + 1; k < L_columnpointer[idx + 1] && p < A_columnpointer[i + 1]; k++, p++)
             {
@@ -240,16 +240,16 @@ void pangulu_tstrf_fp64_CPU_5(pangulu_Smatrix *A,
                               pangulu_Smatrix *U)
 {
 
-    int_t *A_rowpointer = A->columnpointer;
-    idx_int *A_colindex = A->rowindex;
+    pangulu_inblock_ptr *A_rowpointer = A->columnpointer;
+    pangulu_inblock_idx *A_colindex = A->rowindex;
     calculate_type *A_value = X->value_CSC;
 
-    int_t *L_colpointer = U->rowpointer;
-    idx_int *L_rowindex = U->columnindex;
+    pangulu_inblock_ptr *L_colpointer = U->rowpointer;
+    pangulu_inblock_idx *L_rowindex = U->columnindex;
     calculate_type *L_value = U->value;
 
-    int_t *X_rowpointer = A->columnpointer;
-    idx_int *X_colindex = A->rowindex;
+    pangulu_inblock_ptr *X_rowpointer = A->columnpointer;
+    pangulu_inblock_idx *X_colindex = A->rowindex;
     calculate_type *X_value = A->value_CSC;
 
     int_t n = A->row;
@@ -259,7 +259,7 @@ void pangulu_tstrf_fp64_CPU_5(pangulu_Smatrix *A,
     {
         for (int j = A_rowpointer[i]; j < A_rowpointer[i + 1]; j++)
         {
-            idx_int idx = A_colindex[j];
+            pangulu_inblock_idx idx = A_colindex[j];
             TEMP_A_value[i * n + idx] = A_value[j]; // tranform csr to dense,only value
         }
     }
@@ -278,12 +278,12 @@ void pangulu_tstrf_fp64_CPU_5(pangulu_Smatrix *A,
 #pragma omp parallel for num_threads(PANGU_OMP_NUM_THREADS)
             for (int_t j = L_colpointer[i] + 1; j < L_colpointer[i + 1]; j++)
             {
-                idx_int idx1 = L_rowindex[j];
+                pangulu_inblock_idx idx1 = L_rowindex[j];
 
                 for (int_t p = X_rowpointer[i]; p < X_rowpointer[i + 1]; p++)
                 {
 
-                    idx_int idx2 = A_colindex[p];
+                    pangulu_inblock_idx idx2 = A_colindex[p];
                     TEMP_A_value[idx1 * n + idx2] -= L_value[j] * TEMP_A_value[i * n + idx2];
                 }
             }
@@ -295,16 +295,16 @@ void pangulu_tstrf_fp64_CPU_6(pangulu_Smatrix *A,
                               pangulu_Smatrix *U)
 {
 
-    int_t *A_columnpointer = A->rowpointer;
-    idx_int *A_rowidx = A->columnindex;
+    pangulu_inblock_ptr *A_columnpointer = A->rowpointer;
+    pangulu_inblock_idx *A_rowidx = A->columnindex;
 
     calculate_type *A_value = A->value;
 
-    int_t *L_columnpointer = U->rowpointer;
-    idx_int *L_rowidx = U->columnindex;
+    pangulu_inblock_ptr *L_columnpointer = U->rowpointer;
+    pangulu_inblock_idx *L_rowidx = U->columnindex;
     calculate_type *L_value = U->value;
 
-    int_t n = A->row;
+    pangulu_inblock_ptr n = A->row;
 #pragma omp parallel for num_threads(PANGU_OMP_NUM_THREADS)
     for (int i = 0; i < n; i++) // jth column of U
     {
@@ -320,7 +320,7 @@ void pangulu_tstrf_fp64_CPU_6(pangulu_Smatrix *A,
     {
         for (int_t j = A_columnpointer[i]; j < A_columnpointer[i + 1]; j++)
         {
-            idx_int idx = A_rowidx[j];
+            pangulu_inblock_idx idx = A_rowidx[j];
 
             A_value[j] = TEMP_A_value[i * n + idx] / L_value[L_columnpointer[idx]];
             for (int_t k = L_columnpointer[idx] + 1; k < L_columnpointer[idx + 1]; k++)

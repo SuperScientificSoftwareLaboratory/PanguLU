@@ -1,5 +1,8 @@
-#include "pangulu_common.h"
-#include "pangulu_test.h"
+#ifndef PANGULU_INTERFACE_H
+#define PANGULU_INTERFACE_H
+
+#include "pangulu_interface_common.h"
+#include <mpi.h>
 
 int_t CPU_MEMORY = 0;
 int_t CPU_PEAK_MEMORY = 0;
@@ -34,7 +37,7 @@ int_t calculate_time = 0;
 
 idx_int *SSSSM_hash_LU = NULL;
 char *SSSSM_flag_LU = NULL;
-char *SSSSM_flag_L_row=NULL;
+char *SSSSM_flag_L_row = NULL;
 idx_int *SSSSM_hash_L_row = NULL;
 idx_int zip_max_id = 0;
 idx_int zip_cur_id = 0;
@@ -48,7 +51,6 @@ int_32t RANK;
 int_32t LEVEL;
 int_32t OMP_THREAD;
 
-void pangulu_init(int pangulu_n, long long pangulu_nnz, long *csr_rowptr, int *csr_colidx, double *csr_value, pangulu_init_options *init_options, void **pangulu_handle);
-void pangulu_gstrf(pangulu_gstrf_options *gstrf_options, void **pangulu_handle);
-void pangulu_gstrs(double *rhs, pangulu_gstrs_options *gstrs_options, void** pangulu_handle);
-void pangulu_gssv(double *rhs, pangulu_gstrf_options *gstrf_options, pangulu_gstrs_options *gstrs_options, void **pangulu_handle);
+
+
+#endif

@@ -30,14 +30,10 @@ void pangulu_time_init()
     TIME_wait = 0.0;
     return;
 }
-void pangulu_time_output()
-{
-    printf("rank\trecv\tgetrf\ttstrf\tgessm\tssssm\tcal_sum\tcudampy\n");
-}
 
 void pangulu_time_simple_output(int_t rank)
 {
-    printf("%ld\t%.5lf\t%.5lf\t%.5lf\t%.5lf\t%.5lf\t%.5lf\t%.5lf\t\n",
+    printf("%ld\t%.5lf\t%.5lf\t%.5lf\t%.5lf\t%.5lf\t%.5lf\t%.5lf\n",
            rank,
            calculate_TIME_wait,
            TIME_getrf,

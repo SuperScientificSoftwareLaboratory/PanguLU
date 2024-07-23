@@ -12,8 +12,8 @@ void pangulu_init_heap_select(int_t select)
 
 void pangulu_init_pangulu_heap(pangulu_heap *heap, int_t max_length)
 {
-    compare_struct *compare_queue = (compare_struct *)pangulu_malloc(sizeof(compare_struct) * max_length);
-    int_t *heap_queue = (int_t *)pangulu_malloc(sizeof(int_t) * max_length);
+    compare_struct *compare_queue = (compare_struct *)pangulu_malloc(__FILE__, __LINE__, sizeof(compare_struct) * max_length);
+    int_t *heap_queue = (int_t *)pangulu_malloc(__FILE__, __LINE__, sizeof(int_t) * max_length);
     heap->comapre_queue = compare_queue;
     heap->heap_queue = heap_queue;
     heap->max_length = max_length;
@@ -28,13 +28,13 @@ pangulu_heap *pangulu_destory_pangulu_heap(pangulu_heap *heap)
 {
     if (heap != NULL)
     {
-        free(heap->comapre_queue);
-        free(heap->heap_queue);
+        pangulu_free(__FILE__, __LINE__, heap->comapre_queue);
+        pangulu_free(__FILE__, __LINE__, heap->heap_queue);
         heap->length = 0;
         heap->nnz_flag = 0;
         heap->max_length = 0;
     }
-    free(heap);
+    pangulu_free(__FILE__, __LINE__, heap);
     return NULL;
 }
 
@@ -124,7 +124,7 @@ int_t pangulu_compare(compare_struct *compare_queue, int_t a, int_t b)
     }
     else
     {
-        printf("don't select error\n");
+        printf(PANGULU_E_DONT_SELEC_ERR);
         return 0;
     }
 }
@@ -146,13 +146,12 @@ void pangulu_heap_insert(pangulu_heap *heap, int_t row, int_t col, int_t task_le
 
     if (RANK == -1)
     {
-        printf("insert task row %ld col %ld level %ld kernel %ld\n", row, col, task_level, kernel_id);
+        printf(PANGULU_I_TASK_INFO);
     }
 
     if ((nnz_flag) >= heap->max_length)
     {
-        // pangulu_display_heap(heap);
-        printf("rank %d error do the big_level in %ld\n", RANK, heap->nnz_flag);
+        printf(PANGULU_E_RANK_ERR_DO_BIG_LEVEL);
         fflush(NULL);
         exit(0);
     }
@@ -215,7 +214,7 @@ int_t pangulu_heap_delete(pangulu_heap *heap)
 {
     if (heap_empty(heap))
     {
-        printf("error heap is empty \n");
+        printf(PANGULU_E_HEAP_AMPTY);
         exit(0);
     }
     int_t length = heap->length;
@@ -228,8 +227,8 @@ int_t pangulu_heap_delete(pangulu_heap *heap)
 
 void pangulu_display_heap(pangulu_heap *heap)
 {
-    printf("now length is %ld heap_length is %ld\n", heap->length, heap->max_length);
-    printf("the follow queue is :\n");
+    printf(PANGULU_I_HEAP_LEN);
+    printf(PANFULU_I_FOLLOW_Q);
     for (int_t i = 0; i < heap->length; i++)
     {
         printf("%ld ", heap->heap_queue[i]);

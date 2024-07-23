@@ -27,6 +27,31 @@ int_t Binary_search(int_t begin, int_t end, int_t aim, idx_int *array)
     return -1; // not find
 }
 
+int_t Binary_search(int_t begin, int_t end, int_t aim, pangulu_inblock_idx *array)
+{
+    end = end - 1;
+    int_t middle = (end + begin) / 2;
+    int_t left = begin;
+    int_t right = end;
+    while (left <= right)
+    {
+        if (array[middle] > aim)
+        {
+            right = middle - 1;
+        }
+        else if (array[middle] < aim)
+        {
+            left = middle + 1;
+        }
+        else
+        {
+            return middle;
+        }
+        middle = (right + left) / 2;
+    }
+    return -1; // not find
+}
+
 void pangulu_sflu_fp64(pangulu_Smatrix *A,
                        pangulu_Smatrix *L,
                        pangulu_Smatrix *U)
@@ -50,7 +75,7 @@ void pangulu_sflu_fp64(pangulu_Smatrix *A,
         for (int_t j = index + 1; j < A->columnpointer[i + 1]; j++) // i th colnum j th row  (j,i) in L
         {
             // int_t row = A->rowindex[j];
-            if (pivot > ERROR || pivot < -ERROR)
+            if (fabs(pivot) > ERROR)
             {
             }
             else
@@ -82,7 +107,7 @@ void pangulu_sflu_fp64(pangulu_Smatrix *A,
         for (int_t j = U->columnpointer[i], k = A->columnpointer[i]; j < U->columnpointer[i + 1]; j++, k++)
         {
             U->value_CSC[j] = A->value_CSC[k];
-            if (i == U->rowindex[j] && U->value_CSC[j] < ERROR && U->value_CSC[j] > -ERROR)
+            if (i == U->rowindex[j] && fabs(U->value_CSC[j]) < ERROR)
             {
                 U->value_CSC[j] = 1.0;
             }
@@ -94,15 +119,15 @@ void pangulu_sflu_fp64_dense_col(pangulu_Smatrix *A,
                                  pangulu_Smatrix *L,
                                  pangulu_Smatrix *U)
 {
-    char *data = getenv("OMP_NUM_THREADS");
-    int num = data == NULL ? 1 : atoi(data);
-    int omp_threads_num = num > 0 ? num : 1;
+    // char *data = getenv("OMP_NUM_THREADS");
+    // int num = data == NULL ? 1 : atoi(data);
+    // int omp_threads_num = num > 0 ? num : 1;
 
     int_t n = A->row;
     calculate_type *A_value = (calculate_type *)calloc(n * n, sizeof(calculate_type));
     char *A_flag = (char *)calloc(n * n, sizeof(char));
 
-#pragma omp parallel for num_threads(omp_threads_num)
+#pragma omp parallel for num_threads(PANGU_OMP_NUM_THREADS)
     for (int i = 0; i < n; i++)
     {
         for (int j = A->columnpointer[i]; j < A->columnpointer[i + 1]; j++)
@@ -123,14 +148,14 @@ void pangulu_sflu_fp64_dense_col(pangulu_Smatrix *A,
 
         L->value_CSC[L_index++] = 1.0;
 
-#pragma omp parallel for num_threads(omp_threads_num)
+#pragma omp parallel for num_threads(PANGU_OMP_NUM_THREADS)
         for (int_t j = i + 1; j < n; j++) // i th colnum j th row  (j,i) in L
         {
             if (A_flag[i * n + j] == 0)
             {
                 continue;
             }
-            if (pivot > ERROR || pivot < -ERROR)
+            if (fabs(pivot) > ERROR)
             {
             }
             else
@@ -152,7 +177,7 @@ void pangulu_sflu_fp64_dense_col(pangulu_Smatrix *A,
             }
         }
     }
-    // #pragma omp parallel for num_threads(omp_threads_num)
+    // #pragma omp parallel for num_threads(PANGU_OMP_NUM_THREADS)
     for (int i = 0; i < n; i++)
     {
         int L_index = L->columnpointer[i] + 1;
@@ -173,7 +198,7 @@ void pangulu_sflu_fp64_dense_col(pangulu_Smatrix *A,
         }
     }
 
-    free(A_value);
+    pangulu_free(__FILE__, __LINE__, A_value);
 }
 
 double wtc_get_time(struct timeval time_start, struct timeval time_end)
@@ -194,11 +219,11 @@ void pangulu_sflu_fp64_dense_row_purge(pangulu_Smatrix *A,
     gettimeofday(&tstart, NULL);
 
     char *TEMP_A_flag = (char *)calloc(n * n, sizeof(char));
-    int *a_rowPointer = (int *)malloc(sizeof(int) * (n + 1));
-    int *a_colIndex = (int *)malloc(sizeof(int) * nnz);
+    int *a_rowPointer = (int *)pangulu_malloc(__FILE__, __LINE__, sizeof(int) * (n + 1));
+    int *a_colIndex = (int *)pangulu_malloc(__FILE__, __LINE__, sizeof(int) * nnz);
 
-    int *getrf_diagIndex_csr = (int *)malloc(sizeof(int) * n);
-    int *getrf_diagIndex_csc = (int *)malloc(sizeof(int) * n);
+    int *getrf_diagIndex_csr = (int *)pangulu_malloc(__FILE__, __LINE__, sizeof(int) * n);
+    int *getrf_diagIndex_csc = (int *)pangulu_malloc(__FILE__, __LINE__, sizeof(int) * n);
     gettimeofday(&tend, NULL);
     time_calloc += wtc_get_time(tstart, tend);
 
@@ -296,11 +321,11 @@ void pangulu_sflu_fp64_dense_row_purge(pangulu_Smatrix *A,
     gettimeofday(&tend, NULL);
     time_d_to_s += wtc_get_time(tstart, tend);
 
-    free(a_rowPointer);
-    free(a_colIndex);
-    free(getrf_diagIndex_csr);
-    free(getrf_diagIndex_csc);
-    free(TEMP_A_flag);
+    pangulu_free(__FILE__, __LINE__, a_rowPointer);
+    pangulu_free(__FILE__, __LINE__, a_colIndex);
+    pangulu_free(__FILE__, __LINE__, getrf_diagIndex_csr);
+    pangulu_free(__FILE__, __LINE__, getrf_diagIndex_csc);
+    pangulu_free(__FILE__, __LINE__, TEMP_A_flag);
 }
 
 void pangulu_sflu_fp64_2(pangulu_Smatrix *A,
@@ -322,7 +347,7 @@ void pangulu_sflu_fp64_2(pangulu_Smatrix *A,
         for (int_t j = index + 1; j < A->columnpointer[i + 1]; j++) // i th colnum j th row  (j,i) in L
         {
             // int_t row = A->rowindex[j];
-            if (pivot > ERROR || pivot < -ERROR)
+            if (fabs(pivot) > ERROR)
             {
             }
             else
@@ -365,7 +390,7 @@ void pangulu_sflu_fp64_2(pangulu_Smatrix *A,
         for (int_t j = U->columnpointer[i], k = A->columnpointer[i]; j < U->columnpointer[i + 1]; j++, k++)
         {
             U->value_CSC[j] = A->value_CSC[k];
-            if (i == U->rowindex[j] && U->value_CSC[j] < ERROR && U->value_CSC[j] > -ERROR)
+            if (i == U->rowindex[j] && fabs(U->value_CSC[j]) < ERROR)
             {
                 U->value_CSC[j] = 1.0;
             }
@@ -408,7 +433,7 @@ void pangulu_sflu_omp_fp64(pangulu_Smatrix *A,
                 for (int_t j = index + 1; j < A->columnpointer[i + 1]; j++) // i th colnum j th row  (j,i)
                 {
                     // int_t row = A->rowindex[j];
-                    if (pivot > ERROR || pivot < -ERROR)
+                    if (fabs(pivot) > ERROR)
                     {
                     }
                     else
@@ -456,7 +481,7 @@ void pangulu_sflu_omp_fp64(pangulu_Smatrix *A,
                 for (int_t j = index + 1; j < A->columnpointer[i + 1]; j++) // i th colnum j th row  (j,i)
                 {
                     // int_t row = A->rowindex[j];
-                    if (pivot > ERROR || pivot < -ERROR)
+                    if (fabs(pivot) > ERROR)
                     {
                     }
                     else
@@ -475,7 +500,7 @@ void pangulu_sflu_omp_fp64(pangulu_Smatrix *A,
 
                         if (nonzero1 != -1 && nonzero2 != -1)
                         {
-#pragma omp atomic
+#pragma omp critical
                             A->value_CSC[nonzero1] -= scale * A->value_CSC[nonzero2];
                         }
                     }
@@ -502,7 +527,7 @@ void pangulu_sflu_omp_fp64(pangulu_Smatrix *A,
         for (int_t j = U->columnpointer[i], k = A->columnpointer[i]; j < U->columnpointer[i + 1]; j++, k++)
         {
             U->value_CSC[j] = A->value_CSC[k];
-            if (i == U->rowindex[j] && U->value_CSC[j] < ERROR && U->value_CSC[j] > -ERROR)
+            if (i == U->rowindex[j] && fabs(U->value_CSC[j]) < ERROR)
             {
                 U->value_CSC[j] = 1.0;
             }
@@ -585,6 +610,81 @@ void pangulu_sflu_fp64_dense(pangulu_Smatrix *A,
         }
     }
 }
+
+// void pangulu_sflu_fp64_dense(pangulu_Smatrix *A,
+//                              pangulu_Smatrix *L,
+//                              pangulu_Smatrix *U)
+// {
+//     int_t n = A->row;
+
+// #pragma omp parallel for num_threads(PANGU_OMP_NUM_THREADS)
+//     for (int i = 0; i < n; i++)
+//     {
+//         for (int j = A->columnpointer[i]; j < A->columnpointer[i + 1]; j++)
+//         {
+//             int row = A->rowindex[j];
+//             if (row == i)
+//             {
+//                 getrf_diagIndex_csc[i] = j;
+//             }
+//             TEMP_A_value[row * n + i] = A->value_CSC[j]; // tranform csc to dense,only value
+//         }
+//         for (int j = A->rowpointer[i]; j < A->rowpointer[i + 1]; j++)
+//         {
+//             int col = A->columnindex[j];
+//             if (col == i)
+//             {
+//                 getrf_diagIndex_csr[i] = j;
+//             }
+//         }
+//     }
+
+//     for (int i = 0; i < n; i++)
+//     {
+//         if (A->columnpointer[i] == A->columnpointer[i + 1])
+//         {
+//             continue;
+//         }
+//         calculate_type pivot = TEMP_A_value[i * n + i]; // diag value
+//         int L_index = L->columnpointer[i];              // restore L value
+
+//         L->value_CSC[L_index++] = 1.0;
+// #pragma omp parallel for num_threads(PANGU_OMP_NUM_THREADS)
+//         for (int p = getrf_diagIndex_csc[i] + 1; p < A->columnpointer[i + 1]; p++)
+//         {
+
+//             int j = A->rowindex[p];
+//             calculate_type scale = TEMP_A_value[j * n + i] / pivot;
+
+//             TEMP_A_value[j * n + i] = scale;
+
+//             calculate_type *temp_value = TEMP_A_value + j * n;
+
+//             calculate_type *x_value = TEMP_A_value + i * n;
+
+//             for (int k = getrf_diagIndex_csr[i] + 1; k < A->rowpointer[i + 1]; k++)
+//             {
+//                 int index_k = A->columnindex[k];
+//                 temp_value[index_k] -= scale * x_value[index_k];
+//             }
+//         }
+//     }
+
+// #pragma omp parallel for num_threads(PANGU_OMP_NUM_THREADS)
+//     for (int i = 0; i < n; i++)
+//     {
+//         for (int j = U->columnpointer[i]; j < U->columnpointer[i + 1]; j++)
+//         {
+//             int index = U->rowindex[j];
+//             U->value_CSC[j] = TEMP_A_value[index * n + i];
+//         }
+//         for (int j = L->columnpointer[i] + 1; j < L->columnpointer[i + 1]; j++)
+//         {
+//             int index = L->rowindex[j];
+//             L->value_CSC[j] = TEMP_A_value[index * n + i];
+//         }
+//     }
+// }
 
 void pangulu_getrf_fp64(pangulu_Smatrix *A,
                         pangulu_Smatrix *L,

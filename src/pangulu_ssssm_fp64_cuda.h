@@ -2,7 +2,7 @@
 #define PANGULU_SSSSM_FP64_CUDA_H
 
 #include "pangulu_common.h"
-#include "pangulu_cuda.h"
+#include "platforms/02_GPU/01_CUDA/000_CUDA/pangulu_cuda.h"
 
 void pangulu_ssssm_fp64_cuda(pangulu_Smatrix *A,
                              pangulu_Smatrix *L,

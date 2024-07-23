@@ -26,9 +26,9 @@ at_plus_a_dist(
     int_32t *marker;
 
 
-    marker = (int_32t*)malloc( n * sizeof(int_32t));
-    t_colptr = (int_t*)malloc( (n+1) * sizeof(int_t));
-    t_rowind = (int_32t*)malloc( nz * sizeof(int_32t));
+    marker = (int_32t*)pangulu_malloc(__FILE__, __LINE__,  n * sizeof(int_32t));
+    t_colptr = (int_t*)pangulu_malloc(__FILE__, __LINE__,  (n+1) * sizeof(int_t));
+    t_rowind = (int_32t*)pangulu_malloc(__FILE__, __LINE__,  nz * sizeof(int_32t));
 
     /* Get counts of each column of T, and set up column pointers */
     for (i = 0; i < n; ++i) marker[i] = 0;
@@ -91,8 +91,8 @@ at_plus_a_dist(
 
 
     /* Allocate storage for A+A' */
-    *b_colptr = (int_t*)malloc( (n+1) * sizeof(int_t));
-    *b_rowind = (int_32t*)malloc( *bnz * sizeof(int_32t));
+    *b_colptr = (int_t*)pangulu_malloc(__FILE__, __LINE__,  (n+1) * sizeof(int_t));
+    *b_rowind = (int_32t*)pangulu_malloc(__FILE__, __LINE__,  *bnz * sizeof(int_32t));
 
     /* Zero the diagonal flag */
     for (i = 0; i < n; ++i) marker[i] = -1;
@@ -125,9 +125,9 @@ at_plus_a_dist(
     }
     (*b_colptr)[n] = num_nz;
        
-    free(marker);
-    free(t_colptr);
-    free(t_rowind);
+    pangulu_free(__FILE__, __LINE__, marker);
+    pangulu_free(__FILE__, __LINE__, t_colptr);
+    pangulu_free(__FILE__, __LINE__, t_rowind);
 } /* at_plus_a_dist */
 
 typedef struct node{
@@ -157,19 +157,20 @@ void fill_in_sym_prune(int_t n,int_t nnz,int_32t *ai, int_t *ap,
                         int_t N,int_32t NB,int_32t block_length,
                         int_t *block_Smatrix_non_zero_vector_L,
                         int_t *block_Smatrix_non_zero_vector_U,
-                        int_t *block_Smatrix_nnzA_num)
+                        int_t *block_Smatrix_nnzA_num,
+                        int_t *symbolic_nnz)
 {
     int_t relloc_zjq=nnz;
-    int_32t  *L_r_idx=(int_32t*)malloc(relloc_zjq*sizeof(int_32t));//include diagonal
-    int_t  *L_c_ptr= (int_t*)malloc((n+1)*sizeof(int_t));
+    int_32t  *L_r_idx=(int_32t*)pangulu_malloc(__FILE__, __LINE__, relloc_zjq*sizeof(int_32t));//include diagonal
+    int_t  *L_c_ptr= (int_t*)pangulu_malloc(__FILE__, __LINE__, (n+1)*sizeof(int_t));
     L_c_ptr[0]=0;
 
-    node *prune=(node*)malloc(n*sizeof(node));
-    node *prune_next=(node*)malloc(n*sizeof(node));
+    node *prune=(node*)pangulu_malloc(__FILE__, __LINE__, n*sizeof(node));
+    node *prune_next=(node*)pangulu_malloc(__FILE__, __LINE__, n*sizeof(node));
     node *p1;
 
-    int_t *work_space = (int_t*)malloc(n*sizeof(int_t));
-    int_t *merge=(int_t*)malloc(n*sizeof(int_t));
+    int_t *work_space = (int_t*)pangulu_malloc(__FILE__, __LINE__, n*sizeof(int_t));
+    int_t *merge=(int_t*)pangulu_malloc(__FILE__, __LINE__, n*sizeof(int_t));
 
     for(int_t i = 0;i<n;i++)
     {
@@ -204,7 +205,7 @@ void fill_in_sym_prune(int_t n,int_t nnz,int_32t *ai, int_t *ap,
                     block_Smatrix_nnzA_num[(i/NB)*block_length+(row/NB)]++;
                     if(L_size >= L_maxsize-100)
                     {
-                        L_r_idx=(int_32t*)realloc(L_r_idx,(L_maxsize+relloc_zjq)*sizeof(int_32t));
+                        L_r_idx=(int_32t*)pangulu_realloc(__FILE__, __LINE__, L_r_idx,(L_maxsize+relloc_zjq)*sizeof(int_32t));
                         L_maxsize=L_maxsize+relloc_zjq;
                     }
 
@@ -238,7 +239,7 @@ void fill_in_sym_prune(int_t n,int_t nnz,int_32t *ai, int_t *ap,
                         block_Smatrix_nnzA_num[(i/NB)*block_length+(crow/NB)]++;
                         if(L_size >= L_maxsize-100)
                         {
-                            L_r_idx=(int_32t*)realloc(L_r_idx,(L_maxsize+relloc_zjq)*sizeof(int_32t));
+                            L_r_idx=(int_32t*)pangulu_realloc(__FILE__, __LINE__, L_r_idx,(L_maxsize+relloc_zjq)*sizeof(int_32t));
                             L_maxsize=L_maxsize+relloc_zjq;
                         }
                     }
@@ -262,6 +263,7 @@ void fill_in_sym_prune(int_t n,int_t nnz,int_32t *ai, int_t *ap,
             
         }
         printf("Symbolic nonzero = %ld\n",L_size*2-n);        
+        *symbolic_nnz = L_size*2-n;
         for(int i=0;i<block_length;i++)
         {
             for(int j=0;j<block_length;j++)
@@ -278,8 +280,8 @@ void fill_in_sym_prune(int_t n,int_t nnz,int_32t *ai, int_t *ap,
         }
         block_Smatrix_nnzA_num[block_length*block_length-1]=block_Smatrix_nnzA_num[block_length*block_length-1]+(NB-N%NB);
 
-        free(prune);
-        free(prune_next);
+        pangulu_free(__FILE__, __LINE__, prune);
+        pangulu_free(__FILE__, __LINE__, prune_next);
 
         *symbolic_rowpointer=L_c_ptr;
         *symbolic_columnindex=L_r_idx;
@@ -333,18 +335,18 @@ int_32t pruneL(int_32t jcol,int_32t *U_r_idx,int_t *U_c_ptr,int_32t *L_r_idx,int
 void fill_in_2_no_sort_pruneL(int_t n,int_t nnz,int_32t *ai, int_t *ap,int_t **L_rowpointer,int_32t **L_columnindex,int_t **U_rowpointer,int_32t **U_columnindex)
 {
     int_32t relloc_zjq=nnz;
-    int_32t  *U_r_idx=(int_32t*)malloc(relloc_zjq*sizeof(int_32t));//exclude diagonal
-    int_t  *U_c_ptr= (int_t*)malloc((n+1)*sizeof(int_t));
-    int_32t  *L_r_idx=(int_32t*)malloc(relloc_zjq*sizeof(int_32t));//include diagonal
-    int_t  *L_c_ptr= (int_t*)malloc((n+1)*sizeof(int_t));
+    int_32t  *U_r_idx=(int_32t*)pangulu_malloc(__FILE__, __LINE__, relloc_zjq*sizeof(int_32t));//exclude diagonal
+    int_t  *U_c_ptr= (int_t*)pangulu_malloc(__FILE__, __LINE__, (n+1)*sizeof(int_t));
+    int_32t  *L_r_idx=(int_32t*)pangulu_malloc(__FILE__, __LINE__, relloc_zjq*sizeof(int_32t));//include diagonal
+    int_t  *L_c_ptr= (int_t*)pangulu_malloc(__FILE__, __LINE__, (n+1)*sizeof(int_t));
     U_c_ptr[0]=0;
     L_c_ptr[0]=0;
 
-    int_t *parent= (int_t*)malloc((n+1)*sizeof(int_t));//for dfs
-    int_t *xplore = (int_t*)malloc((n+1)*sizeof(int_t));
+    int_t *parent= (int_t*)pangulu_malloc(__FILE__, __LINE__, (n+1)*sizeof(int_t));//for dfs
+    int_t *xplore = (int_t*)pangulu_malloc(__FILE__, __LINE__, (n+1)*sizeof(int_t));
 
-    int_t *work_space= (int_t*)malloc(n*sizeof(int_t)); //use this to avoid sorting
-    int_t *prune_space=(int_t*)malloc(n*sizeof(int_t));
+    int_t *work_space= (int_t*)pangulu_malloc(__FILE__, __LINE__, n*sizeof(int_t)); //use this to avoid sorting
+    int_t *prune_space=(int_t*)pangulu_malloc(__FILE__, __LINE__, n*sizeof(int_t));
 
     int_t U_maxsize=relloc_zjq;
     int_t L_maxsize=relloc_zjq;
@@ -386,7 +388,7 @@ void fill_in_2_no_sort_pruneL(int_t n,int_t nnz,int_32t *ai, int_t *ap,int_t **L
 
                 if(L_size >= L_maxsize-100)
                 {
-                    L_r_idx=(int_32t*)realloc(L_r_idx,(L_maxsize+relloc_zjq)*sizeof(int_32t));
+                    L_r_idx=(int_32t*)pangulu_realloc(__FILE__, __LINE__, L_r_idx,(L_maxsize+relloc_zjq)*sizeof(int_32t));
                     L_maxsize=L_maxsize+nnz;
                 }
             }
@@ -396,7 +398,7 @@ void fill_in_2_no_sort_pruneL(int_t n,int_t nnz,int_32t *ai, int_t *ap,int_t **L
                 U_size++;
                 if(U_size >= U_maxsize-100)
                 {
-                    U_r_idx=(int_32t*)realloc(U_r_idx,(U_maxsize+relloc_zjq)*sizeof(int_32t));
+                    U_r_idx=(int_32t*)pangulu_realloc(__FILE__, __LINE__, U_r_idx,(U_maxsize+relloc_zjq)*sizeof(int_32t));
                     U_maxsize=U_maxsize+nnz;
                 }
                  //do dfs
@@ -423,7 +425,7 @@ void fill_in_2_no_sort_pruneL(int_t n,int_t nnz,int_32t *ai, int_t *ap,int_t **L
                                 L_size++;
                                 if(L_size >= L_maxsize-100)
                                 {
-                                    L_r_idx=(int_32t*)realloc(L_r_idx,(L_maxsize+relloc_zjq)*sizeof(int_32t));
+                                    L_r_idx=(int_32t*)pangulu_realloc(__FILE__, __LINE__, L_r_idx,(L_maxsize+relloc_zjq)*sizeof(int_32t));
                                     L_maxsize=L_maxsize+nnz;
                                 } 
                             }
@@ -433,7 +435,7 @@ void fill_in_2_no_sort_pruneL(int_t n,int_t nnz,int_32t *ai, int_t *ap,int_t **L
                                 U_size++;
                                 if(U_size >= U_maxsize-100)
                                 {
-                                    U_r_idx=(int_32t*)realloc(U_r_idx,(U_maxsize+relloc_zjq)*sizeof(int_32t));
+                                    U_r_idx=(int_32t*)pangulu_realloc(__FILE__, __LINE__, U_r_idx,(U_maxsize+relloc_zjq)*sizeof(int_32t));
                                     U_maxsize=U_maxsize+nnz;
                                 }
 
@@ -476,10 +478,10 @@ void fill_in_2_no_sort_pruneL(int_t n,int_t nnz,int_32t *ai, int_t *ap,int_t **L
     pangulu_sort_pangulu_matrix(n,L_c_ptr,L_r_idx);
     pangulu_sort_pangulu_matrix(n,U_c_ptr,U_r_idx);
 
-    free(parent);
-    free(xplore);
-    free(work_space);
-    free(prune_space);
+    pangulu_free(__FILE__, __LINE__, parent);
+    pangulu_free(__FILE__, __LINE__, xplore);
+    pangulu_free(__FILE__, __LINE__, work_space);
+    pangulu_free(__FILE__, __LINE__, prune_space);
     
     *L_rowpointer=L_c_ptr;
     *L_columnindex=L_r_idx;
@@ -490,7 +492,7 @@ void fill_in_2_no_sort_pruneL(int_t n,int_t nnz,int_32t *ai, int_t *ap,int_t **L
 
 void pangulu_symbolic(pangulu_block_common *block_common,
                       pangulu_block_Smatrix *block_Smatrix,
-                      pangulu_Smatrix *reorder_matrix){
+                      pangulu_origin_Smatrix *reorder_matrix){
 #ifndef symmetric    
     fill_in_2_no_sort_pruneL(reorder_matrix->row,reorder_matrix->nnz,reorder_matrix->columnindex,reorder_matrix->rowpointer,L_rowpointer,L_columnindex,U_rowpointer,U_columnindex);
 #else
@@ -505,9 +507,9 @@ void pangulu_symbolic(pangulu_block_common *block_common,
     int_t N = block_common->N;
     int_32t NB = block_common->NB;
     int_32t block_length = block_common->block_length;
-    int_t *block_Smatrix_nnzA_num = (int_t *)pangulu_malloc(sizeof(int_t) * block_length * block_length);
-    int_t *block_Smatrix_non_zero_vector_L = (int_t *)pangulu_malloc(sizeof(int_t) * block_length);
-    int_t *block_Smatrix_non_zero_vector_U = (int_t *)pangulu_malloc(sizeof(int_t) * block_length);
+    int_t *block_Smatrix_nnzA_num = (int_t *)pangulu_malloc(__FILE__, __LINE__, sizeof(int_t) * block_length * block_length);
+    int_t *block_Smatrix_non_zero_vector_L = (int_t *)pangulu_malloc(__FILE__, __LINE__, sizeof(int_t) * block_length);
+    int_t *block_Smatrix_non_zero_vector_U = (int_t *)pangulu_malloc(__FILE__, __LINE__, sizeof(int_t) * block_length);
     
     for (int_t i = 0; i < block_length; i++)
     {
@@ -528,10 +530,11 @@ void pangulu_symbolic(pangulu_block_common *block_common,
                     N,NB,block_length,
                     block_Smatrix_non_zero_vector_L,
                     block_Smatrix_non_zero_vector_U,
-                    block_Smatrix_nnzA_num);
+                    block_Smatrix_nnzA_num,
+                    &block_Smatrix->symbolic_nnz);
     
-    free(new_rowpointer);
-    free(new_columnindex);
+    pangulu_free(__FILE__, __LINE__, new_rowpointer);
+    pangulu_free(__FILE__, __LINE__, new_columnindex);
     
     block_Smatrix->block_Smatrix_nnzA_num=block_Smatrix_nnzA_num;
     block_Smatrix->block_Smatrix_non_zero_vector_L=block_Smatrix_non_zero_vector_L;
