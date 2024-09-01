@@ -1,24 +1,19 @@
 #ifndef _MMIO_HIGHLEVEL_
 #define _MMIO_HIGHLEVEL_
-
-#ifndef VALUE_TYPE
-#define VALUE_TYPE double
-#endif
-
 #include "mmio.h"
-// #include "common.h"
 
 // read matrix infomation from mtx file
-long mmio_info(long *m, long *n, long *nnz, long *isSymmetric, char *filename)
+int mmio_info(sparse_index_t *m, sparse_index_t *n, sparse_pointer_t *nnz, sparse_index_t *isSymmetric, char *filename)
 {
-    long m_tmp, n_tmp, nnz_tmp;
+    sparse_index_t m_tmp, n_tmp;
+    sparse_pointer_t nnz_tmp;
 
-    long ret_code;
-    MM_typecode matcode;
+    int ret_code;
+    mm_typecode matcode;
     FILE *f;
 
-    long nnz_mtx_report;
-    long isInteger = 0, isReal = 0, isPattern = 0, isSymmetric_tmp = 0, isComplex = 0;
+    sparse_pointer_t nnz_mtx_report;
+    int is_integer = 0, is_real = 0, is_pattern = 0, is_symmetric_tmp = 0, is_complex = 0;
 
     // load matrix
     if ((f = fopen(filename, "r")) == NULL)
@@ -32,19 +27,19 @@ long mmio_info(long *m, long *n, long *nnz, long *isSymmetric, char *filename)
 
     if (mm_is_pattern(matcode))
     {
-        isPattern = 1; /*printf("type = Pattern\n");*/
+        is_pattern = 1; /*printf("type = Pattern\n");*/
     }
     if (mm_is_real(matcode))
     {
-        isReal = 1; /*printf("type = real\n");*/
+        is_real = 1; /*printf("type = real\n");*/
     }
     if (mm_is_complex(matcode))
     {
-        isComplex = 1; /*printf("type = real\n");*/
+        is_complex = 1; /*printf("type = real\n");*/
     }
     if (mm_is_integer(matcode))
     {
-        isInteger = 1; /*printf("type = integer\n");*/
+        is_integer = 1; /*printf("type = integer\n");*/
     }
 
     /* find out size of sparse matrix .... */
@@ -54,7 +49,7 @@ long mmio_info(long *m, long *n, long *nnz, long *isSymmetric, char *filename)
 
     if (mm_is_symmetric(matcode) || mm_is_hermitian(matcode))
     {
-        isSymmetric_tmp = 1;
+        is_symmetric_tmp = 1;
         // printf("input matrix is symmetric = true\n");
     }
     else
@@ -62,40 +57,39 @@ long mmio_info(long *m, long *n, long *nnz, long *isSymmetric, char *filename)
         // printf("input matrix is symmetric = false\n");
     }
 
-    long *csrRowPtr_counter = (long *)malloc((m_tmp + 1) * sizeof(long));
-    memset(csrRowPtr_counter, 0, (m_tmp + 1) * sizeof(long));
+    sparse_pointer_t *csr_row_ptr_counter = (sparse_pointer_t *)malloc(sizeof(sparse_pointer_t) * (m_tmp + 1));
+    memset(csr_row_ptr_counter, 0, sizeof(sparse_pointer_t) * (m_tmp + 1));
 
-    long *csrRowIdx_tmp = (long *)malloc(nnz_mtx_report * sizeof(long));
-    long *csrColIdx_tmp = (long *)malloc(nnz_mtx_report * sizeof(long));
-    // VALUE_TYPE *csrVal_tmp    = (VALUE_TYPE *)malloc(nnz_mtx_report * sizeof(VALUE_TYPE));
+    sparse_pointer_t *csr_rowIdx_tmp = (sparse_pointer_t *)malloc(sizeof(sparse_pointer_t) * nnz_mtx_report);
+    sparse_pointer_t *csr_colIdx_tmp = (sparse_pointer_t *)malloc(sizeof(sparse_pointer_t) * nnz_mtx_report);
 
     /* NOTE: when reading in doubles, ANSI C requires the use of the "l"  */
     /*   specifier as in "%lg", "%lf", "%le", otherwise errors will occur */
     /*  (ANSI C X3.159-1989, Sec. 4.9.6.2, p. 136 lines 13-15)            */
 
-    for (long i = 0; i < nnz_mtx_report; i++)
+    for (sparse_pointer_t i = 0; i < nnz_mtx_report; i++)
     {
-        long idxi, idxj;
+        sparse_pointer_t idxi = 0, idxj = 0;
         double fval, fval_im;
-        long ival;
-        long returnvalue;
+        int ival;
+        int returnvalue;
 
-        if (isReal)
+        if (is_real)
         {
-            returnvalue = fscanf(f, "%ld %ld %lg\n", &idxi, &idxj, &fval);
+            returnvalue = fscanf(f, FMT_SPARSE_POINTER_T " " FMT_SPARSE_POINTER_T " %lg\n", &idxi, &idxj, &fval);
         }
-        else if (isComplex)
+        else if (is_complex)
         {
-            returnvalue = fscanf(f, "%ld %ld %lg %lg\n", &idxi, &idxj, &fval, &fval_im);
+            returnvalue = fscanf(f, FMT_SPARSE_POINTER_T " " FMT_SPARSE_POINTER_T" %lg %lg\n", &idxi, &idxj, &fval, &fval_im);
         }
-        else if (isInteger)
+        else if (is_integer)
         {
-            returnvalue = fscanf(f, "%ld %ld %ld\n", &idxi, &idxj, &ival);
+            returnvalue = fscanf(f, FMT_SPARSE_POINTER_T " " FMT_SPARSE_POINTER_T" %d\n", &idxi, &idxj, &ival);
             fval = ival;
         }
-        else if (isPattern)
+        else if (is_pattern)
         {
-            returnvalue = fscanf(f, "%ld %ld\n", &idxi, &idxj);
+            returnvalue = fscanf(f, FMT_SPARSE_POINTER_T " " FMT_SPARSE_POINTER_T"\n", &idxi, &idxj);
             fval = 1.0;
         }
 
@@ -103,63 +97,60 @@ long mmio_info(long *m, long *n, long *nnz, long *isSymmetric, char *filename)
         idxi--;
         idxj--;
 
-        csrRowPtr_counter[idxi]++;
-        csrRowIdx_tmp[i] = idxi;
-        csrColIdx_tmp[i] = idxj;
-        // csrVal_tmp[i] = fval;
+        csr_row_ptr_counter[idxi]++;
+        csr_rowIdx_tmp[i] = idxi;
+        csr_colIdx_tmp[i] = idxj;
     }
 
     if (f != stdin)
         fclose(f);
 
-    if (isSymmetric_tmp)
+    if (is_symmetric_tmp)
     {
-        for (long i = 0; i < nnz_mtx_report; i++)
+        for (sparse_pointer_t i = 0; i < nnz_mtx_report; i++)
         {
-            if (csrRowIdx_tmp[i] != csrColIdx_tmp[i])
-                csrRowPtr_counter[csrColIdx_tmp[i]]++;
+            if (csr_rowIdx_tmp[i] != csr_colIdx_tmp[i])
+                csr_row_ptr_counter[csr_colIdx_tmp[i]]++;
         }
     }
 
-    // exclusive scan for csrRowPtr_counter
-    long old_val, new_val;
+    // exclusive scan for csr_row_ptr_counter
+    sparse_pointer_t old_val, new_val;
 
-    old_val = csrRowPtr_counter[0];
-    csrRowPtr_counter[0] = 0;
-    for (long i = 1; i <= m_tmp; i++)
+    old_val = csr_row_ptr_counter[0];
+    csr_row_ptr_counter[0] = 0;
+    for (sparse_pointer_t i = 1; i <= m_tmp; i++)
     {
-        new_val = csrRowPtr_counter[i];
-        csrRowPtr_counter[i] = old_val + csrRowPtr_counter[i - 1];
+        new_val = csr_row_ptr_counter[i];
+        csr_row_ptr_counter[i] = old_val + csr_row_ptr_counter[i - 1];
         old_val = new_val;
     }
 
-    nnz_tmp = csrRowPtr_counter[m_tmp];
+    nnz_tmp = csr_row_ptr_counter[m_tmp];
 
     *m = m_tmp;
     *n = n_tmp;
     *nnz = nnz_tmp;
-    *isSymmetric = isSymmetric_tmp;
+    *isSymmetric = is_symmetric_tmp;
 
     // free tmp space
-    free(csrColIdx_tmp);
-    // free(csrVal_tmp);
-    free(csrRowIdx_tmp);
-    free(csrRowPtr_counter);
+    free(csr_colIdx_tmp);
+    free(csr_rowIdx_tmp);
 
     return 0;
 }
 
 // read matrix infomation from mtx file
-long mmio_data_csr(long *csrRowPtr, int *csrColIdx, VALUE_TYPE *csrVal, char *filename)
+int mmio_data_csr(sparse_pointer_t *csr_row_ptr, sparse_index_t *csr_colIdx, sparse_value_t *csr_val, char *filename)
 {
-    long m_tmp, n_tmp;
+    sparse_index_t m_tmp, n_tmp;
 
-    long ret_code;
-    MM_typecode matcode;
+    int ret_code;
+    mm_typecode matcode;
     FILE *f;
 
-    long nnz_mtx_report;
-    long isInteger = 0, isReal = 0, isPattern = 0, isSymmetric_tmp = 0, isComplex = 0;
+    sparse_pointer_t nnz_mtx_report;
+    int is_integer = 0, is_real = 0, is_pattern = 0, is_symmetric_tmp = 0, is_complex = 0;
 
     // load matrix
     if ((f = fopen(filename, "r")) == NULL)
@@ -173,19 +164,19 @@ long mmio_data_csr(long *csrRowPtr, int *csrColIdx, VALUE_TYPE *csrVal, char *fi
 
     if (mm_is_pattern(matcode))
     {
-        isPattern = 1; /*printf("type = Pattern\n");*/
+        is_pattern = 1; /*printf("type = Pattern\n");*/
     }
     if (mm_is_real(matcode))
     {
-        isReal = 1; /*printf("type = real\n");*/
+        is_real = 1; /*printf("type = real\n");*/
     }
     if (mm_is_complex(matcode))
     {
-        isComplex = 1; /*printf("type = real\n");*/
+        is_complex = 1; /*printf("type = real\n");*/
     }
     if (mm_is_integer(matcode))
     {
-        isInteger = 1; /*printf("type = integer\n");*/
+        is_integer = 1; /*printf("type = integer\n");*/
     }
 
     /* find out size of sparse matrix .... */
@@ -195,7 +186,7 @@ long mmio_data_csr(long *csrRowPtr, int *csrColIdx, VALUE_TYPE *csrVal, char *fi
 
     if (mm_is_symmetric(matcode) || mm_is_hermitian(matcode))
     {
-        isSymmetric_tmp = 1;
+        is_symmetric_tmp = 1;
         // printf("input matrix is symmetric = true\n");
     }
     else
@@ -203,40 +194,40 @@ long mmio_data_csr(long *csrRowPtr, int *csrColIdx, VALUE_TYPE *csrVal, char *fi
         // printf("input matrix is symmetric = false\n");
     }
 
-    long *csrRowPtr_counter = (long *)malloc((m_tmp + 1) * sizeof(long));
-    memset(csrRowPtr_counter, 0, (m_tmp + 1) * sizeof(long));
+    sparse_pointer_t *csr_row_ptr_counter = (sparse_pointer_t *)malloc((m_tmp + 1) * sizeof(sparse_pointer_t));
+    memset(csr_row_ptr_counter, 0, (m_tmp + 1) * sizeof(sparse_pointer_t));
 
-    long *csrRowIdx_tmp = (long *)malloc(nnz_mtx_report * sizeof(long));
-    long *csrColIdx_tmp = (long *)malloc(nnz_mtx_report * sizeof(long));
-    VALUE_TYPE *csrVal_tmp = (VALUE_TYPE *)malloc(nnz_mtx_report * sizeof(VALUE_TYPE));
+    sparse_pointer_t *csr_rowIdx_tmp = (sparse_pointer_t *)malloc(nnz_mtx_report * sizeof(sparse_pointer_t));
+    sparse_pointer_t *csr_colIdx_tmp = (sparse_pointer_t *)malloc(nnz_mtx_report * sizeof(sparse_pointer_t));
+    sparse_value_t *csr_val_tmp = (sparse_value_t *)malloc(nnz_mtx_report * sizeof(sparse_value_t));
 
     /* NOTE: when reading in doubles, ANSI C requires the use of the "l"  */
     /*   specifier as in "%lg", "%lf", "%le", otherwise errors will occur */
     /*  (ANSI C X3.159-1989, Sec. 4.9.6.2, p. 136 lines 13-15)            */
 
-    for (long i = 0; i < nnz_mtx_report; i++)
+    for (sparse_pointer_t i = 0; i < nnz_mtx_report; i++)
     {
-        long idxi, idxj;
-        double fval, fval_im;
-        long ival;
-        long returnvalue;
+        long long idxi = 0, idxj = 0;
+        double fval = 0, fval_im;
+        int ival;
+        int returnvalue;
 
-        if (isReal)
+        if (is_real)
         {
-            returnvalue = fscanf(f, "%ld %ld %lg\n", &idxi, &idxj, &fval);
+            returnvalue = fscanf(f, "%lld %lld %lg\n", &idxi, &idxj, &fval);
         }
-        else if (isComplex)
+        else if (is_complex)
         {
-            returnvalue = fscanf(f, "%ld %ld %lg %lg\n", &idxi, &idxj, &fval, &fval_im);
+            returnvalue = fscanf(f, "%lld %lld %lg %lg\n", &idxi, &idxj, &fval, &fval_im);
         }
-        else if (isInteger)
+        else if (is_integer)
         {
-            returnvalue = fscanf(f, "%ld %ld %ld\n", &idxi, &idxj, &ival);
+            returnvalue = fscanf(f, "%lld %lld %d\n", &idxi, &idxj, &ival);
             fval = ival;
         }
-        else if (isPattern)
+        else if (is_pattern)
         {
-            returnvalue = fscanf(f, "%ld %ld\n", &idxi, &idxj);
+            returnvalue = fscanf(f, "%lld %lld\n", &idxi, &idxj);
             fval = 1.0;
         }
 
@@ -244,429 +235,267 @@ long mmio_data_csr(long *csrRowPtr, int *csrColIdx, VALUE_TYPE *csrVal, char *fi
         idxi--;
         idxj--;
 
-        csrRowPtr_counter[idxi]++;
-        csrRowIdx_tmp[i] = idxi;
-        csrColIdx_tmp[i] = idxj;
-        csrVal_tmp[i] = fval;
+        csr_row_ptr_counter[idxi]++;
+        csr_rowIdx_tmp[i] = idxi;
+        csr_colIdx_tmp[i] = idxj;
+#ifdef COMPLEX_MTX
+        if (is_complex)
+        {
+            __real__(csr_val_tmp[i]) = fval;
+            __imag__(csr_val_tmp[i]) = fval_im;
+        }
+        else
+        {
+            csr_val_tmp[i] = fval;
+        }
+#else
+        csr_val_tmp[i] = fval;
+#endif
     }
 
     if (f != stdin)
         fclose(f);
 
-    if (isSymmetric_tmp)
+    if (is_symmetric_tmp)
     {
-        for (long i = 0; i < nnz_mtx_report; i++)
+        for (sparse_pointer_t i = 0; i < nnz_mtx_report; i++)
         {
-            if (csrRowIdx_tmp[i] != csrColIdx_tmp[i])
-                csrRowPtr_counter[csrColIdx_tmp[i]]++;
+            if (csr_rowIdx_tmp[i] != csr_colIdx_tmp[i])
+                csr_row_ptr_counter[csr_colIdx_tmp[i]]++;
         }
     }
 
-    // exclusive scan for csrRowPtr_counter
-    long old_val, new_val;
+    // exclusive scan for csr_row_ptr_counter
+    sparse_pointer_t old_val, new_val;
 
-    old_val = csrRowPtr_counter[0];
-    csrRowPtr_counter[0] = 0;
+    old_val = csr_row_ptr_counter[0];
+    csr_row_ptr_counter[0] = 0;
     for (long i = 1; i <= m_tmp; i++)
     {
-        new_val = csrRowPtr_counter[i];
-        csrRowPtr_counter[i] = old_val + csrRowPtr_counter[i - 1];
+        new_val = csr_row_ptr_counter[i];
+        csr_row_ptr_counter[i] = old_val + csr_row_ptr_counter[i - 1];
         old_val = new_val;
     }
 
-    memcpy(csrRowPtr, csrRowPtr_counter, (m_tmp + 1) * sizeof(long));
-    memset(csrRowPtr_counter, 0, (m_tmp + 1) * sizeof(long));
+    memcpy(csr_row_ptr, csr_row_ptr_counter, (m_tmp + 1) * sizeof(sparse_pointer_t));
+    memset(csr_row_ptr_counter, 0, (m_tmp + 1) * sizeof(sparse_pointer_t));
 
-    if (isSymmetric_tmp)
+    if (is_symmetric_tmp)
     {
         for (long i = 0; i < nnz_mtx_report; i++)
         {
-            if (csrRowIdx_tmp[i] != csrColIdx_tmp[i])
+            if (csr_rowIdx_tmp[i] != csr_colIdx_tmp[i])
             {
-                long offset = csrRowPtr[csrRowIdx_tmp[i]] + csrRowPtr_counter[csrRowIdx_tmp[i]];
-                csrColIdx[offset] = csrColIdx_tmp[i];
-                csrVal[offset] = csrVal_tmp[i];
-                csrRowPtr_counter[csrRowIdx_tmp[i]]++;
+                long offset = csr_row_ptr[csr_rowIdx_tmp[i]] + csr_row_ptr_counter[csr_rowIdx_tmp[i]];
+                csr_colIdx[offset] = csr_colIdx_tmp[i];
+                csr_val[offset] = csr_val_tmp[i];
+                csr_row_ptr_counter[csr_rowIdx_tmp[i]]++;
 
-                offset = csrRowPtr[csrColIdx_tmp[i]] + csrRowPtr_counter[csrColIdx_tmp[i]];
-                csrColIdx[offset] = csrRowIdx_tmp[i];
-                csrVal[offset] = csrVal_tmp[i];
-                csrRowPtr_counter[csrColIdx_tmp[i]]++;
+                offset = csr_row_ptr[csr_colIdx_tmp[i]] + csr_row_ptr_counter[csr_colIdx_tmp[i]];
+                csr_colIdx[offset] = csr_rowIdx_tmp[i];
+                csr_val[offset] = csr_val_tmp[i];
+                csr_row_ptr_counter[csr_colIdx_tmp[i]]++;
             }
             else
             {
-                long offset = csrRowPtr[csrRowIdx_tmp[i]] + csrRowPtr_counter[csrRowIdx_tmp[i]];
-                csrColIdx[offset] = csrColIdx_tmp[i];
-                csrVal[offset] = csrVal_tmp[i];
-                csrRowPtr_counter[csrRowIdx_tmp[i]]++;
+                long offset = csr_row_ptr[csr_rowIdx_tmp[i]] + csr_row_ptr_counter[csr_rowIdx_tmp[i]];
+                csr_colIdx[offset] = csr_colIdx_tmp[i];
+                csr_val[offset] = csr_val_tmp[i];
+                csr_row_ptr_counter[csr_rowIdx_tmp[i]]++;
             }
         }
     }
     else
     {
-        for (long i = 0; i < nnz_mtx_report; i++)
+        for (sparse_pointer_t i = 0; i < nnz_mtx_report; i++)
         {
-            long offset = csrRowPtr[csrRowIdx_tmp[i]] + csrRowPtr_counter[csrRowIdx_tmp[i]];
-            csrColIdx[offset] = csrColIdx_tmp[i];
-            csrVal[offset] = csrVal_tmp[i];
-            csrRowPtr_counter[csrRowIdx_tmp[i]]++;
+            sparse_pointer_t offset = csr_row_ptr[csr_rowIdx_tmp[i]] + csr_row_ptr_counter[csr_rowIdx_tmp[i]];
+            csr_colIdx[offset] = csr_colIdx_tmp[i];
+            csr_val[offset] = csr_val_tmp[i];
+            csr_row_ptr_counter[csr_rowIdx_tmp[i]]++;
         }
     }
 
     // free tmp space
-    free(csrColIdx_tmp);
-    free(csrVal_tmp);
-    free(csrRowIdx_tmp);
-    free(csrRowPtr_counter);
+    free(csr_colIdx_tmp);
+    free(csr_val_tmp);
+    free(csr_rowIdx_tmp);
+    free(csr_row_ptr_counter);
 
     return 0;
 }
 
-long mmio_data_csr_complex(long *csrRowPtr, int *csrColIdx, VALUE_TYPE _Complex *csrVal, char *filename)
-{
-    long m_tmp, n_tmp;
+// int mmio_data_csr_complex(sparse_pointer_t *csr_row_ptr, sparse_index_t *csr_colIdx, VALUE_TYPE _Complex *csr_val, char *filename)
+// {
+//     sparse_index_t m_tmp, n_tmp;
 
-    long ret_code;
-    MM_typecode matcode;
-    FILE *f;
+//     int ret_code;
+//     mm_typecode matcode;
+//     FILE *f;
 
-    long nnz_mtx_report;
-    long isInteger = 0, isReal = 0, isPattern = 0, isSymmetric_tmp = 0, isComplex = 0;
+//     sparse_pointer_t nnz_mtx_report;
+//     int is_integer = 0, is_real = 0, is_pattern = 0, is_symmetric_tmp = 0, is_complex = 0;
 
-    // load matrix
-    if ((f = fopen(filename, "r")) == NULL)
-        return -1;
+//     // load matrix
+//     if ((f = fopen(filename, "r")) == NULL)
+//         return -1;
 
-    if (mm_read_banner(f, &matcode) != 0)
-    {
-        printf("Could not process Matrix Market banner.\n");
-        return -2;
-    }
+//     if (mm_read_banner(f, &matcode) != 0)
+//     {
+//         printf("Could not process Matrix Market banner.\n");
+//         return -2;
+//     }
 
-    if (mm_is_pattern(matcode))
-    {
-        isPattern = 1; /*printf("type = Pattern\n");*/
-    }
-    if (mm_is_real(matcode))
-    {
-        isReal = 1; /*printf("type = real\n");*/
-    }
-    if (mm_is_complex(matcode))
-    {
-        isComplex = 1; /*printf("type = real\n");*/
-    }
-    if (mm_is_integer(matcode))
-    {
-        isInteger = 1; /*printf("type = integer\n");*/
-    }
+//     if (mm_is_pattern(matcode))
+//     {
+//         is_pattern = 1; /*printf("type = Pattern\n");*/
+//     }
+//     if (mm_is_real(matcode))
+//     {
+//         is_real = 1; /*printf("type = real\n");*/
+//     }
+//     if (mm_is_complex(matcode))
+//     {
+//         is_complex = 1; /*printf("type = real\n");*/
+//     }
+//     if (mm_is_integer(matcode))
+//     {
+//         is_integer = 1; /*printf("type = integer\n");*/
+//     }
 
-    /* find out size of sparse matrix .... */
-    ret_code = mm_read_mtx_crd_size(f, &m_tmp, &n_tmp, &nnz_mtx_report);
-    if (ret_code != 0)
-        return -4;
+//     /* find out size of sparse matrix .... */
+//     ret_code = mm_read_mtx_crd_size(f, &m_tmp, &n_tmp, &nnz_mtx_report);
+//     if (ret_code != 0)
+//         return -4;
 
-    if (mm_is_symmetric(matcode) || mm_is_hermitian(matcode))
-    {
-        isSymmetric_tmp = 1;
-        // printf("input matrix is symmetric = true\n");
-    }
-    else
-    {
-        // printf("input matrix is symmetric = false\n");
-    }
+//     if (mm_is_symmetric(matcode) || mm_is_hermitian(matcode))
+//     {
+//         is_symmetric_tmp = 1;
+//         // printf("input matrix is symmetric = true\n");
+//     }
+//     else
+//     {
+//         // printf("input matrix is symmetric = false\n");
+//     }
 
-    long *csrRowPtr_counter = (long *)malloc((m_tmp + 1) * sizeof(long));
-    memset(csrRowPtr_counter, 0, (m_tmp + 1) * sizeof(long));
+//     long *csr_row_ptr_counter = (long *)malloc((m_tmp + 1) * sizeof(long));
+//     memset(csr_row_ptr_counter, 0, (m_tmp + 1) * sizeof(long));
 
-    long *csrRowIdx_tmp = (long *)malloc(nnz_mtx_report * sizeof(long));
-    long *csrColIdx_tmp = (long *)malloc(nnz_mtx_report * sizeof(long));
-    VALUE_TYPE _Complex *csrVal_tmp = (VALUE_TYPE _Complex *)malloc(nnz_mtx_report * sizeof(VALUE_TYPE _Complex));
+//     long *csr_rowIdx_tmp = (long *)malloc(nnz_mtx_report * sizeof(long));
+//     long *csr_colIdx_tmp = (long *)malloc(nnz_mtx_report * sizeof(long));
+//     VALUE_TYPE _Complex *csr_val_tmp = (VALUE_TYPE _Complex *)malloc(nnz_mtx_report * sizeof(VALUE_TYPE _Complex));
 
-    /* NOTE: when reading in doubles, ANSI C requires the use of the "l"  */
-    /*   specifier as in "%lg", "%lf", "%le", otherwise errors will occur */
-    /*  (ANSI C X3.159-1989, Sec. 4.9.6.2, p. 136 lines 13-15)            */
+//     /* NOTE: when reading in doubles, ANSI C requires the use of the "l"  */
+//     /*   specifier as in "%lg", "%lf", "%le", otherwise errors will occur */
+//     /*  (ANSI C X3.159-1989, Sec. 4.9.6.2, p. 136 lines 13-15)            */
 
-    for (long i = 0; i < nnz_mtx_report; i++)
-    {
-        long idxi, idxj;
-        double fval = 0.0, fval_im = 0.0;
-        long ival;
-        long returnvalue;
+//     for (long i = 0; i < nnz_mtx_report; i++)
+//     {
+//         long idxi = 0, idxj = 0;
+//         double fval = 0.0, fval_im = 0.0;
+//         long ival;
+//         long returnvalue;
 
-        if (isReal)
-        {
-            returnvalue = fscanf(f, "%ld %ld %lg\n", &idxi, &idxj, &fval);
-        }
-        else if (isComplex)
-        {
-            returnvalue = fscanf(f, "%ld %ld %lg %lg\n", &idxi, &idxj, &fval, &fval_im);
-        }
-        else if (isInteger)
-        {
-            returnvalue = fscanf(f, "%ld %ld %ld\n", &idxi, &idxj, &ival);
-            fval = ival;
-        }
-        else if (isPattern)
-        {
-            returnvalue = fscanf(f, "%ld %ld\n", &idxi, &idxj);
-            fval = 1.0;
-        }
+//         if (is_real)
+//         {
+//             returnvalue = fscanf(f, "%ld %ld %lg\n", &idxi, &idxj, &fval);
+//         }
+//         else if (is_complex)
+//         {
+//             returnvalue = fscanf(f, "%ld %ld %lg %lg\n", &idxi, &idxj, &fval, &fval_im);
+//         }
+//         else if (is_integer)
+//         {
+//             returnvalue = fscanf(f, "%ld %ld %ld\n", &idxi, &idxj, &ival);
+//             fval = ival;
+//         }
+//         else if (is_pattern)
+//         {
+//             returnvalue = fscanf(f, "%ld %ld\n", &idxi, &idxj);
+//             fval = 1.0;
+//         }
 
-        // adjust from 1-based to 0-based
-        idxi--;
-        idxj--;
+//         // adjust from 1-based to 0-based
+//         idxi--;
+//         idxj--;
 
-        csrRowPtr_counter[idxi]++;
-        csrRowIdx_tmp[i] = idxi;
-        csrColIdx_tmp[i] = idxj;
-        __real__(csrVal_tmp[i]) = fval;
-        __imag__(csrVal_tmp[i]) = fval_im;
-    }
+//         csr_row_ptr_counter[idxi]++;
+//         csr_rowIdx_tmp[i] = idxi;
+//         csr_colIdx_tmp[i] = idxj;
+//         __real__(csr_val_tmp[i]) = fval;
+//         __imag__(csr_val_tmp[i]) = fval_im;
+//     }
 
-    if (f != stdin)
-        fclose(f);
+//     if (f != stdin)
+//         fclose(f);
 
-    if (isSymmetric_tmp)
-    {
-        for (long i = 0; i < nnz_mtx_report; i++)
-        {
-            if (csrRowIdx_tmp[i] != csrColIdx_tmp[i])
-                csrRowPtr_counter[csrColIdx_tmp[i]]++;
-        }
-    }
+//     if (is_symmetric_tmp)
+//     {
+//         for (long i = 0; i < nnz_mtx_report; i++)
+//         {
+//             if (csr_rowIdx_tmp[i] != csr_colIdx_tmp[i])
+//                 csr_row_ptr_counter[csr_colIdx_tmp[i]]++;
+//         }
+//     }
 
-    // exclusive scan for csrRowPtr_counter
-    long old_val, new_val;
+//     // exclusive scan for csr_row_ptr_counter
+//     long old_val, new_val;
 
-    old_val = csrRowPtr_counter[0];
-    csrRowPtr_counter[0] = 0;
-    for (long i = 1; i <= m_tmp; i++)
-    {
-        new_val = csrRowPtr_counter[i];
-        csrRowPtr_counter[i] = old_val + csrRowPtr_counter[i - 1];
-        old_val = new_val;
-    }
+//     old_val = csr_row_ptr_counter[0];
+//     csr_row_ptr_counter[0] = 0;
+//     for (long i = 1; i <= m_tmp; i++)
+//     {
+//         new_val = csr_row_ptr_counter[i];
+//         csr_row_ptr_counter[i] = old_val + csr_row_ptr_counter[i - 1];
+//         old_val = new_val;
+//     }
 
-    memcpy(csrRowPtr, csrRowPtr_counter, (m_tmp + 1) * sizeof(long));
-    memset(csrRowPtr_counter, 0, (m_tmp + 1) * sizeof(long));
+//     memcpy(csr_row_ptr, csr_row_ptr_counter, (m_tmp + 1) * sizeof(long));
+//     memset(csr_row_ptr_counter, 0, (m_tmp + 1) * sizeof(long));
 
-    if (isSymmetric_tmp)
-    {
-        for (long i = 0; i < nnz_mtx_report; i++)
-        {
-            if (csrRowIdx_tmp[i] != csrColIdx_tmp[i])
-            {
-                long offset = csrRowPtr[csrRowIdx_tmp[i]] + csrRowPtr_counter[csrRowIdx_tmp[i]];
-                csrColIdx[offset] = csrColIdx_tmp[i];
-                csrVal[offset] = csrVal_tmp[i];
-                csrRowPtr_counter[csrRowIdx_tmp[i]]++;
+//     if (is_symmetric_tmp)
+//     {
+//         for (long i = 0; i < nnz_mtx_report; i++)
+//         {
+//             if (csr_rowIdx_tmp[i] != csr_colIdx_tmp[i])
+//             {
+//                 long offset = csr_row_ptr[csr_rowIdx_tmp[i]] + csr_row_ptr_counter[csr_rowIdx_tmp[i]];
+//                 csr_colIdx[offset] = csr_colIdx_tmp[i];
+//                 csr_val[offset] = csr_val_tmp[i];
+//                 csr_row_ptr_counter[csr_rowIdx_tmp[i]]++;
 
-                offset = csrRowPtr[csrColIdx_tmp[i]] + csrRowPtr_counter[csrColIdx_tmp[i]];
-                csrColIdx[offset] = csrRowIdx_tmp[i];
-                csrVal[offset] = csrVal_tmp[i];
-                csrRowPtr_counter[csrColIdx_tmp[i]]++;
-            }
-            else
-            {
-                long offset = csrRowPtr[csrRowIdx_tmp[i]] + csrRowPtr_counter[csrRowIdx_tmp[i]];
-                csrColIdx[offset] = csrColIdx_tmp[i];
-                csrVal[offset] = csrVal_tmp[i];
-                csrRowPtr_counter[csrRowIdx_tmp[i]]++;
-            }
-        }
-    }
-    else
-    {
-        for (long i = 0; i < nnz_mtx_report; i++)
-        {
-            long offset = csrRowPtr[csrRowIdx_tmp[i]] + csrRowPtr_counter[csrRowIdx_tmp[i]];
-            csrColIdx[offset] = csrColIdx_tmp[i];
-            csrVal[offset] = csrVal_tmp[i];
-            csrRowPtr_counter[csrRowIdx_tmp[i]]++;
-        }
-    }
+//                 offset = csr_row_ptr[csr_colIdx_tmp[i]] + csr_row_ptr_counter[csr_colIdx_tmp[i]];
+//                 csr_colIdx[offset] = csr_rowIdx_tmp[i];
+//                 csr_val[offset] = csr_val_tmp[i];
+//                 csr_row_ptr_counter[csr_colIdx_tmp[i]]++;
+//             }
+//             else
+//             {
+//                 long offset = csr_row_ptr[csr_rowIdx_tmp[i]] + csr_row_ptr_counter[csr_rowIdx_tmp[i]];
+//                 csr_colIdx[offset] = csr_colIdx_tmp[i];
+//                 csr_val[offset] = csr_val_tmp[i];
+//                 csr_row_ptr_counter[csr_rowIdx_tmp[i]]++;
+//             }
+//         }
+//     }
+//     else
+//     {
+//         for (long i = 0; i < nnz_mtx_report; i++)
+//         {
+//             long offset = csr_row_ptr[csr_rowIdx_tmp[i]] + csr_row_ptr_counter[csr_rowIdx_tmp[i]];
+//             csr_colIdx[offset] = csr_colIdx_tmp[i];
+//             csr_val[offset] = csr_val_tmp[i];
+//             csr_row_ptr_counter[csr_rowIdx_tmp[i]]++;
+//         }
+//     }
 
-    // free tmp space
-    free(csrColIdx_tmp);
-    free(csrVal_tmp);
-    free(csrRowIdx_tmp);
-    free(csrRowPtr_counter);
+//     // free tmp space
+//     free(csr_colIdx_tmp);
+//     free(csr_val_tmp);
+//     free(csr_rowIdx_tmp);
+//     free(csr_row_ptr_counter);
 
-    return 0;
-}
-
-
-// read matrix infomation from mtx file
-long mmio_data_csc(long *cscColPtr, int *cscRowIdx, VALUE_TYPE *cscVal, char *filename)
-{
-    long m_tmp, n_tmp;
-
-    long ret_code;
-    MM_typecode matcode;
-    FILE *f;
-
-    long nnz_mtx_report;
-    long isInteger = 0, isReal = 0, isPattern = 0, isSymmetric_tmp = 0, isComplex = 0;
-
-    // load matrix
-    if ((f = fopen(filename, "r")) == NULL)
-        return -1;
-
-    if (mm_read_banner(f, &matcode) != 0)
-    {
-        printf("Could not process Matrix Market banner.\n");
-        return -2;
-    }
-
-    if (mm_is_pattern(matcode))
-    {
-        isPattern = 1; /*printf("type = Pattern\n");*/
-    }
-    if (mm_is_real(matcode))
-    {
-        isReal = 1; /*printf("type = real\n");*/
-    }
-    if (mm_is_complex(matcode))
-    {
-        isComplex = 1; /*printf("type = real\n");*/
-    }
-    if (mm_is_integer(matcode))
-    {
-        isInteger = 1; /*printf("type = integer\n");*/
-    }
-
-    /* find out size of sparse matrix .... */
-    ret_code = mm_read_mtx_crd_size(f, &m_tmp, &n_tmp, &nnz_mtx_report);
-    if (ret_code != 0)
-        return -4;
-
-    if (mm_is_symmetric(matcode) || mm_is_hermitian(matcode))
-    {
-        isSymmetric_tmp = 1;
-        // printf("input matrix is symmetric = true\n");
-    }
-    else
-    {
-        // printf("input matrix is symmetric = false\n");
-    }
-
-    long *cscColPtr_counter = (long *)malloc((m_tmp + 1) * sizeof(long));
-    memset(cscColPtr_counter, 0, (m_tmp + 1) * sizeof(long));
-
-    long *cscColIdx_tmp = (long *)malloc(nnz_mtx_report * sizeof(long));
-    long *cscRowIdx_tmp = (long *)malloc(nnz_mtx_report * sizeof(long));
-    VALUE_TYPE *cscVal_tmp = (VALUE_TYPE *)malloc(nnz_mtx_report * sizeof(VALUE_TYPE));
-
-    /* NOTE: when reading in doubles, ANSI C requires the use of the "l"  */
-    /*   specifier as in "%lg", "%lf", "%le", otherwise errors will occur */
-    /*  (ANSI C X3.159-1989, Sec. 4.9.6.2, p. 136 lines 13-15)            */
-
-    for (long i = 0; i < nnz_mtx_report; i++)
-    {
-        long idxi, idxj;
-        double fval, fval_im;
-        long ival;
-        long returnvalue;
-
-        if (isReal)
-        {
-            returnvalue = fscanf(f, "%ld %ld %lg\n", &idxi, &idxj, &fval);
-        }
-        else if (isComplex)
-        {
-            returnvalue = fscanf(f, "%ld %ld %lg %lg\n", &idxi, &idxj, &fval, &fval_im);
-        }
-        else if (isInteger)
-        {
-            returnvalue = fscanf(f, "%ld %ld %ld\n", &idxi, &idxj, &ival);
-            fval = ival;
-        }
-        else if (isPattern)
-        {
-            returnvalue = fscanf(f, "%ld %ld\n", &idxi, &idxj);
-            fval = 1.0;
-        }
-
-        // adjust from 1-based to 0-based
-        idxi--;
-        idxj--;
-
-        cscColPtr_counter[idxj]++;
-        cscColIdx_tmp[i] = idxj;
-        cscRowIdx_tmp[i] = idxi;
-        cscVal_tmp[i] = fval;
-    }
-
-    if (f != stdin)
-        fclose(f);
-
-    if (isSymmetric_tmp)
-    {
-        for (long i = 0; i < nnz_mtx_report; i++)
-        {
-            if (cscColIdx_tmp[i] != cscRowIdx_tmp[i])
-                cscColPtr_counter[cscRowIdx_tmp[i]]++;
-        }
-    }
-
-    // exclusive scan for cscColPtr_counter
-    long old_val, new_val;
-
-    old_val = cscColPtr_counter[0];
-    cscColPtr_counter[0] = 0;
-    for (long i = 1; i <= m_tmp; i++)
-    {
-        new_val = cscColPtr_counter[i];
-        cscColPtr_counter[i] = old_val + cscColPtr_counter[i - 1];
-        old_val = new_val;
-    }
-
-    memcpy(cscColPtr, cscColPtr_counter, (m_tmp + 1) * sizeof(long));
-    memset(cscColPtr_counter, 0, (m_tmp + 1) * sizeof(long));
-
-    if (isSymmetric_tmp)
-    {
-        for (long i = 0; i < nnz_mtx_report; i++)
-        {
-            if (cscColIdx_tmp[i] != cscRowIdx_tmp[i])
-            {
-                long offset = cscColPtr[cscColIdx_tmp[i]] + cscColPtr_counter[cscColIdx_tmp[i]];
-                cscRowIdx[offset] = cscRowIdx_tmp[i];
-                cscVal[offset] = cscVal_tmp[i];
-                cscColPtr_counter[cscColIdx_tmp[i]]++;
-
-                offset = cscColPtr[cscRowIdx_tmp[i]] + cscColPtr_counter[cscRowIdx_tmp[i]];
-                cscRowIdx[offset] = cscColIdx_tmp[i];
-                cscVal[offset] = cscVal_tmp[i];
-                cscColPtr_counter[cscRowIdx_tmp[i]]++;
-            }
-            else
-            {
-                long offset = cscColPtr[cscColIdx_tmp[i]] + cscColPtr_counter[cscColIdx_tmp[i]];
-                cscRowIdx[offset] = cscRowIdx_tmp[i];
-                cscVal[offset] = cscVal_tmp[i];
-                cscColPtr_counter[cscColIdx_tmp[i]]++;
-            }
-        }
-    }
-    else
-    {
-        for (long i = 0; i < nnz_mtx_report; i++)
-        {
-            long offset = cscColPtr[cscColIdx_tmp[i]] + cscColPtr_counter[cscColIdx_tmp[i]];
-            cscRowIdx[offset] = cscRowIdx_tmp[i];
-            cscVal[offset] = cscVal_tmp[i];
-            cscColPtr_counter[cscColIdx_tmp[i]]++;
-        }
-    }
-
-    // free tmp space
-    free(cscRowIdx_tmp);
-    free(cscVal_tmp);
-    free(cscColIdx_tmp);
-    free(cscColPtr_counter);
-
-    return 0;
-}
+//     return 0;
+// }
 
 #endif

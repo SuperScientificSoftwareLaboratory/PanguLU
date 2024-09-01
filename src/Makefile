@@ -1,13 +1,16 @@
 include ../make.inc
+all:pangulu_host pangulu_platforms
 
-all:pangulu.o pangulu_platforms
+src:=$(wildcard *.c)
+pangulu_host:$(src:.c=.o) 
 
-pangulu.o:pangulu.cpp
-	$(MPICPP) $(MPICPPFLAGS) $(METISFLAGS) $(PANGULU_FLAGS) -c $< -o $@ -fPIC
-	mv ./*.o ../lib
+%.o:%.c
+	$(MPICC) $(MPICCFLAGS) $(METISFLAGS) $(PANGULU_FLAGS) -c $< -o $@ -fPIC
+	mv $@ ../lib
 
 pangulu_platforms:
 	cd .. && python3 build_helper.py compile_platform_code
 
 clean:
-	rm -f ../lib/pangulu*.o
+	-(rm -f ../lib/pangulu*.o)
+	-(rm -f ./pangulu*.o)

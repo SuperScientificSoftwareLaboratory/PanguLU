@@ -1,15 +1,16 @@
 include ../make.inc
 
-all: libpangulu.so libpangulu.a oclean
+all : oclean
 
+libs : libpangulu.so libpangulu.a
 
 libpangulu.so:
-	$(MPICPP) $(MPICPPFLAGS) -shared -fPIC -o $@ ./pangulu*.o
+	$(MPICC) $(MPICCFLAGS) -shared -fPIC -o $@ ./pangulu*.o
 libpangulu.a:
 	ar -rv -o $@ ./pangulu*.o
 	- ranlib $@
 
-oclean:
+oclean: libs
 	rm -f pangulu*.o
 
 clean:

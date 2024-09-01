@@ -1,18 +1,19 @@
-all:
-	(cd src; make)
-	(cd lib; make)
-	(cd examples; make)
+all : examples
+
+.PHONY : examples lib src clean update
+
+examples : lib
+	$(MAKE) -C $@
+
+lib : src
+	$(MAKE) -C $@
+
 src:
-	(cd src; make)
+	$(MAKE) -C $@
 
-lib:
-	(cd lib; make)
-
-examples:
-	(cd examples; make)
 clean:
-	(cd src; make clean)
-	(cd lib; make clean)
-	(cd examples; make clean)
+	(cd src; $(MAKE) clean)
+	(cd lib; $(MAKE) clean)
+	(cd examples; $(MAKE) clean)
 
-update:clean all
+update : clean all
