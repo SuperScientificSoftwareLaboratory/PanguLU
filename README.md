@@ -154,7 +154,7 @@ In this example, 6 processes are used to test, the block_size is 4, matrix name 
 
 ## Release versions
 
-#### <p align='left'>Version 4.1.0 (Sep. 2, 2024) </p>
+#### <p align='left'>Version 4.1.0 (Sep. 1, 2024) </p>
 
 * Optimized memory usage of numeric factorisation and solving;
 * Added parallel building support.
