@@ -45,6 +45,7 @@ void pangulu_getrf_interface(pangulu_smatrix *a, pangulu_smatrix *l, pangulu_sma
 
 #endif // ADD_GPU_MEMORY
 #else // GPU_OPEN
+
     pangulu_getrf_fp64(a, l, u);
 
 #endif // GPU_OPEN
@@ -135,10 +136,10 @@ void pangulu_tstrf_interface(pangulu_smatrix *a, pangulu_smatrix *save_X, pangul
     pangulu_pangulu_smatrix_memcpy_columnpointer_csc(save_X, a);
 
     // // csr
-    // pangulu_transport_pangulu_smatrix_csc_to_csr(a);
+    // pangulu_transpose_pangulu_smatrix_csc_to_csr(a);
     // pangulu_pangulu_smatrix_memcpy_value_csc_copy_length(calculate_X, a);
     // pangulu_tstrf_fp64_CPU_6(a, calculate_X, u);
-    // pangulu_transport_pangulu_smatrix_csr_to_csc(a);
+    // pangulu_transpose_pangulu_smatrix_csr_to_csc(a);
     // pangulu_pangulu_smatrix_memcpy_columnpointer_csc(save_X, a);
 
 #endif // GPU_OPEN
@@ -166,11 +167,11 @@ void pangulu_gessm_interface(pangulu_smatrix *a, pangulu_smatrix *save_X, pangul
 
 #ifndef CPU_OPTION
     pangulu_smatrix_cuda_memcpy_value_csc(a, a);
-    pangulu_transport_pangulu_smatrix_csc_to_csr(a);
+    pangulu_transpose_pangulu_smatrix_csc_to_csr(a);
     pangulu_pangulu_smatrix_memcpy_value_csr_copy_length(calculate_X, a);
-    pangulu_transport_pangulu_smatrix_csc_to_csr(l);
+    pangulu_transpose_pangulu_smatrix_csc_to_csr(l);
     pangulu_gessm_interface_cpu(a, l, calculate_X);
-    pangulu_transport_pangulu_smatrix_csr_to_csc(a);
+    pangulu_transpose_pangulu_smatrix_csr_to_csc(a);
 #else
 
     /*******************Choose the best performance（性能择优）*************************/
@@ -229,10 +230,10 @@ void pangulu_gessm_interface(pangulu_smatrix *a, pangulu_smatrix *save_X, pangul
     pangulu_pangulu_smatrix_memcpy_value_csr_copy_length(calculate_X, a);
     pangulu_gessm_fp64_cpu_6(a, l, calculate_X);
     pangulu_pangulu_smatrix_memcpy_columnpointer_csc(save_X, a);
-    // pangulu_transport_pangulu_smatrix_csc_to_csr(a);
+    // pangulu_transpose_pangulu_smatrix_csc_to_csr(a);
     // pangulu_pangulu_smatrix_memcpy_value_csr_copy_length(calculate_X, a);
     // pangulu_gessm_interface_CPU_csr(a, l, calculate_X);
-    // pangulu_transport_pangulu_smatrix_csr_to_csc(a);
+    // pangulu_transpose_pangulu_smatrix_csr_to_csc(a);
     // pangulu_pangulu_smatrix_memcpy_columnpointer_csc(save_X, a);
 #endif
 

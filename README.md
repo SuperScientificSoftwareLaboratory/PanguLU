@@ -154,32 +154,36 @@ In this example, 6 processes are used to test, the block_size is 4, matrix name 
 
 ## Release versions
 
-#### <p align='left'>Version 4.1.0 (Sep. 01, 2024) </p>
+#### <p align='left'>Version 4.2.0 (Dec. 13, 2024) </p>
 
-* Optimized memory usage of numeric factorisation and solving.
+* Updated preprocessing phase to distributed data structure.
+
+#### <p align='left'>Version 4.1.0 (Sep. 1, 2024) </p>
+
+* Optimized memory usage of numeric factorisation and solving;
 * Added parallel building support.
 
 #### <p align='left'>Version 4.0.0 (Jul. 24, 2024) </p>
 
-* Optimized user interfaces of solver routines.
-* Optimized performance of numeric factorisation phase on CPU platforms.
-* Added support on complex matrix solving.
-* Optimized pre-processing performance.
+* Optimized user interfaces of solver routines;
+* Optimized performamce of numeric factorisation phase on CPU platform;
+* Added support on complex matrix solving;
+* Optimized preprocessing performance;
 
 #### <p align='left'>Version 3.5.0 (Aug. 06, 2023) </p>
 
 * Updated the pre-processing phase with OpenMP.
-* Updated the compilation method, compilling libpangulu.so and libpangulu.a at the same time.
-* Updated timing for the reordering phase, the symbolic factorisation phase, and the pre-processing phase.
-* Computed GFLOPS for the numeric factorisation phase.
+* Updated the compilation method of PanguLU, compile libpangulu.so and libpangulu.a at the same time.
+* Updated timing for the reorder phase, the symbolic factorisation phase, the pre-processing phase.
+* Added GFLOPS for the numeric factorisation phase.
  
 #### <p align='left'>Version 3.0.0 (Apr. 02, 2023) </p>
 
-* Used an adaptive method for selecting sparse BLAS in the numeric factorisation phase.
-* Added the reordering phase.
-* Added the symbolic factorisation phase.
-* Added the MC64 algorithm in the reordering phase.
-* Added an interface for 64-bit METIS package in the reordering phase.
+* Used adaptive selection sparse BLAS in the numeric factorisation phase.
+* Added the reorder phase.
+* Added the symbolic factorisation phase. 
+* Added mc64 sorting algorithm in the reorder phase.
+* Added interface for 64-bit metis package in the reorder phase.
 
 
 #### <p align='left'> Version 2.0.0 (Jul. &thinsp;22, 2022) </p>
@@ -191,7 +195,7 @@ In this example, 6 processes are used to test, the block_size is 4, matrix name 
 #### <p align='left'>Version 1.0.0 (Oct. 19, 2021) </p>
 
 * Used a rule-based 2D LU factorisation scheduling strategy.
-* Used sparse BLAS for floating point calculations on GPUs.
+* Used Sparse BLAS for floating point calculations on GPUs.
 * Added the pre-processing phase.
 * Added the numeric factorisation phase.
 * Added the triangular solve phase.

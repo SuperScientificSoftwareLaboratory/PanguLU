@@ -220,10 +220,16 @@ void pangulu_destroy(pangulu_block_common *block_common,
     pangulu_block_info_pool* BIP = block_smatrix->BIP;
 
     for(pangulu_exblock_ptr i=0;i<block_smatrix->current_rank_block_count;i++){
-        pangulu_free(__FILE__, __LINE__, block_smatrix->big_pangulu_smatrix_value[i].columnpointer);
         pangulu_free(__FILE__, __LINE__, block_smatrix->big_pangulu_smatrix_value[i].csc_to_csr_index);
         pangulu_free(__FILE__, __LINE__, block_smatrix->big_pangulu_smatrix_value[i].bin_rowpointer);
         pangulu_free(__FILE__, __LINE__, block_smatrix->big_pangulu_smatrix_value[i].bin_rowindex);
+        pangulu_free(__FILE__, __LINE__, block_smatrix->big_pangulu_smatrix_value[i].rowpointer);
+        pangulu_free(__FILE__, __LINE__, block_smatrix->big_pangulu_smatrix_value[i].columnindex);
+        pangulu_free(__FILE__, __LINE__, block_smatrix->big_pangulu_smatrix_value[i].value);
+    }
+
+    if(block_smatrix->current_rank_block_count){
+        pangulu_free(__FILE__, __LINE__, block_smatrix->big_pangulu_smatrix_value[0].columnpointer);
     }
 
     for(pangulu_exblock_ptr i=0;i<block_common->rank_col_length;i++){
@@ -257,7 +263,7 @@ void pangulu_destroy(pangulu_block_common *block_common,
 #endif
         }
     }
-    pangulu_free(__FILE__, __LINE__, block_smatrix->blocks_current_rank);
+    // pangulu_free(__FILE__, __LINE__, block_smatrix->blocks_current_rank);
 
     for (pangulu_int64_t i = 0; i < L_smatrix_nzz * every_level_length; i++)
     {

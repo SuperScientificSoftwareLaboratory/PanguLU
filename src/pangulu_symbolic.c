@@ -507,9 +507,12 @@ void pangulu_symbolic(pangulu_block_common *block_common,
     pangulu_exblock_ptr *new_rowpointer=NULL;
     pangulu_exblock_idx *new_columnindex=NULL;
     pangulu_exblock_ptr new_nnz;
+    struct timeval start_time;
+    pangulu_time_start(&start_time);
     at_plus_a_dist(reorder_matrix->row,reorder_matrix->nnz,
                    reorder_matrix->rowpointer,reorder_matrix->columnindex,
                    &new_nnz,&new_rowpointer,&new_columnindex);
+    printf("[PanguLU Info] 4 PanguLU A+AT (before symbolic) time is %lf s.\n", pangulu_time_stop(&start_time));
     pangulu_exblock_ptr *symbolic_rowpointer = NULL;
     pangulu_exblock_idx *symbolic_columnindex = NULL;
     pangulu_inblock_idx nb = block_common->nb;
@@ -532,6 +535,7 @@ void pangulu_symbolic(pangulu_block_common *block_common,
         block_smatrix_nnzA_num[i] = 0;
     }
 
+    pangulu_time_start(&start_time);
     fill_in_sym_prune(reorder_matrix->row,new_nnz,new_columnindex,new_rowpointer,
                     &symbolic_rowpointer,&symbolic_columnindex,
                     nb,block_length,
@@ -540,6 +544,7 @@ void pangulu_symbolic(pangulu_block_common *block_common,
                     block_smatrix_nnzA_num,
                     &block_smatrix->symbolic_nnz
                     );
+    printf("[PanguLU Info] 5 PanguLU symbolic time is %lf s.\n", pangulu_time_stop(&start_time));
     
     pangulu_free(__FILE__, __LINE__, new_rowpointer);
     pangulu_free(__FILE__, __LINE__, new_columnindex);

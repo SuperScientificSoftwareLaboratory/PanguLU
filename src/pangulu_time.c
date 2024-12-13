@@ -15,7 +15,7 @@ double pangulu_time_check_end(struct timeval *GET_TIME_START)
 
 void pangulu_time_init()
 {
-    time_transport = 0.0;
+    time_transpose = 0.0;
     time_isend = 0.0;
     time_receive = 0.0;
     time_getrf = 0.0;

@@ -101,7 +101,7 @@ extern pangulu_int64_t cpu_peak_memory;
 extern pangulu_int64_t gpu_memory;
 
 extern pangulu_int64_t flop;
-extern double time_transport;
+extern double time_transpose;
 extern double time_isend;
 extern double time_receive;
 extern double time_getrf;
@@ -174,8 +174,8 @@ typedef int idx_t;
 #include "./platforms/02_GPU/01_CUDA/000_CUDA/pangulu_cuda.h"
 #endif
 
-// #if !defined(PANGULU_EN_US)
-#define PANGULU_EN_US
+// #if !defined(PANGULU_EN)
+#define PANGULU_EN
 // #endif
 
 #if defined(PANGULU_LOG_INFO) && !defined(PANGULU_LOG_WARNING)
@@ -185,7 +185,7 @@ typedef int idx_t;
 #define PANGULU_LOG_ERROR
 #endif
 
-#include "./languages/pangulu_en_us.h"
+#include "./languages/pangulu_en.h"
 
 #if !defined(PANGULU_LOG_ERROR)
 #define PANGULU_E_NB_IS_ZERO ""
@@ -251,6 +251,7 @@ typedef int idx_t;
 #define PANGULU_BIP_SIBLING_LEN 8
 #define PANGULU_BIP_MAP_LENGTH(index_upper_bound) ((index_upper_bound + PANGULU_BIP_SIBLING_LEN - 1) / PANGULU_BIP_SIBLING_LEN)
 
+#define PANGULU_ICEIL(a, b) (((a) + (b) - 1) / (b))
 #define setbit(x, y) x |= (1 << y)    // set the yth bit of x is 1
 #define getbit(x, y) ((x) >> (y) & 1) // get the yth bit of x
 
@@ -476,7 +477,6 @@ typedef struct pangulu_block_smatrix
     pangulu_inblock_ptr *block_smatrix_nnza_num;
     pangulu_inblock_ptr *block_smatrix_non_zero_vector_l;
     pangulu_inblock_ptr *block_smatrix_non_zero_vector_u;
-    char *blocks_current_rank;
     pangulu_smatrix *big_pangulu_smatrix_value;
     pangulu_inblock_ptr *l_pangulu_smatrix_columnpointer;
     pangulu_inblock_idx *l_pangulu_smatrix_rowindex;
@@ -1020,8 +1020,6 @@ void pangulu_mc64(pangulu_origin_smatrix *s, pangulu_exblock_idx **perm, pangulu
                   calculate_type **row_scale, calculate_type **col_scale);
 #endif
 
-void pangulu_origin_smatrix_transport_transport_iperm(pangulu_origin_smatrix *s, pangulu_origin_smatrix *new_S, pangulu_exblock_idx *metis_perm);
-
 #ifdef METIS
 
 void pangulu_get_graph_struct(pangulu_origin_smatrix *s, idx_t **xadj_adress, idx_t **adjincy_adress);
@@ -1414,9 +1412,13 @@ void pangulu_init_pangulu_origin_smatrix(pangulu_origin_smatrix *s);
 
 void pangulu_read_pangulu_origin_smatrix(pangulu_origin_smatrix *s, int wcs_n, long long wcs_nnz, pangulu_exblock_ptr *csr_rowptr, pangulu_exblock_idx *csr_colidx, calculate_type *csr_value);
 
-void pangulu_time_start(pangulu_common *common);
+// void pangulu_time_start(pangulu_common *common);
 
-void pangulu_time_stop(pangulu_common *common);
+// void pangulu_time_stop(pangulu_common *common);
+
+void pangulu_time_start(struct timeval* start);
+
+double pangulu_time_stop(struct timeval* start);
 
 void pangulu_memcpy_zero_pangulu_smatrix_csc_value(pangulu_smatrix *s);
 
@@ -1426,9 +1428,9 @@ void pangulu_display_pangulu_smatrix_csc(pangulu_smatrix *s);
 
 double pangulu_get_spend_time(pangulu_common *common);
 
-void pangulu_transport_pangulu_smatrix_csc_to_csr(pangulu_smatrix *s);
+void pangulu_transpose_pangulu_smatrix_csc_to_csr(pangulu_smatrix *s);
 
-void pangulu_transport_pangulu_smatrix_csr_to_csc(pangulu_smatrix *s);
+void pangulu_transpose_pangulu_smatrix_csr_to_csc(pangulu_smatrix *s);
 
 void pangulu_pangulu_smatrix_memcpy_rowpointer_csr(pangulu_smatrix *s, pangulu_smatrix *copy_S);
 
@@ -1550,6 +1552,109 @@ void pangulu_bip_destroy(pangulu_block_info_pool **BIP);
 const pangulu_block_info *pangulu_bip_get(pangulu_int64_t index, pangulu_block_info_pool *BIP);
 
 pangulu_block_info *pangulu_bip_set(pangulu_int64_t index, pangulu_block_info_pool *BIP);
+
+void pangulu_convert_csr_to_csc(
+    int free_csrmatrix,
+    pangulu_exblock_idx n,
+    pangulu_exblock_ptr** csr_pointer,
+    pangulu_exblock_idx** csr_index,
+    calculate_type** csr_value,
+    pangulu_exblock_ptr** csc_pointer,
+    pangulu_exblock_idx** csc_index,
+    calculate_type** csc_value
+);
+
+void pangulu_cm_distribute_csc_to_distcsc(
+    pangulu_int32_t root_rank,
+    int rootproc_free_originmatrix,
+    pangulu_exblock_idx* n,
+    pangulu_inblock_idx rowchunk_align,
+    pangulu_int32_t* distcsc_nproc,
+    pangulu_exblock_idx* n_loc,
+    
+    pangulu_exblock_ptr** distcsc_proc_nnzptr,
+    pangulu_exblock_ptr** distcsc_pointer,
+    pangulu_exblock_idx** distcsc_index,
+    calculate_type** distcsc_value
+);
+
+void pangulu_cm_distribute_distcsc_to_distbcsc(
+    int rootproc_free_originmatrix,
+    int malloc_distbcsc_value,
+    pangulu_exblock_idx n_glo,
+    pangulu_exblock_idx n_loc,
+    pangulu_inblock_idx block_order,
+    
+    pangulu_exblock_ptr* distcsc_proc_nnzptr,
+    pangulu_exblock_ptr* distcsc_pointer,
+    pangulu_exblock_idx* distcsc_index,
+    calculate_type* distcsc_value,
+
+    pangulu_exblock_ptr** bcsc_struct_pointer,
+    pangulu_exblock_idx** bcsc_struct_index,
+    pangulu_exblock_ptr** bcsc_struct_nnzptr,
+    pangulu_inblock_ptr*** bcsc_inblock_pointers,
+    pangulu_inblock_idx*** bcsc_inblock_indeces,
+    calculate_type*** bcsc_values
+);
+
+void pangulu_convert_ordered_halfsymcsc_to_csc_struct(
+    int free_halfmatrix,
+    int if_colsort,
+    pangulu_exblock_idx n,
+    pangulu_exblock_ptr** half_csc_pointer,
+    pangulu_exblock_idx** half_csc_index,
+    pangulu_exblock_ptr** csc_pointer,
+    pangulu_exblock_idx** csc_index
+);
+
+void pangulu_convert_bcsc_fill_value_to_struct(
+    int free_valuebcsc,
+    pangulu_exblock_idx n,
+    pangulu_inblock_idx nb,
+
+    pangulu_exblock_ptr* value_bcsc_struct_pointer,
+    pangulu_exblock_idx* value_bcsc_struct_index,
+    pangulu_exblock_ptr* value_bcsc_struct_nnzptr,
+    pangulu_inblock_ptr** value_bcsc_inblock_pointers,
+    pangulu_inblock_idx** value_bcsc_inblock_indeces,
+    calculate_type** value_bcsc_values,
+
+    pangulu_exblock_ptr* struct_bcsc_struct_pointer,
+    pangulu_exblock_idx* struct_bcsc_struct_index,
+    pangulu_exblock_ptr* struct_bcsc_struct_nnzptr,
+    pangulu_inblock_ptr** struct_bcsc_inblock_pointers,
+    pangulu_inblock_idx** struct_bcsc_inblock_indeces,
+    calculate_type** struct_bcsc_values
+);
+
+void pangulu_cm_rank(pangulu_int32_t* rank);
+
+void pangulu_cm_size(pangulu_int32_t* size);
+
+void pangulu_cm_sync();
+
+void pangulu_cm_bcast(void *buffer, int count, MPI_Datatype datatype, int root);
+
+void pangulu_cm_isend(char* buf, pangulu_int64_t count, pangulu_int32_t remote_rank, pangulu_int32_t tag, pangulu_int32_t tag_ub);
+
+void pangulu_cm_send(char* buf, pangulu_int64_t count, pangulu_int32_t remote_rank, pangulu_int32_t tag, pangulu_int32_t tag_ub);
+
+void pangulu_cm_recv(char* buf, pangulu_int64_t count, pangulu_int32_t fetch_rank, pangulu_int32_t tag, pangulu_int32_t tag_ub);
+
+void pangulu_sort_exblock_struct(
+    pangulu_exblock_idx n,
+    pangulu_exblock_ptr* pointer,
+    pangulu_exblock_idx* index,
+    pangulu_int32_t nthread
+);
+
+int cmp_exidx_asc(const void* a, const void* b);
+
+void pangulu_kvsort(pangulu_exblock_idx *key, calculate_type *val, pangulu_int64_t start, pangulu_int64_t end);
+
+
+void pangulu_cm_sync_asym(int wake_rank);
 
 #endif // PANGULU_PLATFORM_ENV
 #endif // PANGULU_COMMON_H

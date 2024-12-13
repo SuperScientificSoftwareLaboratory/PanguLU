@@ -191,13 +191,13 @@ void pangulu_gessm_interface_g_v2(pangulu_smatrix *a,
                                   pangulu_smatrix *x)
 {
     pangulu_smatrix_cuda_memcpy_value_csc(a, a);
-    pangulu_transport_pangulu_smatrix_csc_to_csr(a);
+    pangulu_transpose_pangulu_smatrix_csc_to_csr(a);
     pangulu_smatrix_cuda_memcpy_complete_csr(a, a);
 
     pangulu_gessm_fp64_cuda_v8(a, l, x);
 
     pangulu_smatrix_cuda_memcpy_value_csr(a, x);
-    pangulu_transport_pangulu_smatrix_csr_to_csc(a);
+    pangulu_transpose_pangulu_smatrix_csr_to_csc(a);
 }
 void pangulu_gessm_interface_g_v3(pangulu_smatrix *a,
                                   pangulu_smatrix *l,

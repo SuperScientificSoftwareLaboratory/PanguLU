@@ -131,9 +131,9 @@ void pangulu_gessm_cuda_kernel_v11(pangulu_int64_t n,
                                    pangulu_inblock_idx *a_rowindex,
                                    calculate_type *a_value);
 
-// void pangulu_cuda_transport_kernel_csc_to_csr(pangulu_int64_t nnz, calculate_type *d_val_csr, pangulu_int64_t *d_idx, calculate_type *d_val_csc); 
+// void pangulu_cuda_transpose_kernel_csc_to_csr(pangulu_int64_t nnz, calculate_type *d_val_csr, pangulu_int64_t *d_idx, calculate_type *d_val_csc); 
 
-// void pangulu_cuda_transport_kernel_csr_to_csc(pangulu_int64_t nnz, calculate_type *d_val_csc, pangulu_int64_t *d_idx, calculate_type *d_val_csr);
+// void pangulu_cuda_transpose_kernel_csr_to_csc(pangulu_int64_t nnz, calculate_type *d_val_csc, pangulu_int64_t *d_idx, calculate_type *d_val_csr);
 
 void pangulu_getrf_cuda_kernel(pangulu_int64_t n,
                                pangulu_int64_t nnza,

@@ -10,6 +10,36 @@ void pangulu_preprocessing(pangulu_block_common *block_common,
                            pangulu_origin_smatrix *reorder_matrix,
                            pangulu_int64_t nthread)
 {
+    struct timeval start_time;
+    pangulu_exblock_idx n = block_common->n;
+    pangulu_exblock_idx n_loc = 0;
+    pangulu_exblock_idx nb = block_common->nb;
+    pangulu_exblock_idx block_length = block_common->block_length;
+    pangulu_int32_t rank = block_common->rank;
+    pangulu_int32_t nproc = block_common->sum_rank_size;
+
+    pangulu_exblock_ptr* distcsc_proc_nnzptr;
+    pangulu_exblock_ptr* distcsc_symbolic_proc_nnzptr;
+    pangulu_exblock_ptr* distcsc_pointer;
+    pangulu_exblock_idx* distcsc_index;
+    calculate_type* distcsc_value;
+    pangulu_exblock_ptr* bcsc_nofill_pointer;
+    pangulu_exblock_idx* bcsc_nofill_index;
+    pangulu_exblock_ptr* bcsc_nofill_blknnzptr;
+    pangulu_inblock_ptr** bcsc_nofill_inblk_pointers;
+    pangulu_inblock_idx** bcsc_nofill_inblk_indeces;
+    calculate_type** bcsc_nofill_inblk_values;
+    pangulu_exblock_ptr* bcsc_pointer;
+    pangulu_exblock_idx* bcsc_index;
+    pangulu_exblock_ptr* bcsc_blknnzptr;
+    pangulu_inblock_ptr** bcsc_inblk_pointers;
+    pangulu_inblock_idx** bcsc_inblk_indeces;
+    calculate_type** bcsc_inblk_values;
+
+    pangulu_exblock_ptr* bcsc_related_pointer;
+    pangulu_exblock_idx* bcsc_related_index;
+    pangulu_uint64_t* bcsc_related_draft_info;
+
     const pangulu_int64_t preprocess_ompnum = nthread;
     pangulu_int64_t preprocess_ompnum_sort = preprocess_ompnum;
     pangulu_int64_t preprocess_ompnum_fill_columnindex = preprocess_ompnum;
@@ -17,16 +47,14 @@ void pangulu_preprocessing(pangulu_block_common *block_common,
     pangulu_int64_t preprocess_ompnum_separate_block = preprocess_ompnum;
     pangulu_int64_t preprocess_ompnum_send_block = preprocess_ompnum;
 
-    pangulu_int64_t n = block_common->n;
     pangulu_int32_t p = block_common->p;
     pangulu_int32_t q = block_common->q;
-    pangulu_int32_t nb = block_common->nb;
     pangulu_block_info_pool *BIP = block_smatrix->BIP;
 
     pangulu_exblock_ptr *symbolic_rowpointer = NULL;
     pangulu_exblock_idx *symbolic_columnindex = NULL;
 
-    pangulu_int32_t block_length = block_common->block_length;
+    bind_to_core((rank) % sysconf(_SC_NPROCESSORS_ONLN));
 
     // rank 0 only
     pangulu_int64_t block_num;
@@ -114,72 +142,145 @@ void pangulu_preprocessing(pangulu_block_common *block_common,
     MPI_Bcast((char *)(BIP->data), sizeof(pangulu_block_info) * BIP->length, MPI_CHAR, 0, MPI_COMM_WORLD);             // containing block_smatrix_nnzA_num
     MPI_Bcast(BIP->block_map, PANGULU_BIP_MAP_LENGTH(BIP->index_upper_bound), MPI_PANGULU_INT64_T, 0, MPI_COMM_WORLD); // containing block_smatrix_nnzA_num
 
-    if (rank == 0)
-    {
 
-        for (pangulu_exblock_idx i = 0; i < n; i++)
-        {
-            for (pangulu_exblock_ptr j = reorder_matrix->rowpointer[i]; j < reorder_matrix->rowpointer[i + 1]; j++)
-            {
-                pangulu_exblock_idx block_row = i / nb;
-                pangulu_exblock_idx block_col = (reorder_matrix->columnindex[j]) / nb;
-            }
-        }
-
-        A_nnz_rowpointer_num = 0;
-
-        for (pangulu_int32_t offset_block_row = 0; offset_block_row < p; offset_block_row++)
-        {
-            for (pangulu_int32_t offset_block_col = 0; offset_block_col < q; offset_block_col++)
-            {
-                for (pangulu_exblock_idx i = offset_block_row; i < block_length; i += p)
-                {
-                    for (pangulu_exblock_idx j = offset_block_col; j < block_length; j += q)
-                    {
-                        if (pangulu_bip_get(i * block_length + j, BIP)->block_smatrix_nnza_num != 0)
-                        {
-                            A_nnz_rowpointer_num++;
-                        }
-                    }
-                }
-            }
-        }
+    if(rank == 0){
+        pangulu_time_start(&start_time);
+        pangulu_convert_csr_to_csc(
+            1, n,
+            &reorder_matrix->rowpointer,
+            &reorder_matrix->columnindex,
+            &reorder_matrix->value,
+            &reorder_matrix->columnpointer,
+            &reorder_matrix->rowindex,
+            &reorder_matrix->value_csc
+        );
+        printf("[PanguLU Info] 6 PanguLU transpose reordered matrix time is %lf s.\n", pangulu_time_stop(&start_time));
+        distcsc_pointer = reorder_matrix->columnpointer;
+        distcsc_index = reorder_matrix->rowindex;
+        distcsc_value = reorder_matrix->value_csc;
+        reorder_matrix->columnpointer = NULL;
+        reorder_matrix->rowindex = NULL;
+        reorder_matrix->value_csc = NULL;
     }
+
+    pangulu_cm_sync();
+
+    double time_dist_prep = 0;
+
+    if(rank == 0){
+        pangulu_time_start(&start_time);
+    }
+    //  distribute to processes
+    pangulu_cm_distribute_csc_to_distcsc(
+        0, 1, &n, nb, &nproc, &n_loc,
+        &distcsc_proc_nnzptr,
+        &distcsc_pointer,
+        &distcsc_index,
+        &distcsc_value
+    );
+
+    pangulu_cm_sync();
+    
+    pangulu_cm_distribute_distcsc_to_distbcsc(
+        1, 1, n, n_loc, nb,
+        distcsc_proc_nnzptr,
+        distcsc_pointer,
+        distcsc_index,
+        distcsc_value,
+        &bcsc_nofill_pointer,
+        &bcsc_nofill_index,
+        &bcsc_nofill_blknnzptr,
+        &bcsc_nofill_inblk_pointers,
+        &bcsc_nofill_inblk_indeces,
+        &bcsc_nofill_inblk_values
+    );
+
+    pangulu_cm_sync();
+
+    if(rank == 0){
+        time_dist_prep += pangulu_time_stop(&start_time);
+    }
+
+    if(rank == 0){
+        //  generate full symbolic struct
+        pangulu_sort_exblock_struct(n, block_smatrix->symbolic_rowpointer, block_smatrix->symbolic_columnindex, 0);
+        pangulu_time_start(&start_time);
+        pangulu_convert_ordered_halfsymcsc_to_csc_struct(
+            1, 0, n,
+            &block_smatrix->symbolic_rowpointer,
+            &block_smatrix->symbolic_columnindex,
+            &block_smatrix->symbolic_rowpointer,
+            &block_smatrix->symbolic_columnindex
+        );
+        printf("[PanguLU Info] 7 PanguLU generate full symbolic matrix time is %lf s.\n", pangulu_time_stop(&start_time));
+    }
+
+    pangulu_cm_sync_asym(0);
+    pangulu_cm_sync();
+
+    if(rank == 0){
+        pangulu_time_start(&start_time);
+    }
+
+    //  distribute to processes
+    pangulu_cm_distribute_csc_to_distcsc(
+        0, 1, &n, nb, &nproc, &n_loc,
+        &distcsc_symbolic_proc_nnzptr,
+        &block_smatrix->symbolic_rowpointer,
+        &block_smatrix->symbolic_columnindex,
+        NULL
+    );
+    
+    pangulu_cm_sync();
+    
+    // pangulu_sort_exblock_struct(n_loc, block_smatrix->symbolic_rowpointer, block_smatrix->symbolic_columnindex, 0);
+
+    // pangulu_cm_sync_asym(nproc - 1);
+
+    pangulu_cm_distribute_distcsc_to_distbcsc(
+        1, 1, n, n_loc, nb,
+        distcsc_symbolic_proc_nnzptr,
+        block_smatrix->symbolic_rowpointer,
+        block_smatrix->symbolic_columnindex,
+        NULL,
+        &bcsc_pointer,
+        &bcsc_index,
+        &bcsc_blknnzptr,
+        &bcsc_inblk_pointers,
+        &bcsc_inblk_indeces,
+        &bcsc_inblk_values
+    );
+
+    pangulu_cm_sync();
+
+    pangulu_convert_bcsc_fill_value_to_struct(
+        1, n, nb,
+        bcsc_nofill_pointer,
+        bcsc_nofill_index,
+        bcsc_nofill_blknnzptr,
+        bcsc_nofill_inblk_pointers,
+        bcsc_nofill_inblk_indeces,
+        bcsc_nofill_inblk_values,
+        bcsc_pointer,
+        bcsc_index,
+        bcsc_blknnzptr,
+        bcsc_inblk_pointers,
+        bcsc_inblk_indeces,
+        bcsc_inblk_values
+    );
+    bcsc_nofill_pointer = NULL;
+    bcsc_nofill_index = NULL;
+    bcsc_nofill_blknnzptr = NULL;
+    bcsc_nofill_inblk_pointers = NULL;
+    bcsc_nofill_inblk_indeces = NULL;
+    bcsc_nofill_inblk_values = NULL;
 
     pangulu_bcast_vector(block_smatrix_non_zero_vector_L, block_length, 0);
     pangulu_bcast_vector(block_smatrix_non_zero_vector_U, block_length, 0);
 
-    every_rank_block_num[rank] = 0;
-    for (pangulu_exblock_idx row = 0; row < block_length; row++)
-    {
-        for (pangulu_exblock_idx col = 0; col < block_length; col++)
-        {
-            if (pangulu_bip_get(row * block_length + col, BIP)->block_smatrix_nnza_num != 0)
-            {
-                int32_t now_rank = (row % p) * q + (col % q);
-                if (now_rank == rank)
-                {
-                    every_rank_block_num[rank]++;
-                }
-            }
-        }
-    }
-
-    every_rank_block_nnz[rank] = 0;
-    for (pangulu_exblock_idx row = 0; row < block_length; row++)
-    {
-        for (pangulu_exblock_idx col = 0; col < block_length; col++)
-        {
-            if (pangulu_bip_get(row * block_length + col, BIP)->block_smatrix_nnza_num != 0)
-            {
-                int32_t now_rank = (row % p) * q + (col % q);
-                if (now_rank == rank)
-                {
-                    every_rank_block_nnz[rank] += pangulu_bip_get(row * block_length + col, BIP)->block_smatrix_nnza_num;
-                }
-            }
-        }
-    }
+    every_rank_block_num[rank] = bcsc_pointer[block_length];
+    every_rank_block_nnz[rank] = bcsc_blknnzptr[bcsc_pointer[block_length]];
+    pangulu_free(__FILE__, __LINE__, bcsc_blknnzptr);
 
     if (rank == 0)
     {
@@ -215,11 +316,8 @@ void pangulu_preprocessing(pangulu_block_common *block_common,
         }
     }
 
-    if (rank != 0)
-    {
-        pangulu_free(__FILE__, __LINE__, every_rank_block_num);
-        pangulu_free(__FILE__, __LINE__, every_rank_block_nnz);
-    }
+    pangulu_free(__FILE__, __LINE__, every_rank_block_num);
+    pangulu_free(__FILE__, __LINE__, every_rank_block_nnz);
 
     pangulu_smatrix *Big_smatrix_value = (pangulu_smatrix *)pangulu_malloc(__FILE__, __LINE__, sizeof(pangulu_smatrix) * current_rank_block_count);
     for (pangulu_int64_t i = 0; i < current_rank_block_count; i++)
@@ -229,472 +327,32 @@ void pangulu_preprocessing(pangulu_block_common *block_common,
 
     current_rank_block_count = 0;
     current_rank_nnz_count = 0;
-    pangulu_int64_t max_nnz = 0;
 
     pangulu_exblock_ptr nzblk_current_rank = 0;
     pangulu_exblock_ptr nnz_current_rank = 0;
-    char *blkcsr_current_rank = NULL;
-    char *blocks_current_rank = NULL;
 
-    if (rank == 0)
+    for (pangulu_exblock_idx bcol = 0; bcol < block_length; bcol++)
     {
-        struct timeval fill_start, fill_end;
-        struct timeval fill_all_start, fill_all_end;
-
-        gettimeofday(&fill_all_start, NULL);
-        gettimeofday(&fill_start, NULL);
-        pangulu_exblock_ptr *symbolic_full_rowpointer = (pangulu_exblock_ptr *)pangulu_malloc(__FILE__, __LINE__, sizeof(pangulu_exblock_ptr) * (n + 1));
-        pangulu_exblock_idx *symbolic_full_columnindex = (pangulu_exblock_idx *)pangulu_malloc(__FILE__, __LINE__, sizeof(pangulu_exblock_idx) * block_smatrix->symbolic_nnz);
-        pangulu_int64_t *symbolic_aid_array = (pangulu_int64_t *)pangulu_malloc(__FILE__, __LINE__, sizeof(pangulu_int64_t) * n * (preprocess_ompnum_fill_columnindex + 1));
-        memset(symbolic_aid_array, 0, sizeof(pangulu_int64_t) * n * (preprocess_ompnum_fill_columnindex + 1));
-        memset(symbolic_full_rowpointer, 0, sizeof(pangulu_int64_t) * (n + 1));
-        gettimeofday(&fill_end, NULL);
-
-        gettimeofday(&fill_start, NULL);
-        for (int32_t row = 0; row < n; row++)
+        for (pangulu_exblock_ptr bidx = bcsc_pointer[bcol]; bidx < bcsc_pointer[bcol + 1]; bidx++)
         {
-            for (pangulu_int64_t j = symbolic_rowpointer[row]; j < symbolic_rowpointer[row + 1]; j++)
-            {
-                int32_t column = symbolic_columnindex[j];
-                symbolic_aid_array[((row % preprocess_ompnum_fill_columnindex) + 1) * n + column]++;
-                if (row != column)
-                {
-                    symbolic_full_rowpointer[column + 1]++;
-                }
-            }
-        }
-        gettimeofday(&fill_end, NULL);
-
-        gettimeofday(&fill_start, NULL);
-        for (int j = 0; j < n; j++)
-        {
-            for (int i = 1; i < preprocess_ompnum_fill_columnindex + 1; i++)
-            {
-                symbolic_aid_array[i * n + j] += symbolic_aid_array[(i - 1) * n + j];
-            }
-        }
-        for (pangulu_int32_t row = 1; row < n + 1; row++)
-        {
-            for (int i = 0; i < preprocess_ompnum_fill_columnindex + 1; i++)
-            {
-                symbolic_aid_array[i * n + (row - 1)] += symbolic_full_rowpointer[row - 1];
-            }
-            symbolic_full_rowpointer[row] = symbolic_full_rowpointer[row] + symbolic_full_rowpointer[row - 1] + (symbolic_rowpointer[row] - symbolic_rowpointer[row - 1]);
-        }
-        gettimeofday(&fill_end, NULL);
-
-        gettimeofday(&fill_start, NULL);
-        for (pangulu_int32_t row = 0; row < n; row++)
-        {
-            memcpy(&symbolic_full_columnindex[symbolic_full_rowpointer[row + 1] - (symbolic_rowpointer[row + 1] - symbolic_rowpointer[row])], &symbolic_columnindex[symbolic_rowpointer[row]], sizeof(pangulu_int32_t) * (symbolic_rowpointer[row + 1] - symbolic_rowpointer[row]));
-        }
-        gettimeofday(&fill_end, NULL);
-
-        gettimeofday(&fill_start, NULL);
-#pragma omp parallel num_threads(preprocess_ompnum_fill_columnindex)
-        {
-            int tid = omp_get_thread_num();
-            for (pangulu_int32_t row = tid; row < n; row += preprocess_ompnum_fill_columnindex)
-            {
-                for (pangulu_int64_t j = symbolic_rowpointer[row]; j < symbolic_rowpointer[row + 1]; j++)
-                {
-                    int32_t column = symbolic_columnindex[j];
-                    symbolic_full_columnindex[symbolic_aid_array[tid * n + column]++] = row;
-                }
-            }
-        }
-        gettimeofday(&fill_end, NULL);
-
-        gettimeofday(&fill_start, NULL);
-        const int row_count_of_one_chunk = 500;
-        int total_chunk_count = (n + row_count_of_one_chunk + 1) / row_count_of_one_chunk;
-        pangulu_int32_t *chunks_of_omp_rank = (pangulu_int32_t *)pangulu_malloc(__FILE__, __LINE__, sizeof(pangulu_int32_t) * total_chunk_count * preprocess_ompnum_sort);
-        pangulu_int32_t *chunk_count_of_omp_rank = (pangulu_int32_t *)pangulu_malloc(__FILE__, __LINE__, sizeof(pangulu_int32_t) * preprocess_ompnum_sort);
-        pangulu_int64_t *omp_rank_total_nnz = (pangulu_int64_t *)pangulu_malloc(__FILE__, __LINE__, sizeof(pangulu_int64_t) * preprocess_ompnum_sort);
-        memset(chunk_count_of_omp_rank, 0, sizeof(pangulu_int32_t) * preprocess_ompnum_sort);
-        memset(omp_rank_total_nnz, 0, sizeof(pangulu_int64_t) * preprocess_ompnum_sort);
-        for (pangulu_int32_t chunk_id = 0; chunk_id < total_chunk_count; chunk_id++)
-        {
-            pangulu_int64_t chunk_nnz = symbolic_full_rowpointer[PANGULU_MIN((chunk_id + 1) * row_count_of_one_chunk, n)] - symbolic_full_rowpointer[chunk_id * row_count_of_one_chunk];
-            pangulu_int64_t min_nnz = 0x7FFFFFFFFFFFFFFF;
-            int min_nnz_rank = 0;
-            for (int i = 0; i < preprocess_ompnum_sort; i++)
-            {
-                if (omp_rank_total_nnz[i] < min_nnz)
-                {
-                    min_nnz = omp_rank_total_nnz[i];
-                    min_nnz_rank = i;
-                }
-            }
-            omp_rank_total_nnz[min_nnz_rank] += chunk_nnz;
-            chunks_of_omp_rank[min_nnz_rank * total_chunk_count + chunk_count_of_omp_rank[min_nnz_rank]] = chunk_id;
-            chunk_count_of_omp_rank[min_nnz_rank]++;
-        }
-        gettimeofday(&fill_end, NULL);
-
-        gettimeofday(&fill_start, NULL);
-#pragma omp parallel num_threads(preprocess_ompnum_sort)
-        {
-            int omp_size = omp_get_num_threads();
-            int omp_tid = omp_get_thread_num();
-            for (pangulu_int32_t i = 0; i < chunk_count_of_omp_rank[omp_tid]; i++)
-            {
-                for (pangulu_int32_t row = chunks_of_omp_rank[omp_tid * total_chunk_count + i] * row_count_of_one_chunk; row < PANGULU_MIN((chunks_of_omp_rank[omp_tid * total_chunk_count + i] + 1) * row_count_of_one_chunk, n); row++)
-                {
-                    qsort(&symbolic_full_columnindex[symbolic_full_rowpointer[row]], symbolic_full_rowpointer[row + 1] - symbolic_full_rowpointer[row], sizeof(pangulu_int32_t), cmp_int32t_asc);
-                }
-            }
-        }
-        gettimeofday(&fill_end, NULL);
-        gettimeofday(&fill_start, NULL);
-        pangulu_free(__FILE__, __LINE__, chunks_of_omp_rank);
-        pangulu_free(__FILE__, __LINE__, chunk_count_of_omp_rank);
-        pangulu_free(__FILE__, __LINE__, omp_rank_total_nnz);
-        pangulu_free(__FILE__, __LINE__, symbolic_aid_array);
-        gettimeofday(&fill_end, NULL);
-
-        gettimeofday(&fill_start, NULL);
-        pangulu_int64_t nnz = symbolic_full_rowpointer[n];
-        int bit_length = (block_length + 31) / 32;
-
-        pangulu_int64_t avg_nnz = (nnz + preprocess_ompnum_separate_block - 1) / preprocess_ompnum_separate_block;
-        pangulu_int64_t *block_row_nnz_pt = (pangulu_int64_t *)pangulu_malloc(__FILE__, __LINE__, sizeof(pangulu_int64_t) * (block_length + 1));
-        for (int i = 0; i < block_length; i++)
-        {
-            block_row_nnz_pt[i] = symbolic_full_rowpointer[i * nb];
-        }
-        block_row_nnz_pt[block_length] = symbolic_full_rowpointer[n];
-        int *pt = (int *)pangulu_malloc(__FILE__, __LINE__, sizeof(int) * (preprocess_ompnum_separate_block + 1));
-        pt[0] = 0;
-        for (int i = 1; i < preprocess_ompnum_separate_block + 1; i++)
-        {
-            pt[i] = binarylowerbound(block_row_nnz_pt, block_length, avg_nnz * i);
-        }
-
-        pangulu_int64_t *block_row_pt = (pangulu_int64_t *)pangulu_malloc(__FILE__, __LINE__, sizeof(pangulu_int64_t) * (block_length + 1));
-        memset(block_row_pt, 0, sizeof(pangulu_int64_t) * (block_length + 1));
-
-        unsigned int *bit_array = (unsigned int *)pangulu_malloc(__FILE__, __LINE__, sizeof(unsigned int) * bit_length * preprocess_ompnum_separate_block);
-
-#pragma omp parallel num_threads(preprocess_ompnum_separate_block)
-        {
-            int tid = omp_get_thread_num();
-            unsigned int *tmp_bit = bit_array + bit_length * tid;
-
-            for (int level = pt[tid]; level < pt[tid + 1]; level++)
-            {
-                memset(tmp_bit, 0, sizeof(unsigned int) * bit_length);
-
-                int start_row = level * nb;
-                int end_row = ((level + 1) * nb) < n ? ((level + 1) * nb) : n;
-
-                for (int rid = start_row; rid < end_row; rid++)
-                {
-                    for (pangulu_int64_t idx = symbolic_full_rowpointer[rid]; idx < symbolic_full_rowpointer[rid + 1]; idx++)
-                    {
-                        pangulu_int32_t colidx = symbolic_full_columnindex[idx];
-                        pangulu_int32_t block_cid = colidx / nb;
-                        setbit(tmp_bit[block_cid / 32], block_cid % 32);
-                    }
-                }
-
-                pangulu_int64_t tmp_blocknum = 0;
-                for (int i = 0; i < bit_length; i++)
-                {
-                    tmp_blocknum += __builtin_popcount(tmp_bit[i]);
-                }
-
-                block_row_pt[level] = tmp_blocknum;
-            }
-        }
-        exclusive_scan_1(block_row_pt, block_length + 1);
-        block_num = block_row_pt[block_length];
-
-        block_nnz_pt = (pangulu_int64_t *)pangulu_malloc(__FILE__, __LINE__, sizeof(pangulu_int64_t) * (block_num + 1));
-        memset(block_nnz_pt, 0, sizeof(pangulu_int64_t) * (block_num + 1));
-        pangulu_int32_t *block_col_idx = (pangulu_int32_t *)pangulu_malloc(__FILE__, __LINE__, sizeof(pangulu_int32_t) * block_num);
-
-        int *count_array = (int *)pangulu_malloc(__FILE__, __LINE__, sizeof(int) * block_length * preprocess_ompnum_separate_block);
-
-#pragma omp parallel num_threads(preprocess_ompnum_separate_block)
-        {
-            int tid = omp_get_thread_num();
-            unsigned int *tmp_bit = bit_array + bit_length * tid;
-            int *tmp_count = count_array + block_length * tid;
-
-            for (int level = pt[tid]; level < pt[tid + 1]; level++)
-            {
-                memset(tmp_bit, 0, sizeof(unsigned int) * bit_length);
-                memset(tmp_count, 0, sizeof(int) * block_length);
-
-                pangulu_int64_t *cur_block_nnz_pt = block_nnz_pt + block_row_pt[level];
-                pangulu_int32_t *cur_block_col_idx = block_col_idx + block_row_pt[level];
-
-                int start_row = level * nb;
-                int end_row = ((level + 1) * nb) < n ? ((level + 1) * nb) : n;
-
-                for (int rid = start_row; rid < end_row; rid++)
-                {
-                    for (pangulu_int64_t idx = symbolic_full_rowpointer[rid]; idx < symbolic_full_rowpointer[rid + 1]; idx++)
-                    {
-                        pangulu_int32_t colidx = symbolic_full_columnindex[idx];
-                        pangulu_int32_t block_cid = colidx / nb;
-                        setbit(tmp_bit[block_cid / 32], block_cid % 32);
-                        tmp_count[block_cid]++;
-                    }
-                }
-
-                pangulu_int64_t cnt = 0;
-                for (int i = 0; i < block_length; i++)
-                {
-                    if (getbit(tmp_bit[i / 32], i % 32))
-                    {
-                        cur_block_nnz_pt[cnt] = tmp_count[i];
-                        cur_block_col_idx[cnt] = i;
-                        cnt++;
-                    }
-                }
-            }
-        }
-        exclusive_scan_1(block_nnz_pt, block_num + 1);
-        block_csr = (char *)pangulu_malloc(__FILE__, __LINE__, sizeof(pangulu_inblock_ptr) * (nb + 1) * block_num + sizeof(pangulu_inblock_idx) * nnz + sizeof(calculate_type) * nnz);
-
-#pragma omp parallel num_threads(preprocess_ompnum_separate_block)
-        {
-            int tid = omp_get_thread_num();
-            int *tmp_count = count_array + block_length * tid;
-
-            for (int level = pt[tid]; level < pt[tid + 1]; level++)
-            {
-
-                memset(tmp_count, 0, sizeof(int) * block_length);
-
-                for (pangulu_int64_t blc = block_row_pt[level]; blc < block_row_pt[level + 1]; blc++)
-                {
-                    pangulu_int64_t tmp_stride = blc * (nb + 1) * sizeof(pangulu_inblock_ptr) + block_nnz_pt[blc] * (sizeof(pangulu_inblock_idx) + sizeof(calculate_type));
-                    pangulu_inblock_ptr *cur_csr_rpt = (pangulu_inblock_ptr *)(block_csr + tmp_stride);
-
-                    memset(cur_csr_rpt, 0, sizeof(pangulu_inblock_ptr) * (nb + 1));
-                }
-
-                int start_row = level * nb;
-                int end_row = ((level + 1) * nb) < n ? ((level + 1) * nb) : n;
-
-                for (int rid = start_row, r_in_blc = 0; rid < end_row; rid++, r_in_blc++)
-                {
-                    pangulu_int64_t cur_block_idx = block_row_pt[level];
-
-                    pangulu_int64_t arr_len = cur_block_idx * (nb + 1) * sizeof(pangulu_inblock_ptr) + block_nnz_pt[cur_block_idx] * (sizeof(pangulu_inblock_idx) + sizeof(calculate_type));
-                    pangulu_inblock_ptr *cur_block_rowptr = (pangulu_inblock_ptr *)(block_csr + arr_len);
-                    pangulu_inblock_idx *cur_block_colidx = (pangulu_inblock_idx *)(block_csr + arr_len + (nb + 1) * sizeof(pangulu_inblock_ptr));
-                    calculate_type *cur_block_value = (calculate_type *)(block_csr + arr_len + (nb + 1) * sizeof(pangulu_inblock_ptr) + (block_nnz_pt[cur_block_idx + 1] - block_nnz_pt[cur_block_idx]) * sizeof(pangulu_inblock_idx));
-
-                    pangulu_exblock_ptr reorder_matrix_idx = reorder_matrix->rowpointer[rid];
-                    pangulu_exblock_ptr reorder_matrix_idx_ub = reorder_matrix->rowpointer[rid + 1];
-                    for (pangulu_exblock_ptr idx = symbolic_full_rowpointer[rid]; idx < symbolic_full_rowpointer[rid + 1]; idx++)
-                    {
-                        pangulu_exblock_idx colidx = symbolic_full_columnindex[idx];
-                        pangulu_exblock_idx block_cid = colidx / nb;
-                        if (block_col_idx[cur_block_idx] != block_cid)
-                        {
-                            cur_block_idx = binarysearch(block_col_idx, cur_block_idx, block_row_pt[level + 1], block_cid);
-
-                            arr_len = cur_block_idx * (nb + 1) * sizeof(pangulu_inblock_ptr) + block_nnz_pt[cur_block_idx] * (sizeof(pangulu_inblock_idx) + sizeof(calculate_type));
-                            cur_block_rowptr = (pangulu_inblock_ptr *)(block_csr + arr_len);
-                            cur_block_colidx = (pangulu_inblock_idx *)(block_csr + arr_len + (nb + 1) * sizeof(pangulu_inblock_ptr));
-                            cur_block_value = (calculate_type *)(block_csr + arr_len + (nb + 1) * sizeof(pangulu_inblock_ptr) + (block_nnz_pt[cur_block_idx + 1] - block_nnz_pt[cur_block_idx]) * sizeof(pangulu_inblock_idx));
-                        }
-                        if ((reorder_matrix->columnindex[reorder_matrix_idx] == colidx) && (reorder_matrix_idx < reorder_matrix_idx_ub))
-                        {
-                            cur_block_value[tmp_count[block_cid]] = reorder_matrix->value[reorder_matrix_idx];
-                            reorder_matrix_idx++;
-                        }
-                        else
-                        {
-                            cur_block_value[tmp_count[block_cid]] = 0.0;
-                        }
-                        cur_block_colidx[tmp_count[block_cid]++] = colidx % nb;
-                        cur_block_rowptr[r_in_blc]++;
-                    }
-                }
-
-                for (pangulu_int64_t blc = block_row_pt[level]; blc < block_row_pt[level + 1]; blc++)
-                {
-                    pangulu_int64_t tmp_stride = blc * (nb + 1) * sizeof(pangulu_inblock_ptr) + block_nnz_pt[blc] * (sizeof(pangulu_inblock_idx) + sizeof(calculate_type));
-                    pangulu_inblock_ptr *cur_csr_rpt = (pangulu_inblock_ptr *)(block_csr + tmp_stride);
-                    exclusive_scan_3(cur_csr_rpt, nb + 1);
-                }
-            }
-        }
-
-        gettimeofday(&fill_end, NULL);
-        pangulu_free(__FILE__, __LINE__, symbolic_full_rowpointer);
-        pangulu_free(__FILE__, __LINE__, symbolic_full_columnindex);
-
-        mpi_barrier_asym(MPI_COMM_WORLD, 0, 1e5);
-
-        gettimeofday(&fill_start, NULL);
-        pangulu_exblock_ptr *calculated_nzblk_count_each_rank = (pangulu_exblock_ptr *)pangulu_malloc(__FILE__, __LINE__, sizeof(pangulu_exblock_ptr) * sum_rank_size);
-        memset(calculated_nzblk_count_each_rank, 0, sizeof(pangulu_exblock_ptr) * sum_rank_size);
-        char *blkcsr_all_rank = (char *)pangulu_malloc(__FILE__, __LINE__, sizeof(pangulu_exblock_ptr) * (block_length + 1) * sum_rank_size + (sizeof(pangulu_exblock_idx) /*blk_colidx*/ + sizeof(pangulu_inblock_ptr) /*blk_value(nnz_in_block)*/) * block_num);
-        char **blkcsr_each_rank = (char **)pangulu_malloc(__FILE__, __LINE__, sizeof(char *) * sum_rank_size);
-        pangulu_int64_t counted_block = 0;
-        for (int i = 0; i < sum_rank_size; i++)
-        {
-            blkcsr_each_rank[i] = blkcsr_all_rank + sizeof(pangulu_exblock_ptr) * (block_length + 1) * i + (sizeof(pangulu_exblock_idx) /*blk_colidx*/ + sizeof(pangulu_inblock_ptr) /*blk_value(nnz_in_block)*/) * counted_block;
-            counted_block += every_rank_block_num[i];
-        }
-
-        for (int target_rank = 0; target_rank < sum_rank_size; target_rank++)
-        {
-            pangulu_exblock_ptr *blkcsr_rowptr = (pangulu_exblock_ptr *)blkcsr_each_rank[target_rank];
-            blkcsr_rowptr[0] = 0;
-        }
-        for (int brow = 0; brow < block_length; brow++)
-        {
-            for (pangulu_int64_t bidx = block_row_pt[brow]; bidx < block_row_pt[brow + 1]; bidx++)
-            {
-                int bcol = block_col_idx[bidx];
-                int target_rank = (brow % p) * q + (bcol % q);
-
-                pangulu_exblock_idx *blkcsr_colidx = (pangulu_exblock_idx *)(blkcsr_each_rank[target_rank] + sizeof(pangulu_exblock_ptr) * (block_length + 1));
-                pangulu_inblock_ptr *blkcsr_value_blknnz = (pangulu_inblock_ptr *)(blkcsr_each_rank[target_rank] + sizeof(pangulu_exblock_ptr) * (block_length + 1) + sizeof(pangulu_exblock_idx) * every_rank_block_num[target_rank]);
-
-                pangulu_exblock_ptr bidx_in_target_rank = calculated_nzblk_count_each_rank[target_rank];
-                blkcsr_colidx[bidx_in_target_rank] = bcol;
-                blkcsr_value_blknnz[bidx_in_target_rank] = block_nnz_pt[bidx + 1] - block_nnz_pt[bidx];
-
-                calculated_nzblk_count_each_rank[target_rank]++;
-            }
-            for (int target_rank = 0; target_rank < sum_rank_size; target_rank++)
-            {
-                pangulu_exblock_ptr *blkcsr_rowptr = (pangulu_exblock_ptr *)blkcsr_each_rank[target_rank];
-                blkcsr_rowptr[brow + 1] = calculated_nzblk_count_each_rank[target_rank];
-            }
-        }
-        pangulu_free(__FILE__, __LINE__, every_rank_block_num);
-
-        pangulu_exblock_idx *sent_block_count_each_rank = (pangulu_exblock_idx *)pangulu_malloc(__FILE__, __LINE__, sizeof(pangulu_exblock_idx) * sum_rank_size);
-        memset(sent_block_count_each_rank, 0, sizeof(pangulu_exblock_idx) * sum_rank_size);
-#pragma omp parallel num_threads(preprocess_ompnum_send_block)
-        {
-            int tid = omp_get_thread_num();
-            int nthread = omp_get_num_threads();
-            for (int target_rank = tid; target_rank < sum_rank_size; target_rank += nthread)
-            {
-                if (target_rank != 0)
-                {
-                    MPI_Send(calculated_nzblk_count_each_rank + target_rank, 1, MPI_PANGULU_EXBLOCK_PTR, target_rank, 0xCAFE + 1, MPI_COMM_WORLD);
-                    MPI_Send(every_rank_block_nnz + target_rank, 1, MPI_PANGULU_INT64_T, target_rank, 0xCAFE + 2, MPI_COMM_WORLD);
-                    MPI_Send(blkcsr_each_rank[target_rank], sizeof(pangulu_exblock_ptr) * (block_length + 1) + (sizeof(pangulu_exblock_idx) + sizeof(pangulu_inblock_ptr)) * calculated_nzblk_count_each_rank[target_rank], MPI_CHAR, target_rank, 0xCAFE + 3, MPI_COMM_WORLD);
-                }
-                else
-                {
-                    nzblk_current_rank = calculated_nzblk_count_each_rank[target_rank];
-                    nnz_current_rank = every_rank_block_nnz[target_rank];
-                    blkcsr_current_rank = blkcsr_each_rank[0];
-                    blocks_current_rank = (char *)pangulu_malloc(__FILE__, __LINE__, sizeof(pangulu_inblock_ptr) * (nb + 1) * nzblk_current_rank + (sizeof(pangulu_inblock_idx) + sizeof(calculate_type)) * nnz_current_rank);
-                }
-                pangulu_int64_t blocks_current_rank_receive_offset = 0;
-                for (pangulu_exblock_idx brow = 0; brow < block_length; brow++)
-                {
-                    if (brow % p != target_rank / q)
-                    {
-                        continue;
-                    }
-                    for (pangulu_exblock_ptr bidx = block_row_pt[brow]; bidx < block_row_pt[brow + 1]; bidx++)
-                    {
-                        pangulu_exblock_idx bcol = block_col_idx[bidx];
-                        if (bcol % q != target_rank % q)
-                        {
-                            continue;
-                        }
-                        pangulu_int64_t block_byte_offset = sizeof(pangulu_inblock_ptr) * (bidx * (nb + 1)) + (sizeof(pangulu_inblock_idx) + sizeof(calculate_type)) * block_nnz_pt[bidx];
-                        if (target_rank != 0)
-                        {
-                            MPI_Send(block_csr + block_byte_offset, sizeof(pangulu_inblock_ptr) * (nb + 1) + (sizeof(pangulu_inblock_idx) + sizeof(calculate_type)) * (block_nnz_pt[bidx + 1] - block_nnz_pt[bidx]), MPI_CHAR, target_rank, sent_block_count_each_rank[target_rank], MPI_COMM_WORLD);
-                            sent_block_count_each_rank[target_rank]++;
-                        }
-                        else
-                        {
-                            memcpy(blocks_current_rank + blocks_current_rank_receive_offset, block_csr + block_byte_offset, sizeof(pangulu_inblock_ptr) * (nb + 1) + (sizeof(pangulu_inblock_idx) + sizeof(calculate_type)) * (block_nnz_pt[bidx + 1] - block_nnz_pt[bidx]));
-
-                            pangulu_smatrix *current = &Big_smatrix_value[current_rank_block_count];
-                            current->row = nb;
-                            current->column = nb;
-                            current->rowpointer = (pangulu_inblock_ptr *)(blocks_current_rank + blocks_current_rank_receive_offset);
-                            current->nnz = current->rowpointer[nb];
-                            current->columnindex = (pangulu_inblock_idx *)(blocks_current_rank + blocks_current_rank_receive_offset + sizeof(pangulu_inblock_ptr) * (nb + 1));
-                            current->value = (calculate_type *)(blocks_current_rank + blocks_current_rank_receive_offset + sizeof(pangulu_inblock_ptr) * (nb + 1) + sizeof(pangulu_inblock_idx) * current->nnz);
-
-                            pangulu_bip_set(brow * block_length + bcol, BIP)->mapper_a = current_rank_block_count;
-
-                            blocks_current_rank_receive_offset += sizeof(pangulu_inblock_ptr) * (nb + 1) + (sizeof(pangulu_inblock_idx) + sizeof(calculate_type)) * (block_nnz_pt[bidx + 1] - block_nnz_pt[bidx]);
-                            current_rank_block_count++;
-                        }
-                    }
-                }
-            }
-        }
-        gettimeofday(&fill_end, NULL);
-        gettimeofday(&fill_start, NULL);
-        pangulu_free(__FILE__, __LINE__, pt);
-        pangulu_free(__FILE__, __LINE__, block_nnz_pt);
-        pangulu_free(__FILE__, __LINE__, block_row_nnz_pt);
-        pangulu_free(__FILE__, __LINE__, block_row_pt);
-        pangulu_free(__FILE__, __LINE__, block_col_idx);
-        pangulu_free(__FILE__, __LINE__, bit_array);
-        pangulu_free(__FILE__, __LINE__, count_array);
-        pangulu_free(__FILE__, __LINE__, block_csr);
-        pangulu_free(__FILE__, __LINE__, every_rank_block_nnz);
-        pangulu_free(__FILE__, __LINE__, calculated_nzblk_count_each_rank);
-        pangulu_free(__FILE__, __LINE__, blkcsr_each_rank);
-        pangulu_free(__FILE__, __LINE__, sent_block_count_each_rank);
-        blkcsr_current_rank = (char *)pangulu_realloc(__FILE__, __LINE__, blkcsr_current_rank, sizeof(pangulu_exblock_ptr) * (block_length + 1) + (sizeof(pangulu_exblock_idx) + sizeof(pangulu_inblock_ptr)) * nzblk_current_rank);
-
-        gettimeofday(&fill_end, NULL);
-
-        gettimeofday(&fill_all_end, NULL);
-    }
-    else
-    {
-        MPI_Status mpi_stat;
-        mpi_barrier_asym(MPI_COMM_WORLD, 0, 1e5);
-        MPI_Recv(&nzblk_current_rank, 1, MPI_PANGULU_EXBLOCK_PTR, 0, 0xCAFE + 1, MPI_COMM_WORLD, &mpi_stat);
-        MPI_Recv(&nnz_current_rank, 1, MPI_PANGULU_EXBLOCK_PTR, 0, 0xCAFE + 2, MPI_COMM_WORLD, &mpi_stat);
-
-        blkcsr_current_rank = (char *)pangulu_malloc(__FILE__, __LINE__, sizeof(pangulu_exblock_ptr) * (block_length + 1) + (sizeof(pangulu_exblock_idx) + sizeof(pangulu_inblock_ptr)) * nzblk_current_rank);
-        MPI_Recv(blkcsr_current_rank, sizeof(pangulu_exblock_ptr) * (block_length + 1) + (sizeof(pangulu_exblock_idx) + sizeof(pangulu_inblock_ptr)) * nzblk_current_rank, MPI_CHAR, 0, 0xCAFE + 3, MPI_COMM_WORLD, &mpi_stat);
-        blocks_current_rank = (char *)pangulu_malloc(__FILE__, __LINE__, sizeof(pangulu_inblock_ptr) * (nb + 1) * nzblk_current_rank + (sizeof(pangulu_inblock_idx) + sizeof(calculate_type)) * nnz_current_rank);
-
-        pangulu_exblock_ptr *blkcsr_rowptr = (pangulu_exblock_ptr *)blkcsr_current_rank;
-        pangulu_exblock_idx *blkcsr_colidx = (pangulu_exblock_idx *)(blkcsr_current_rank + sizeof(pangulu_exblock_ptr) * (block_length + 1));
-        pangulu_inblock_ptr *blkcsr_value_blknnz = (pangulu_inblock_ptr *)(blkcsr_current_rank + sizeof(pangulu_exblock_ptr) * (block_length + 1) + sizeof(pangulu_exblock_idx) * nzblk_current_rank);
-
-        pangulu_int64_t blocks_current_rank_receive_offset = 0;
-        for (pangulu_exblock_idx brow = 0; brow < block_length; brow++)
-        {
-            for (pangulu_exblock_ptr bidx = blkcsr_rowptr[brow]; bidx < blkcsr_rowptr[brow + 1]; bidx++)
-            {
-                pangulu_exblock_idx bcol = blkcsr_colidx[bidx];
-                MPI_Recv(blocks_current_rank + blocks_current_rank_receive_offset, sizeof(pangulu_inblock_ptr) * (nb + 1) + (sizeof(pangulu_inblock_idx) + sizeof(calculate_type)) * blkcsr_value_blknnz[bidx], MPI_CHAR, 0, bidx, MPI_COMM_WORLD, &mpi_stat);
-
-                pangulu_smatrix *current = &Big_smatrix_value[current_rank_block_count];
-                current->row = nb;
-                current->column = nb;
-                current->rowpointer = (pangulu_inblock_ptr *)(blocks_current_rank + blocks_current_rank_receive_offset);
-                current->nnz = current->rowpointer[nb];
-                current->columnindex = (pangulu_inblock_idx *)(blocks_current_rank + blocks_current_rank_receive_offset + sizeof(pangulu_inblock_ptr) * (nb + 1));
-                current->value = (calculate_type *)(blocks_current_rank + blocks_current_rank_receive_offset + sizeof(pangulu_inblock_ptr) * (nb + 1) + sizeof(pangulu_inblock_idx) * current->nnz);
-
-                pangulu_bip_set(brow * block_length + bcol, BIP)->mapper_a = current_rank_block_count;
-
-                blocks_current_rank_receive_offset += sizeof(pangulu_inblock_ptr) * (nb + 1) + (sizeof(pangulu_inblock_idx) + sizeof(calculate_type)) * blkcsr_value_blknnz[bidx];
-                current_rank_block_count++;
-            }
+            pangulu_exblock_idx brow = bcsc_index[bidx];
+            pangulu_smatrix *current = &Big_smatrix_value[current_rank_block_count];
+            current->row = nb;
+            current->column = nb;
+            current->nnz = bcsc_inblk_pointers[bidx][nb];
+            current->columnpointer = bcsc_inblk_pointers[bidx];
+            current->rowindex = bcsc_inblk_indeces[bidx];
+            current->value_csc = bcsc_inblk_values[bidx];
+            pangulu_bip_set(brow * block_length + bcol, BIP)->mapper_a = current_rank_block_count;
+            current_rank_block_count++;
         }
     }
-    pangulu_free(__FILE__, __LINE__, blkcsr_current_rank);
+    pangulu_free(__FILE__, __LINE__, bcsc_pointer);
+    pangulu_free(__FILE__, __LINE__, bcsc_index);
+    pangulu_free(__FILE__, __LINE__, bcsc_inblk_pointers);
+    pangulu_free(__FILE__, __LINE__, bcsc_inblk_indeces);
+    pangulu_free(__FILE__, __LINE__, bcsc_inblk_values);
+
 
     for (pangulu_int64_t offset_block_index = 0; offset_block_index < p * q; offset_block_index++)
     {
@@ -1020,7 +678,7 @@ void pangulu_preprocessing(pangulu_block_common *block_common,
 
     for (pangulu_int64_t i = 0; i < current_rank_block_count; i++)
     {
-        pangulu_smatrix_add_more_memory(&Big_smatrix_value[i]);
+        pangulu_smatrix_add_more_memory_csr(&Big_smatrix_value[i]);
 
 #ifdef GPU_OPEN
         pangulu_smatrix_add_cuda_memory(&Big_smatrix_value[i]);
@@ -1530,8 +1188,11 @@ void pangulu_preprocessing(pangulu_block_common *block_common,
     }
 
     temp_a_value = (calculate_type *)pangulu_malloc(__FILE__, __LINE__, sizeof(calculate_type) * nb * nb);
+    memset(temp_a_value, 0, sizeof(calculate_type) * nb * nb);
     ssssm_l_value = (calculate_type *)pangulu_malloc(__FILE__, __LINE__, sizeof(calculate_type) * nb * nb);
+    memset(ssssm_l_value, 0, sizeof(calculate_type) * nb * nb);
     ssssm_u_value = (calculate_type *)pangulu_malloc(__FILE__, __LINE__, sizeof(calculate_type) * nb * nb);
+    memset(ssssm_u_value, 0, sizeof(calculate_type) * nb * nb);
     ssssm_hash_l_row = (pangulu_int32_t *)pangulu_malloc(__FILE__, __LINE__, sizeof(pangulu_int32_t) * (nb));
     ssssm_hash_u_col = (pangulu_int32_t *)pangulu_malloc(__FILE__, __LINE__, sizeof(pangulu_int32_t) * (nb));
     ssssm_hash_lu = (pangulu_int32_t *)pangulu_malloc(__FILE__, __LINE__, sizeof(pangulu_int32_t) * (nb));
@@ -1585,7 +1246,7 @@ void pangulu_preprocessing(pangulu_block_common *block_common,
     block_smatrix->save_send_rank_flag = save_send_rank_flag;
 
     block_smatrix->receive_level_num = receive_level_num;
-    block_smatrix->blocks_current_rank = blocks_current_rank;
+    // block_smatrix->blocks_current_rank = blocks_current_rank;
     block_smatrix->save_tmp = NULL;
 
     block_smatrix->level_index = level_index;

@@ -351,10 +351,10 @@ void pangulu_tstrf_interface_c_v1(pangulu_smatrix *a,
 #ifdef GPU_OPEN
     pangulu_smatrix_cuda_memcpy_value_csc(a, a);
 #endif
-    pangulu_transport_pangulu_smatrix_csc_to_csr(a);
+    pangulu_transpose_pangulu_smatrix_csc_to_csr(a);
     pangulu_pangulu_smatrix_memcpy_value_csc_copy_length(x, a);
     pangulu_tstrf_fp64_cpu_4(a, x, u);
-    pangulu_transport_pangulu_smatrix_csr_to_csc(a);
+    pangulu_transpose_pangulu_smatrix_csr_to_csc(a);
 #ifdef GPU_OPEN
     pangulu_smatrix_cuda_memcpy_to_device_value_csc(a, a);
 #endif
@@ -366,10 +366,10 @@ void pangulu_tstrf_interface_c_v2(pangulu_smatrix *a,
 #ifdef GPU_OPEN
     pangulu_smatrix_cuda_memcpy_value_csc(a, a);
 #endif
-    pangulu_transport_pangulu_smatrix_csc_to_csr(a);
+    pangulu_transpose_pangulu_smatrix_csc_to_csr(a);
     pangulu_pangulu_smatrix_memcpy_value_csc_copy_length(x, a);
     pangulu_tstrf_fp64_cpu_6(a, x, u);
-    pangulu_transport_pangulu_smatrix_csr_to_csc(a);
+    pangulu_transpose_pangulu_smatrix_csr_to_csc(a);
 #ifdef GPU_OPEN
     pangulu_smatrix_cuda_memcpy_to_device_value_csc(a, a);
 #endif

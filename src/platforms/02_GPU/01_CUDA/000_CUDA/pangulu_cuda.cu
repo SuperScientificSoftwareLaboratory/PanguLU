@@ -2980,7 +2980,7 @@ __global__ void cuda_transform_d_to_s_col(pangulu_int64_t n,
     }
 }
 
-// void pangulu_cuda_transport_kernel_csc_to_csr(pangulu_int64_t nnz, calculate_type *d_val_csr, pangulu_inblock_idx *d_idx, calculate_type *d_val_csc)
+// void pangulu_cuda_transpose_kernel_csc_to_csr(pangulu_int64_t nnz, calculate_type *d_val_csr, pangulu_inblock_idx *d_idx, calculate_type *d_val_csc)
 // {
 
 //     pangulu_int64_t num_threads = warp_size * 2;
@@ -2990,7 +2990,7 @@ __global__ void cuda_transform_d_to_s_col(pangulu_int64_t n,
 //     cudaDeviceSynchronize();
 // }
 
-// void pangulu_cuda_transport_kernel_csr_to_csc(pangulu_int64_t nnz, calculate_type *d_val_csc, pangulu_inblock_idx *d_idx, calculate_type *d_val_csr)
+// void pangulu_cuda_transpose_kernel_csr_to_csc(pangulu_int64_t nnz, calculate_type *d_val_csc, pangulu_inblock_idx *d_idx, calculate_type *d_val_csr)
 // {
 
 //     pangulu_int64_t num_threads = warp_size * 2;

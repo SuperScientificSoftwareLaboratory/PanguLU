@@ -7,6 +7,6 @@ if [ ! -f $1 ];then
   exit
 fi
 
-echo mpirun -np $[$NP] ./$numeric_file -nb $nb -f $Smatrix_name
+echo mpirun -np $NP ./$numeric_file -nb $nb -f $Smatrix_name
 
-mpirun -np $[$NP] ./$numeric_file -nb $nb -f $Smatrix_name
+mpirun -np $NP ./$numeric_file -nb $nb -f $Smatrix_name

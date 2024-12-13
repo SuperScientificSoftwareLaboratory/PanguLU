@@ -17,7 +17,7 @@ pangulu_int64_t INDEX_NUM = 0;
 pangulu_int32_t pangu_omp_num_threads = 1;
 
 pangulu_int64_t flop = 0;
-double time_transport = 0.0;
+double time_transpose = 0.0;
 double time_isend = 0.0;
 double time_receive = 0.0;
 double time_getrf = 0.0;
@@ -45,6 +45,9 @@ pangulu_int32_t omp_thread;
 void pangulu_init(pangulu_exblock_idx pangulu_n, pangulu_exblock_ptr pangulu_nnz, pangulu_exblock_ptr *csr_rowptr, pangulu_exblock_idx *csr_colidx, calculate_type *csr_value, pangulu_init_options *init_options, void **pangulu_handle)
 {
     MPI_Comm_rank(MPI_COMM_WORLD, &rank);
+
+    struct timeval time_start;
+    double elapsed_time;
 
     pangulu_int32_t size;
     MPI_Comm_size(MPI_COMM_WORLD, &size);
@@ -111,7 +114,6 @@ void pangulu_init(pangulu_exblock_idx pangulu_n, pangulu_exblock_ptr pangulu_nnz
     pangulu_int32_t q = common->q;
     pangulu_int32_t nb = common->nb;
     MPI_Barrier(MPI_COMM_WORLD);
-    pangulu_time_start(common);
     common->n = pangulu_bcast_n(origin_smatrix->row, 0);
     pangulu_int64_t n = common->n;
     omp_set_num_threads(init_options->nthread);
@@ -120,16 +122,16 @@ void pangulu_init(pangulu_exblock_idx pangulu_n, pangulu_exblock_ptr pangulu_nnz
 #endif
     if (rank == 0)
     {
-#ifdef ADAPTIVE_KERNEL_SELECTION
-        printf(PANGULU_I_ADAPTIVE_KERNEL_SELECTION_ON);
-#else
-        printf(PANGULU_I_ADAPTIVE_KERNEL_SELECTION_OFF);
-#endif
-#ifdef SYNCHRONIZE_FREE
-        printf(PANGULU_I_SYNCHRONIZE_FREE_ON);
-#else
-        printf(PANGULU_I_SYNCHRONIZE_FREE_OFF);
-#endif
+// #ifdef ADAPTIVE_KERNEL_SELECTION
+//         printf(PANGULU_I_ADAPTIVE_KERNEL_SELECTION_ON);
+// #else
+//         printf(PANGULU_I_ADAPTIVE_KERNEL_SELECTION_OFF);
+// #endif
+// #ifdef SYNCHRONIZE_FREE
+//         printf(PANGULU_I_SYNCHRONIZE_FREE_ON);
+// #else
+//         printf(PANGULU_I_SYNCHRONIZE_FREE_OFF);
+// #endif
 #ifdef PANGULU_GPU_COMPLEX_FALLBACK_FLAG
         printf(PANGULU_W_COMPLEX_FALLBACK);
 #endif
@@ -168,14 +170,14 @@ void pangulu_init(pangulu_exblock_idx pangulu_n, pangulu_exblock_ptr pangulu_nnz
     block_common->rank_col_length = (block_common->block_length / q + (((block_common->block_length % q) > (rank % q)) ? 1 : 0));
     block_common->every_level_length = PANGULU_MIN(block_common->every_level_length, block_common->block_length);
     MPI_Barrier(MPI_COMM_WORLD);
-    pangulu_time_start(common);
+    pangulu_time_start(&time_start);
 
     pangulu_reorder(block_smatrix,
                     origin_smatrix,
                     reorder_matrix);
 
     MPI_Barrier(MPI_COMM_WORLD);
-    pangulu_time_stop(common);
+    elapsed_time = pangulu_time_stop(&time_start);
     if (rank == 0)
     {
         printf(PANGULU_I_TIME_REORDER);
@@ -184,8 +186,7 @@ void pangulu_init(pangulu_exblock_idx pangulu_n, pangulu_exblock_ptr pangulu_nnz
     calculate_time = 0;
 
     MPI_Barrier(MPI_COMM_WORLD);
-    pangulu_time_start(common);
-
+    pangulu_time_start(&time_start);
     if (rank == 0)
     {
         pangulu_symbolic(block_common,
@@ -194,7 +195,7 @@ void pangulu_init(pangulu_exblock_idx pangulu_n, pangulu_exblock_ptr pangulu_nnz
     }
 
     MPI_Barrier(MPI_COMM_WORLD);
-    pangulu_time_stop(common);
+    elapsed_time = pangulu_time_stop(&time_start);
     if (rank == 0)
     {
         printf(PANGULU_I_TIME_SYMBOLIC);
@@ -203,30 +204,26 @@ void pangulu_init(pangulu_exblock_idx pangulu_n, pangulu_exblock_ptr pangulu_nnz
     pangulu_init_heap_select(0);
 
     MPI_Barrier(MPI_COMM_WORLD);
-    pangulu_time_start(common);
-
+    pangulu_time_start(&time_start);
     pangulu_preprocessing(
         block_common,
         block_smatrix,
         reorder_matrix,
         init_options->nthread);
 
-#ifdef PANGULU_SPTRSV
-
-#endif
     MPI_Barrier(MPI_COMM_WORLD);
 
-    pangulu_time_stop(common);
+    elapsed_time = pangulu_time_stop(&time_start);
     if (rank == 0)
     {
         printf(PANGULU_I_TIME_PRE);
     }
 
-    pangulu_free(__FILE__, __LINE__, block_smatrix->symbolic_rowpointer);
-    block_smatrix->symbolic_rowpointer = NULL;
+    // pangulu_free(__FILE__, __LINE__, block_smatrix->symbolic_rowpointer);
+    // block_smatrix->symbolic_rowpointer = NULL;
 
-    pangulu_free(__FILE__, __LINE__, block_smatrix->symbolic_columnindex);
-    block_smatrix->symbolic_columnindex = NULL;
+    // pangulu_free(__FILE__, __LINE__, block_smatrix->symbolic_columnindex);
+    // block_smatrix->symbolic_columnindex = NULL;
 
     pangulu_free(__FILE__, __LINE__, origin_smatrix);
     origin_smatrix = NULL;
@@ -249,6 +246,9 @@ void pangulu_gstrf(pangulu_gstrf_options *gstrf_options, void **pangulu_handle)
     pangulu_block_smatrix *block_smatrix = (*(pangulu_handle_t **)pangulu_handle)->block_smatrix;
     pangulu_common *common = (*(pangulu_handle_t **)pangulu_handle)->commmon;
 
+    struct timeval time_start;
+    double elapsed_time;
+
     if (rank == 0)
     {
         if (gstrf_options == NULL)
@@ -270,13 +270,13 @@ void pangulu_gstrf(pangulu_gstrf_options *gstrf_options, void **pangulu_handle)
 
     pangulu_time_init();
     MPI_Barrier(MPI_COMM_WORLD);
-    pangulu_time_start(common);
+    pangulu_time_start(&time_start);
 
     pangulu_numeric(block_common,
                     block_smatrix);
 
     MPI_Barrier(MPI_COMM_WORLD);
-    pangulu_time_stop(common);
+    elapsed_time = pangulu_time_stop(&time_start);
 
     if (rank == 0)
     {
@@ -305,6 +305,9 @@ void pangulu_gstrs(calculate_type *rhs, pangulu_gstrs_options *gstrs_options, vo
     pangulu_block_common *block_common = (*(pangulu_handle_t **)pangulu_handle)->block_common;
     pangulu_block_smatrix *block_smatrix = (*(pangulu_handle_t **)pangulu_handle)->block_smatrix;
     pangulu_common *common = (*(pangulu_handle_t **)pangulu_handle)->commmon;
+
+    struct timeval time_start;
+    double elapsed_time;
 
     if (rank == 0)
     {
@@ -340,14 +343,14 @@ void pangulu_gstrs(calculate_type *rhs, pangulu_gstrs_options *gstrs_options, vo
 #ifdef PANGULU_SPTRSV
 
     MPI_Barrier(MPI_COMM_WORLD);
-    pangulu_time_start(common);
+    pangulu_time_start(&time_start);
 
     pangulu_sptrsv_L(block_common, block_smatrix);
     pangulu_init_heap_select(4);
     pangulu_sptrsv_U(block_common, block_smatrix);
 
     MPI_Barrier(MPI_COMM_WORLD);
-    pangulu_time_stop(common);
+    elapsed_time = pangulu_time_stop(&time_start);
 
     if (rank == 0)
     {

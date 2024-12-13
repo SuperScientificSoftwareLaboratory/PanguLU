@@ -178,11 +178,11 @@ void pangulu_tstrf_interface_G_V1(pangulu_smatrix *a,
                                   pangulu_smatrix *u)
 {
     pangulu_smatrix_cuda_memcpy_value_csc(a, a);
-    pangulu_transport_pangulu_smatrix_csc_to_csr(a);
+    pangulu_transpose_pangulu_smatrix_csc_to_csr(a);
     pangulu_smatrix_cuda_memcpy_complete_csr(a, a);
     pangulu_tstrf_fp64_cuda_v7(a, x, u);
     pangulu_smatrix_cuda_memcpy_value_csr(a, x);
-    pangulu_transport_pangulu_smatrix_csr_to_csc(a);
+    pangulu_transpose_pangulu_smatrix_csr_to_csc(a);
 }
 void pangulu_tstrf_interface_G_V2(pangulu_smatrix *a,
                                   pangulu_smatrix *x,
@@ -196,10 +196,10 @@ void pangulu_tstrf_interface_G_V3(pangulu_smatrix *a,
                                   pangulu_smatrix *u)
 {
     pangulu_smatrix_cuda_memcpy_value_csc(a, a);
-    pangulu_transport_pangulu_smatrix_csc_to_csr(a);
+    pangulu_transpose_pangulu_smatrix_csc_to_csr(a);
     pangulu_smatrix_cuda_memcpy_complete_csr(a, a);
     pangulu_tstrf_fp64_cuda_v10(a, x, u);
     pangulu_smatrix_cuda_memcpy_value_csr(a, x);
-    pangulu_transport_pangulu_smatrix_csr_to_csc(a);
+    pangulu_transpose_pangulu_smatrix_csr_to_csc(a);
 }
 #endif

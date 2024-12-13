@@ -2,6 +2,9 @@
 
 void *pangulu_malloc(const char* file, pangulu_int64_t line, pangulu_int64_t size)
 {
+    if(size == 0){
+        return NULL;
+    }
     cpu_memory += size;
     if (cpu_memory > cpu_peak_memory)
     {
@@ -20,6 +23,10 @@ void *pangulu_malloc(const char* file, pangulu_int64_t line, pangulu_int64_t siz
 
 void *pangulu_realloc(const char* file, pangulu_int64_t line, void* oldptr, pangulu_int64_t size)
 {
+    if(size == 0){
+        pangulu_free(__FILE__, __LINE__, oldptr);
+        return NULL;
+    }
     cpu_memory += size;
     if (cpu_memory > cpu_peak_memory)
     {
@@ -189,7 +196,7 @@ void pangulu_get_pangulu_smatrix_to_l(pangulu_smatrix *s,
 
 void pangulu_smatrix_add_more_memory(pangulu_smatrix *a)
 {
-    // add CPU moemory
+    // add CPU memory
     pangulu_int64_t nnzA = a->rowpointer[a->row];
     pangulu_int64_t n = a->row;
     char *now_malloc_space = (char *)pangulu_malloc(__FILE__, __LINE__, sizeof(pangulu_inblock_ptr) * (n + 1) + sizeof(pangulu_inblock_idx) * nnzA + sizeof(calculate_type) * nnzA);
@@ -274,7 +281,7 @@ void pangulu_smatrix_add_more_memory(pangulu_smatrix *a)
 
 void pangulu_smatrix_add_more_memory_csr(pangulu_smatrix *a)
 {
-    // add CPU moemory
+    // add CPU memory
 
     pangulu_int64_t nnzA = a->nnz;
     pangulu_int64_t n = a->row;
@@ -360,7 +367,7 @@ void pangulu_smatrix_add_more_memory_csr(pangulu_smatrix *a)
 
 void pangulu_smatrix_add_csc(pangulu_smatrix *a)
 {
-    // add csc moemory
+    // add csc memory
     pangulu_int64_t nnzA = a->rowpointer[a->row];
     pangulu_int64_t n = a->row;
     char *now_malloc_space = (char *)pangulu_malloc(__FILE__, __LINE__, sizeof(pangulu_inblock_ptr) * (n + 1) + sizeof(pangulu_inblock_idx) * nnzA + sizeof(calculate_type) * nnzA);
@@ -411,57 +418,105 @@ void pangulu_smatrix_add_csc(pangulu_smatrix *a)
     pangulu_free(__FILE__, __LINE__, index_rowpointer);
 }
 
+// void pangulu_origin_smatrix_add_csc(pangulu_origin_smatrix *a)
+// {
+//     // add csc memory
+//     pangulu_exblock_ptr nnzA = a->rowpointer[a->row];
+//     pangulu_exblock_idx n = a->row;
+//     char *now_malloc_space = (char *)pangulu_malloc(__FILE__, __LINE__, sizeof(pangulu_exblock_ptr) * (n + 1) + sizeof(pangulu_exblock_idx) * nnzA + sizeof(calculate_type) * nnzA);
+
+//     pangulu_exblock_ptr *rowpointer = (pangulu_exblock_ptr *)now_malloc_space;
+//     pangulu_exblock_idx *columnindex = (pangulu_exblock_idx *)(now_malloc_space + sizeof(pangulu_exblock_ptr) * (n + 1));
+//     calculate_type *value = (calculate_type *)(now_malloc_space + sizeof(pangulu_exblock_ptr) * (n + 1) + sizeof(pangulu_exblock_idx) * nnzA);
+//     pangulu_exblock_ptr *csc_to_csr_index = (pangulu_exblock_ptr *)pangulu_malloc(__FILE__, __LINE__, sizeof(pangulu_exblock_ptr) * nnzA);
+//     for (pangulu_exblock_ptr i = 0; i < nnzA; i++)
+//     {
+//         value[i] = 0.0;
+//     }
+
+//     for (pangulu_exblock_idx i = 0; i < (n + 1); i++)
+//     {
+//         rowpointer[i] = 0;
+//     }
+//     for (pangulu_exblock_ptr i = 0; i < nnzA; i++)
+//     {
+//         rowpointer[a->columnindex[i] + 1]++;
+//     }
+//     for (pangulu_exblock_idx i = 0; i < n; i++)
+//     {
+//         rowpointer[i + 1] += rowpointer[i];
+//     }
+//     pangulu_exblock_ptr *index_rowpointer = (pangulu_exblock_ptr *)pangulu_malloc(__FILE__, __LINE__, sizeof(pangulu_exblock_ptr) * (n + 1));
+//     for (pangulu_exblock_idx i = 0; i < n; i++)
+//     {
+//         index_rowpointer[i] = rowpointer[i];
+//     }
+//     for (pangulu_exblock_idx i = 0; i < n; i++)
+//     {
+//         for (pangulu_exblock_ptr j = a->rowpointer[i]; j < a->rowpointer[i + 1]; j++)
+//         {
+
+//             pangulu_exblock_idx col = a->columnindex[j];
+//             pangulu_exblock_ptr index = index_rowpointer[col];
+//             columnindex[index] = i;
+//             value[index] = a->value[j];
+//             csc_to_csr_index[index] = j;
+//             index_rowpointer[col]++;
+//         }
+//     }
+//     a->columnpointer = rowpointer;
+//     a->rowindex = columnindex;
+//     a->value_csc = value;
+//     a->csc_to_csr_index = csc_to_csr_index;
+//     pangulu_free(__FILE__, __LINE__, index_rowpointer);
+// }
+
 void pangulu_origin_smatrix_add_csc(pangulu_origin_smatrix *a)
 {
-    // add csc moemory
     pangulu_exblock_ptr nnzA = a->rowpointer[a->row];
     pangulu_exblock_idx n = a->row;
     char *now_malloc_space = (char *)pangulu_malloc(__FILE__, __LINE__, sizeof(pangulu_exblock_ptr) * (n + 1) + sizeof(pangulu_exblock_idx) * nnzA + sizeof(calculate_type) * nnzA);
-
-    pangulu_exblock_ptr *rowpointer = (pangulu_exblock_ptr *)now_malloc_space;
-    pangulu_exblock_idx *columnindex = (pangulu_exblock_idx *)(now_malloc_space + sizeof(pangulu_exblock_ptr) * (n + 1));
+    pangulu_exblock_ptr *columnpointer = (pangulu_exblock_ptr *)now_malloc_space;
+    pangulu_exblock_idx *rowindex = (pangulu_exblock_idx *)(now_malloc_space + sizeof(pangulu_exblock_ptr) * (n + 1));
     calculate_type *value = (calculate_type *)(now_malloc_space + sizeof(pangulu_exblock_ptr) * (n + 1) + sizeof(pangulu_exblock_idx) * nnzA);
     pangulu_exblock_ptr *csc_to_csr_index = (pangulu_exblock_ptr *)pangulu_malloc(__FILE__, __LINE__, sizeof(pangulu_exblock_ptr) * nnzA);
-    for (pangulu_exblock_ptr i = 0; i < nnzA; i++)
-    {
-        value[i] = 0.0;
-    }
+    pangulu_exblock_ptr *index_columnpointer = (pangulu_exblock_ptr *)pangulu_malloc(__FILE__, __LINE__, sizeof(pangulu_exblock_ptr) * (n + 1));
 
+    #pragma omp parallel for
     for (pangulu_exblock_idx i = 0; i < (n + 1); i++)
     {
-        rowpointer[i] = 0;
+        columnpointer[i] = 0;
     }
     for (pangulu_exblock_ptr i = 0; i < nnzA; i++)
     {
-        rowpointer[a->columnindex[i] + 1]++;
+        columnpointer[a->columnindex[i] + 1]++;
     }
     for (pangulu_exblock_idx i = 0; i < n; i++)
     {
-        rowpointer[i + 1] += rowpointer[i];
+        columnpointer[i + 1] += columnpointer[i];
     }
-    pangulu_exblock_ptr *index_rowpointer = (pangulu_exblock_ptr *)pangulu_malloc(__FILE__, __LINE__, sizeof(pangulu_exblock_ptr) * (n + 1));
+    #pragma omp parallel for
     for (pangulu_exblock_idx i = 0; i < n; i++)
     {
-        index_rowpointer[i] = rowpointer[i];
+        index_columnpointer[i] = columnpointer[i];
     }
     for (pangulu_exblock_idx i = 0; i < n; i++)
     {
         for (pangulu_exblock_ptr j = a->rowpointer[i]; j < a->rowpointer[i + 1]; j++)
         {
-
             pangulu_exblock_idx col = a->columnindex[j];
-            pangulu_exblock_ptr index = index_rowpointer[col];
-            columnindex[index] = i;
+            pangulu_exblock_ptr index = index_columnpointer[col];
+            rowindex[index] = i;
             value[index] = a->value[j];
             csc_to_csr_index[index] = j;
-            index_rowpointer[col]++;
+            index_columnpointer[col]++;
         }
     }
-    a->columnpointer = rowpointer;
-    a->rowindex = columnindex;
+    a->columnpointer = columnpointer;
+    a->rowindex = rowindex;
     a->value_csc = value;
     a->csc_to_csr_index = csc_to_csr_index;
-    pangulu_free(__FILE__, __LINE__, index_rowpointer);
+    pangulu_free(__FILE__, __LINE__, index_columnpointer);
 }
 
 void pangulu_malloc_pangulu_smatrix_csc(pangulu_smatrix *s,

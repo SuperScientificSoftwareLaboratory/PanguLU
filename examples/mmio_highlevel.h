@@ -136,6 +136,7 @@ int mmio_info(sparse_index_t *m, sparse_index_t *n, sparse_pointer_t *nnz, spars
     // free tmp space
     free(csr_colIdx_tmp);
     free(csr_rowIdx_tmp);
+    free(csr_row_ptr_counter);
 
     return 0;
 }

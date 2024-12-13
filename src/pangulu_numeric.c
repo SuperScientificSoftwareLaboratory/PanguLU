@@ -23,7 +23,7 @@ void pangulu_solve_a_to_lu(pangulu_int64_t level, pangulu_int64_t row, pangulu_i
     pangulu_getrf_interface(a, l, u, calculate_L, calculate_U);
 
     #ifdef GPU_TSTRF
-    pangulu_transport_pangulu_smatrix_csc_to_csr(u);
+    pangulu_transpose_pangulu_smatrix_csc_to_csr(u);
     #endif
 
 #ifdef OVERLAP

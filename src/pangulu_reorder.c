@@ -652,24 +652,24 @@ void pangulu_mc64(pangulu_origin_smatrix *s, pangulu_exblock_idx **perm, pangulu
 }
 #endif
 
-void pangulu_origin_smatrix_transport_transport_iperm(pangulu_origin_smatrix *s, pangulu_origin_smatrix *new_S, pangulu_exblock_idx *metis_perm)
+void pangulu_metis_reorder(pangulu_origin_smatrix *s, pangulu_origin_smatrix *new_S, pangulu_exblock_idx *metis_perm)
 {
     pangulu_exblock_idx n = s->row;
     pangulu_exblock_ptr nnz = s->nnz;
     pangulu_exblock_ptr *rowpointer = (pangulu_exblock_ptr *)pangulu_malloc(__FILE__, __LINE__, sizeof(pangulu_exblock_ptr) * (n + 1));
     pangulu_exblock_idx *columnindex = (pangulu_exblock_idx *)pangulu_malloc(__FILE__, __LINE__, sizeof(pangulu_exblock_idx) * nnz);
     calculate_type *value = (calculate_type *)pangulu_malloc(__FILE__, __LINE__, sizeof(calculate_type) * nnz);
+    #pragma omp parallel for
     for (pangulu_exblock_idx i = 0; i < n; i++)
     {
-        pangulu_exblock_idx row_num = s->rowpointer[i + 1] - s->rowpointer[i];
-        pangulu_exblock_idx index = metis_perm[i];
-        rowpointer[index + 1] = row_num;
+        rowpointer[metis_perm[i] + 1] = s->rowpointer[i + 1] - s->rowpointer[i];
     }
     rowpointer[0] = 0;
     for (pangulu_exblock_idx i = 0; i < n; i++)
     {
         rowpointer[i + 1] += rowpointer[i];
     }
+    #pragma omp parallel for
     for (pangulu_exblock_idx i = 0; i < n; i++)
     {
         pangulu_exblock_idx index = metis_perm[i];
@@ -689,185 +689,105 @@ void pangulu_origin_smatrix_transport_transport_iperm(pangulu_origin_smatrix *s,
 }
 
 #ifdef METIS
-void pangulu_get_graph_struct(pangulu_origin_smatrix *s, idx_t **xadj_adress, idx_t **adjincy_adress)
-{
+
+void pangulu_get_graph_struct(pangulu_origin_smatrix *s, idx_t **xadj_address, idx_t **adjincy_address){
+    struct timeval start_time;
+    
+    pangulu_time_start(&start_time);
     pangulu_add_diagonal_element(s);
+    printf("[PanguLU Info] 2.1 PanguLU METIS add_diagonal_element time is %lf s.\n", pangulu_time_stop(&start_time));
+
+    pangulu_time_start(&start_time);
     pangulu_origin_smatrix_add_csc(s);
+    printf("[PanguLU Info] 2.2 PanguLU METIS transpose time is %lf s.\n", pangulu_time_stop(&start_time));
+
+    pangulu_time_start(&start_time);
     idx_t *xadj = (idx_t *)pangulu_malloc(__FILE__, __LINE__, sizeof(idx_t) * (s->row + 1));
+    idx_t *adjincy = pangulu_malloc(__FILE__, __LINE__, sizeof(idx_t) * s->nnz * 2);
+
     xadj[0] = 0;
+    for(pangulu_exblock_idx rc = 0; rc < s->row; rc++){
+        pangulu_exblock_idx nnz_count = 0;
+        pangulu_exblock_ptr start1 = s->rowpointer[rc];
+        pangulu_exblock_ptr end1 = s->rowpointer[rc+1];
+        pangulu_exblock_ptr start2 = s->columnpointer[rc];
+        pangulu_exblock_ptr end2 = s->columnpointer[rc+1];
+        pangulu_exblock_ptr idx1 = start1;
+        pangulu_exblock_ptr idx2 = start2;
 
-    for (pangulu_exblock_idx i = 0; i < s->row; i++)
-    {
-        pangulu_exblock_ptr index1 = s->rowpointer[i];
-        pangulu_exblock_ptr index2 = s->columnpointer[i];
-        pangulu_exblock_ptr end1 = s->rowpointer[i + 1];
-        pangulu_exblock_ptr end2 = s->columnpointer[i + 1];
-        char diagonal_flag = 0;
-        pangulu_int64_t sum_num = 0;
-        pangulu_exblock_idx col1 = s->columnindex[index1];
-        pangulu_exblock_idx col2 = s->rowindex[index2];
-        while ((index1 < end1) && (index2 < end2))
-        {
-            if (col1 == col2)
-            {
-                if ((diagonal_flag == 0) && (col1 == i))
-                {
-                    diagonal_flag = 1;
-                }
-                index1++;
-                index2++;
-                col1 = s->columnindex[index1];
-                col2 = s->rowindex[index2];
+        while((idx1 < end1) && (idx2 < end2)){
+            if(s->columnindex[idx1] < s->rowindex[idx2]){
+                idx1++;
+            }else if(s->columnindex[idx1] > s->rowindex[idx2]){
+                idx2++;
+            }else{
+                idx1++;
+                idx2++;
             }
-            else if (col1 < col2)
-            {
-                if ((diagonal_flag == 0) && (col1 == i))
-                {
-                    diagonal_flag = 1;
-                }
-                index1++;
-                col1 = s->columnindex[index1];
-            }
-            else
-            {
-                if ((diagonal_flag == 0) && (col2 == i))
-                {
-                    diagonal_flag = 1;
-                }
-                index2++;
-                col2 = s->rowindex[index2];
-            }
-            sum_num++;
+            nnz_count++;
         }
-        while (index1 < end1)
-        {
-            sum_num++;
-            if ((diagonal_flag == 0) && (col1 == i))
-            {
-                diagonal_flag = 1;
-            }
-            index1++;
-            col1 = s->columnindex[index1];
+        while(idx1 < end1){
+            idx1++;
+            nnz_count++;
         }
+        while(idx2 < end2){
+            idx2++;
+            nnz_count++;
+        }
+        nnz_count--;
+        xadj[rc + 1] = xadj[rc] + nnz_count;
 
-        while (index2 < end2)
-        {
-            sum_num++;
-            if ((diagonal_flag == 0) && (col2 == i))
-            {
-                diagonal_flag = 1;
+        nnz_count = 0;
+        idx1 = start1;
+        idx2 = start2;
+        while((idx1 < end1) && (idx2 < end2)){
+            if(s->columnindex[idx1] < s->rowindex[idx2]){
+                if(s->columnindex[idx1] != rc){
+                    adjincy[xadj[rc] + nnz_count] = s->columnindex[idx1];
+                    nnz_count++;
+                }
+                idx1++;
+            }else if(s->columnindex[idx1] > s->rowindex[idx2]){
+                if(s->rowindex[idx2] != rc){
+                    adjincy[xadj[rc] + nnz_count] = s->rowindex[idx2];
+                    nnz_count++;
+                }
+                idx2++;
+            }else{
+                if(s->columnindex[idx1] != rc){
+                    adjincy[xadj[rc] + nnz_count] = s->columnindex[idx1];
+                    nnz_count++;
+                }
+                idx1++;
+                idx2++;
             }
-            index2++;
-            col2 = s->rowindex[index2];
         }
-        if (diagonal_flag == 0)
-        {
-            printf(PANGULU_E_ROW_DONT_HAVE_DIA);
-            pangulu_exit(1);
+        while(idx1 < end1){
+            if(s->columnindex[idx1] != rc){
+                adjincy[xadj[rc] + nnz_count] = s->columnindex[idx1];
+                nnz_count++;
+            }
+            idx1++;
         }
-        xadj[i + 1] = sum_num - diagonal_flag;
-    }
-    for (pangulu_exblock_idx i = 0; i < s->row; i++)
-    {
-        xadj[i + 1] += xadj[i];
+        while(idx2 < end2){
+            if(s->rowindex[idx2] != rc){
+                adjincy[xadj[rc] + nnz_count] = s->rowindex[idx2];
+                nnz_count++;
+            }
+            idx2++;
+        }
     }
 
-    idx_t *adjincy = (idx_t *)pangulu_malloc(__FILE__, __LINE__, sizeof(idx_t) * (xadj[s->row]));
-
-    for (pangulu_exblock_ptr i = 0; i < s->row; i++)
-    {
-        idx_t now_adjincy_index = xadj[i];
-        pangulu_exblock_ptr index1 = s->rowpointer[i];
-        pangulu_exblock_ptr index2 = s->columnpointer[i];
-        pangulu_exblock_ptr end1 = s->rowpointer[i + 1];
-        pangulu_exblock_ptr end2 = s->columnpointer[i + 1];
-        char diagonal_flag = 0;
-        pangulu_exblock_idx col1 = s->columnindex[index1];
-        pangulu_exblock_idx col2 = s->rowindex[index2];
-        while ((index1 < end1) && (index2 < end2))
-        {
-            if (col1 == col2)
-            {
-                if ((diagonal_flag == 0) && (col1 == i))
-                {
-                    diagonal_flag = 1;
-                }
-                else
-                {
-                    adjincy[now_adjincy_index] = col1;
-                    now_adjincy_index++;
-                }
-                index1++;
-                index2++;
-                col1 = s->columnindex[index1];
-                col2 = s->rowindex[index2];
-            }
-            else if (col1 < col2)
-            {
-                if ((diagonal_flag == 0) && (col1 == i))
-                {
-                    diagonal_flag = 1;
-                }
-                else
-                {
-                    adjincy[now_adjincy_index] = col1;
-                    now_adjincy_index++;
-                }
-                index1++;
-                col1 = s->columnindex[index1];
-            }
-            else
-            {
-                if ((diagonal_flag == 0) && (col2 == i))
-                {
-                    diagonal_flag = 1;
-                }
-                else
-                {
-                    adjincy[now_adjincy_index] = col2;
-                    now_adjincy_index++;
-                }
-                index2++;
-                col2 = s->rowindex[index2];
-            }
-        }
-        while (index1 < end1)
-        {
-            if ((diagonal_flag == 0) && (col1 == i))
-            {
-                diagonal_flag = 1;
-            }
-            else
-            {
-                adjincy[now_adjincy_index] = col1;
-                now_adjincy_index++;
-            }
-            index1++;
-            col1 = s->columnindex[index1];
-        }
-
-        while (index2 < end2)
-        {
-            if ((diagonal_flag == 0) && (col2 == i))
-            {
-                diagonal_flag = 1;
-            }
-            else
-            {
-                adjincy[now_adjincy_index] = col2;
-                now_adjincy_index++;
-            }
-            index2++;
-            col2 = s->rowindex[index2];
-        }
-    }
-    *xadj_adress = xadj;
-    *adjincy_adress = adjincy;
+    adjincy = pangulu_realloc(__FILE__, __LINE__, adjincy, sizeof(idx_t) * xadj[s->row]);
+    *xadj_address = xadj;
+    *adjincy_address = adjincy;
+    printf("[PanguLU Info] 2.3 PanguLU METIS get_graph_struct.other_code time is %lf s.\n", pangulu_time_stop(&start_time));
 }
 
 void pangulu_metis(pangulu_origin_smatrix *a, idx_t **metis_perm)
 {
 
+    struct timeval start_time;
     idx_t n = a->row;
 
     idx_t *iperm = (idx_t *)pangulu_malloc(__FILE__, __LINE__, sizeof(idx_t) * n);
@@ -876,8 +796,13 @@ void pangulu_metis(pangulu_origin_smatrix *a, idx_t **metis_perm)
     idx_t *xadj = NULL;
     idx_t *adjincy = NULL;
 
+    pangulu_time_start(&start_time);
     pangulu_get_graph_struct(a, &xadj, &adjincy);
+    printf("[PanguLU Info] 2 PanguLU METIS get_graph_struct time is %lf s.\n", pangulu_time_stop(&start_time));
+    
+    pangulu_time_start(&start_time);
     METIS_NodeND(&n, xadj, adjincy, NULL, NULL, perm, iperm);
+    printf("[PanguLU Info] 3.1 PanguLU METIS generate the perm time is %lf s.\n", pangulu_time_stop(&start_time));
 
     pangulu_free(__FILE__, __LINE__, perm);
     pangulu_free(__FILE__, __LINE__, xadj);
@@ -930,6 +855,7 @@ void pangulu_reorder(pangulu_block_smatrix *block_smatrix,
                      pangulu_origin_smatrix *origin_matrix,
                      pangulu_origin_smatrix *reorder_matrix)
 {
+    struct timeval start_time;
     pangulu_exblock_idx n = origin_matrix->row;
     pangulu_exblock_ptr nnz = origin_matrix->nnz;
     pangulu_exblock_idx *perm = NULL;
@@ -942,7 +868,9 @@ void pangulu_reorder(pangulu_block_smatrix *block_smatrix,
     if (rank == 0)
     {
 #if defined(PANGULU_MC64)
+        pangulu_time_start(&start_time);
         pangulu_mc64(origin_matrix, &perm, &iperm, &row_scale, &col_scale);
+        printf("[PanguLU Info] 1.1 PanguLU MC64 generate the perm time is %lf s.\n", pangulu_time_stop(&start_time));
 #else
         perm = (pangulu_exblock_idx *)pangulu_malloc(__FILE__, __LINE__, sizeof(pangulu_exblock_idx) * n);
         iperm = (pangulu_exblock_idx *)pangulu_malloc(__FILE__, __LINE__, sizeof(pangulu_exblock_idx) * n);
@@ -970,6 +898,7 @@ void pangulu_reorder(pangulu_block_smatrix *block_smatrix,
             col_scale[i] = 1.0;
         }
 #endif
+        pangulu_time_start(&start_time);
         tmp = (pangulu_origin_smatrix *)pangulu_malloc(__FILE__, __LINE__, sizeof(pangulu_origin_smatrix));
         pangulu_init_pangulu_origin_smatrix(tmp);
         tmp->row = n;
@@ -981,6 +910,7 @@ void pangulu_reorder(pangulu_block_smatrix *block_smatrix,
 
         tmp->rowpointer[0] = 0;
 
+        #pragma omp parallel for
         for (pangulu_int64_t i = 0; i < n; i++)
         {
             pangulu_int64_t row = perm[i];
@@ -992,6 +922,7 @@ void pangulu_reorder(pangulu_block_smatrix *block_smatrix,
             tmp->rowpointer[i + 1] += tmp->rowpointer[i];
         }
 
+        #pragma omp parallel for
         for (pangulu_int64_t i = 0; i < n; i++)
         {
             pangulu_exblock_idx row = perm[i];
@@ -1002,15 +933,10 @@ void pangulu_reorder(pangulu_block_smatrix *block_smatrix,
                 pangulu_exblock_idx col = origin_matrix->columnindex[j];
                 tmp->columnindex[tmp_index] = col;
                 tmp->value[tmp_index] = (origin_matrix->value[j] * rs * col_scale[col]);
-                // if (col == row)
-                // {
-                //     if (fabs(fabs(tmp->value[tmp_index]) - 1.0) > 1e-10)
-                //     {
-                //     }
-                // }
                 tmp_index++;
             }
         }
+        printf("[PanguLU Info] 1.2 PanguLU MC64 reordering time is %lf s.\n", pangulu_time_stop(&start_time));
     }
 
 #ifdef METIS
@@ -1037,8 +963,17 @@ void pangulu_reorder(pangulu_block_smatrix *block_smatrix,
 #endif
     if (rank == 0)
     {
-        pangulu_origin_smatrix_transport_transport_iperm(tmp, reorder_matrix, metis_perm);
+        pangulu_time_start(&start_time);
+        pangulu_metis_reorder(tmp, reorder_matrix, metis_perm);
         pangulu_sort_pangulu_origin_smatrix(reorder_matrix);
+        for(pangulu_exblock_idx row = 0; row < n; row++){
+            for(pangulu_exblock_ptr idx = reorder_matrix->rowpointer[row]; idx < reorder_matrix->rowpointer[row+1]; idx++){
+                if((row == reorder_matrix->columnindex[idx]) && (fabs(reorder_matrix->value[idx]) < ZERO_ELEMENT)){
+                    reorder_matrix->value[idx] = ZERO_ELEMENT;
+                }
+            }
+        }
+        printf("[PanguLU Info] 3.2 PanguLU METIS reordering time is %lf s.\n", pangulu_time_stop(&start_time));
 
         block_smatrix->row_perm = perm;
         block_smatrix->col_perm = iperm;
