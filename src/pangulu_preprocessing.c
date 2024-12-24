@@ -282,22 +282,8 @@ void pangulu_preprocessing(pangulu_block_common *block_common,
     every_rank_block_nnz[rank] = bcsc_blknnzptr[bcsc_pointer[block_length]];
     pangulu_free(__FILE__, __LINE__, bcsc_blknnzptr);
 
-    if (rank == 0)
-    {
-        MPI_Status mpi_stat;
-        for (int32_t i = 1; i < sum_rank_size; i++)
-        {
-            MPI_Recv(&every_rank_block_num[i], 1, MPI_PANGULU_INT64_T, i, i, MPI_COMM_WORLD, &mpi_stat);
-            MPI_Recv(&every_rank_block_nnz[i], 1, MPI_PANGULU_INT64_T, i, sum_rank_size + i, MPI_COMM_WORLD, &mpi_stat);
-        }
-    }
-    else
-    {
-        MPI_Send(&every_rank_block_num[rank], 1, MPI_PANGULU_INT64_T, 0, rank, MPI_COMM_WORLD);
-        MPI_Send(&every_rank_block_nnz[rank], 1, MPI_PANGULU_INT64_T, 0, sum_rank_size + rank, MPI_COMM_WORLD);
-    }
-    pangulu_bcast_vector_int64(every_rank_block_num, sum_rank_size, 0);
-    pangulu_bcast_vector_int64(every_rank_block_nnz, sum_rank_size, 0);
+    MPI_Allgather(MPI_IN_PLACE, 0, MPI_DATATYPE_NULL, every_rank_block_num, 1, MPI_PANGULU_INT64_T, MPI_COMM_WORLD);
+    MPI_Allgather(MPI_IN_PLACE, 0, MPI_DATATYPE_NULL, every_rank_block_nnz, 1, MPI_PANGULU_INT64_T, MPI_COMM_WORLD);
 
     pangulu_int64_t current_rank_block_count = every_rank_block_num[rank];
     pangulu_int64_t current_rank_nnz_count = every_rank_block_nnz[rank];
