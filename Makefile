@@ -8,12 +8,16 @@ examples : lib
 lib : src
 	$(MAKE) -C $@
 
-src:
+src: hunyuan
 	$(MAKE) -C $@
 
+hunyuan:
+	$(MAKE) -C hunyuan_omp
+
 clean:
-	(cd src; $(MAKE) clean)
-	(cd lib; $(MAKE) clean)
-	(cd examples; $(MAKE) clean)
+	$(MAKE) -C src clean
+	$(MAKE) -C lib clean
+	$(MAKE) -C examples clean
+	$(MAKE) -C hunyuan_omp clean
 
 update : clean all

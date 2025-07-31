@@ -1,90 +1,90 @@
 #include "pangulu_common.h"
 
-pangulu_int64_t cpu_memory = 0;
-pangulu_int64_t cpu_peak_memory = 0;
-pangulu_int64_t gpu_memory = 0;
-pangulu_int64_t heap_select;
-calculate_type *temp_a_value = NULL;
-pangulu_int32_t *cuda_b_idx_col = NULL;
-calculate_type *cuda_temp_value = NULL;
-pangulu_int64_t *ssssm_col_ops_u = NULL;
-pangulu_int32_t *ssssm_ops_pointer = NULL;
-pangulu_int32_t *getrf_diagIndex_csc = NULL;
-pangulu_int32_t *getrf_diagIndex_csr = NULL;
+#ifdef PANGULU_PERF
+pangulu_stat_t global_stat;
+#endif
 
-pangulu_int64_t STREAM_DENSE_INDEX = 0;
-pangulu_int64_t INDEX_NUM = 0;
-pangulu_int32_t pangu_omp_num_threads = 1;
+int pangulu_gpu_kernel_warp_per_block;
+int pangulu_gpu_data_move_warp_per_block;
+int pangulu_gpu_shared_mem_size;
 
-pangulu_int64_t flop = 0;
-double time_transpose = 0.0;
-double time_isend = 0.0;
-double time_receive = 0.0;
-double time_getrf = 0.0;
-double time_tstrf = 0.0;
-double time_gessm = 0.0;
-double time_gessm_dense = 0.0;
-double time_gessm_sparse = 0.0;
-double time_ssssm = 0.0;
-double time_cuda_memcpy = 0.0;
-double time_wait = 0.0;
-double calculate_time_wait = 0.0;
-pangulu_int64_t calculate_time = 0;
-
-pangulu_int32_t *ssssm_hash_lu = NULL;
-pangulu_int32_t *ssssm_hash_l_row = NULL;
-pangulu_int32_t zip_cur_id = 0;
-calculate_type *ssssm_l_value = NULL;
-calculate_type *ssssm_u_value = NULL;
-pangulu_int32_t *ssssm_hash_u_col = NULL;
-
-pangulu_int32_t rank;
-pangulu_int32_t global_level;
-pangulu_int32_t omp_thread;
-
-void pangulu_init(pangulu_exblock_idx pangulu_n, pangulu_exblock_ptr pangulu_nnz, pangulu_exblock_ptr *csr_rowptr, pangulu_exblock_idx *csr_colidx, calculate_type *csr_value, pangulu_init_options *init_options, void **pangulu_handle)
+void pangulu_init(
+    pangulu_exblock_idx pangulu_n, 
+    pangulu_exblock_ptr pangulu_nnz, 
+    pangulu_exblock_ptr *csc_colptr, 
+    pangulu_exblock_idx *csc_rowidx, 
+    calculate_type *csc_value, 
+    pangulu_init_options *init_options, 
+    void **pangulu_handle)
 {
-    MPI_Comm_rank(MPI_COMM_WORLD, &rank);
-
-    struct timeval time_start;
-    double elapsed_time;
-
-    pangulu_int32_t size;
-    MPI_Comm_size(MPI_COMM_WORLD, &size);
+    pangulu_int32_t size, rank;
+    pangulu_cm_rank(&rank);
+    pangulu_cm_size(&size);
     pangulu_common *common = (pangulu_common *)pangulu_malloc(__FILE__, __LINE__, sizeof(pangulu_common));
     common->rank = rank;
     common->size = size;
     common->n = pangulu_n;
-#ifdef GPU_OPEN
-    if (init_options->nb > 256 && sizeof(pangulu_inblock_idx) == 2)
-    {
-        init_options->nb = 256;
-        if (rank == 0)
-        {
-            printf(PANGULU_W_GPU_BIG_BLOCK);
-        }
+
+    if((!init_options->is_complex_matrix) != (sizeof(calculate_type) == sizeof(calculate_real_type))){
+        if(rank == 0)printf(PANGULU_E_COMPLEX_MISMATCH);
+        exit(1);
     }
-#endif
+
+    if(init_options->sizeof_value != sizeof(calculate_type)){
+        if(rank == 0)printf(PANGULU_E_ELEM_SIZE_MISMATCH);
+        exit(1);
+    }
 
     if (rank == 0)
-    {
+    {   
         if (init_options == NULL)
         {
             printf(PANGULU_E_OPTION_IS_NULLPTR);
-            pangulu_exit(1);
+            exit(1);
         }
         if (init_options->nb == 0)
         {
             printf(PANGULU_E_NB_IS_ZERO);
-            pangulu_exit(1);
+            exit(1);
         }
     }
 
-    common->nb = init_options->nb;
+    if(init_options->nb <= 0){
+        common->nb = 256;
+    }else{
+        common->nb = init_options->nb;
+    }
+
     common->sum_rank_size = size;
-    common->omp_thread = init_options->nthread;
-    MPI_Bcast(&common->n, 1, MPI_PANGULU_EXBLOCK_IDX, 0, MPI_COMM_WORLD);
-    MPI_Bcast(&common->nb, 1, MPI_PANGULU_INBLOCK_IDX, 0, MPI_COMM_WORLD);
+    
+    if(init_options->nthread == 0){
+        common->omp_thread = 1;
+    }else{
+        common->omp_thread = init_options->nthread;
+    }
+
+    common->basic_param = init_options->mpi_recv_buffer_level;
+
+    if(init_options->hunyuan_nthread == 0){
+        common->hunyuan_nthread = 4;
+    }else{
+        common->hunyuan_nthread = init_options->hunyuan_nthread;
+    }
+
+    if(init_options->gpu_data_move_warp_per_block == 0){
+        pangulu_gpu_data_move_warp_per_block = 4;
+    }else{
+        pangulu_gpu_data_move_warp_per_block = init_options->gpu_data_move_warp_per_block;
+    }
+
+    if(init_options->gpu_kernel_warp_per_block == 0){
+        pangulu_gpu_kernel_warp_per_block = 4;
+    }else{
+        pangulu_gpu_kernel_warp_per_block = init_options->gpu_kernel_warp_per_block;
+    }
+    
+    pangulu_cm_bcast(&common->n, 1, MPI_PANGULU_EXBLOCK_IDX, 0);
+    pangulu_cm_bcast(&common->nb, 1, MPI_PANGULU_INBLOCK_IDX, 0);
 
     pangulu_int64_t tmp_p = sqrt(common->sum_rank_size);
     while (((common->sum_rank_size) % tmp_p) != 0)
@@ -99,48 +99,40 @@ void pangulu_init(pangulu_exblock_idx pangulu_n, pangulu_exblock_ptr pangulu_nnz
 
     if (rank == 0)
     {
-        struct timeval start, end;
-        gettimeofday(&start, NULL);
-        pangulu_read_pangulu_origin_smatrix(origin_smatrix, pangulu_n, pangulu_nnz, csr_rowptr, csr_colidx, csr_value);
-        gettimeofday(&end, NULL);
+        origin_smatrix->row = pangulu_n;
+        origin_smatrix->column = pangulu_n;
+        origin_smatrix->columnpointer = csc_colptr;
+        origin_smatrix->rowindex = csc_rowidx;
+        origin_smatrix->nnz = pangulu_nnz;
+        origin_smatrix->value_csc = csc_value;
         if (origin_smatrix->row == 0)
         {
             printf(PANGULU_E_ROW_IS_ZERO);
-            pangulu_exit(1);
+            exit(1);
         }
     }
 
     pangulu_int32_t p = common->p;
     pangulu_int32_t q = common->q;
     pangulu_int32_t nb = common->nb;
-    MPI_Barrier(MPI_COMM_WORLD);
-    common->n = pangulu_bcast_n(origin_smatrix->row, 0);
+    pangulu_cm_sync();
+    pangulu_cm_bcast(&origin_smatrix->row, 1, MPI_PANGULU_INT64_T, 0);
+    common->n = origin_smatrix->row;
     pangulu_int64_t n = common->n;
     omp_set_num_threads(init_options->nthread);
 #if defined(OPENBLAS_CONFIG_H) || defined(OPENBLAS_VERSION)
     openblas_set_num_threads(1);
 #endif
+
     if (rank == 0)
     {
-// #ifdef ADAPTIVE_KERNEL_SELECTION
-//         printf(PANGULU_I_ADAPTIVE_KERNEL_SELECTION_ON);
-// #else
-//         printf(PANGULU_I_ADAPTIVE_KERNEL_SELECTION_OFF);
-// #endif
-// #ifdef SYNCHRONIZE_FREE
-//         printf(PANGULU_I_SYNCHRONIZE_FREE_ON);
-// #else
-//         printf(PANGULU_I_SYNCHRONIZE_FREE_OFF);
-// #endif
-#ifdef PANGULU_GPU_COMPLEX_FALLBACK_FLAG
-        printf(PANGULU_W_COMPLEX_FALLBACK);
-#endif
-        omp_thread = pangu_omp_num_threads;
         printf(PANGULU_I_BASIC_INFO);
     }
 
 #ifdef GPU_OPEN
-    pangulu_cuda_device_init(rank);
+    int device_num;
+    pangulu_platform_get_device_num(&device_num, PANGULU_DEFAULT_PLATFORM);
+    pangulu_platform_set_default_device(rank%device_num, PANGULU_DEFAULT_PLATFORM);
 #endif
 
     pangulu_block_smatrix *block_smatrix = (pangulu_block_smatrix *)pangulu_malloc(__FILE__, __LINE__, sizeof(pangulu_block_smatrix));
@@ -151,41 +143,41 @@ void pangulu_init(pangulu_exblock_idx pangulu_n, pangulu_exblock_ptr pangulu_nnz
     block_common->q = q;
     block_common->nb = nb;
     block_common->n = n;
-    block_common->block_length = pangulu_Calculate_Block(n, nb);
+    block_common->block_length = PANGULU_ICEIL(n, nb);
     block_common->sum_rank_size = common->sum_rank_size;
-    block_common->max_pq = PANGULU_MAX(p, q);
-    block_common->every_level_length = block_common->block_length;
-    pangulu_bip_init(&(block_smatrix->BIP), block_common->block_length * (block_common->block_length + 1));
-
-#ifdef SYNCHRONIZE_FREE
-    block_common->every_level_length = 10;
-#else
-    block_common->every_level_length = 1;
-#endif
+    pangulu_aggregate_init();
 
     pangulu_origin_smatrix *reorder_matrix = (pangulu_origin_smatrix *)pangulu_malloc(__FILE__, __LINE__, sizeof(pangulu_origin_smatrix));
     pangulu_init_pangulu_origin_smatrix(reorder_matrix);
 
-    block_common->rank_row_length = (block_common->block_length / p + (((block_common->block_length % p) > (rank / q)) ? 1 : 0));
-    block_common->rank_col_length = (block_common->block_length / q + (((block_common->block_length % q) > (rank % q)) ? 1 : 0));
-    block_common->every_level_length = PANGULU_MIN(block_common->every_level_length, block_common->block_length);
-    MPI_Barrier(MPI_COMM_WORLD);
+    struct timeval time_start;
+    double elapsed_time;
+    
+    pangulu_cm_sync();
     pangulu_time_start(&time_start);
-
-    pangulu_reorder(block_smatrix,
-                    origin_smatrix,
-                    reorder_matrix);
-
-    MPI_Barrier(MPI_COMM_WORLD);
+    pangulu_reordering(
+        block_smatrix,
+        origin_smatrix,
+        reorder_matrix,
+        common->hunyuan_nthread
+    );
+    pangulu_cm_sync();
     elapsed_time = pangulu_time_stop(&time_start);
-    if (rank == 0)
-    {
-        printf(PANGULU_I_TIME_REORDER);
+    if (rank == 0){printf(PANGULU_I_TIME_REORDER);}
+
+#ifdef PANGULU_PERF
+    if(rank == 0){
+        block_smatrix->A_rowsum_reordered = pangulu_malloc(__FILE__, __LINE__, sizeof(calculate_type) * n);
+        memset(block_smatrix->A_rowsum_reordered, 0, sizeof(calculate_type) * n);
+        for(pangulu_exblock_idx col = 0; col < n; col++){
+            for(pangulu_exblock_ptr idx = reorder_matrix->columnpointer[col]; idx < reorder_matrix->columnpointer[col+1]; idx++){
+                block_smatrix->A_rowsum_reordered[reorder_matrix->rowindex[idx]]+=reorder_matrix->value_csc[idx];
+            }
+        }
     }
+    pangulu_cm_sync();
+#endif
 
-    calculate_time = 0;
-
-    MPI_Barrier(MPI_COMM_WORLD);
     pangulu_time_start(&time_start);
     if (rank == 0)
     {
@@ -193,46 +185,28 @@ void pangulu_init(pangulu_exblock_idx pangulu_n, pangulu_exblock_ptr pangulu_nnz
                          block_smatrix,
                          reorder_matrix);
     }
-
-    MPI_Barrier(MPI_COMM_WORLD);
+    pangulu_cm_sync();
     elapsed_time = pangulu_time_stop(&time_start);
-    if (rank == 0)
-    {
-        printf(PANGULU_I_TIME_SYMBOLIC);
-    }
+    if (rank == 0){printf(PANGULU_I_TIME_SYMBOLIC);}
 
-    pangulu_init_heap_select(0);
-
-    MPI_Barrier(MPI_COMM_WORLD);
+    pangulu_cm_sync();
     pangulu_time_start(&time_start);
     pangulu_preprocessing(
+        common,
         block_common,
         block_smatrix,
         reorder_matrix,
         init_options->nthread);
-
-    MPI_Barrier(MPI_COMM_WORLD);
-
+    pangulu_cm_sync();
     elapsed_time = pangulu_time_stop(&time_start);
-    if (rank == 0)
-    {
-        printf(PANGULU_I_TIME_PRE);
-    }
-
-    // pangulu_free(__FILE__, __LINE__, block_smatrix->symbolic_rowpointer);
-    // block_smatrix->symbolic_rowpointer = NULL;
-
-    // pangulu_free(__FILE__, __LINE__, block_smatrix->symbolic_columnindex);
-    // block_smatrix->symbolic_columnindex = NULL;
+    if (rank == 0){printf(PANGULU_I_TIME_PRE);}
 
     pangulu_free(__FILE__, __LINE__, origin_smatrix);
     origin_smatrix = NULL;
-
-    pangulu_free(__FILE__, __LINE__, reorder_matrix->rowpointer);
-    pangulu_free(__FILE__, __LINE__, reorder_matrix->columnindex);
-    pangulu_free(__FILE__, __LINE__, reorder_matrix->value);
     pangulu_free(__FILE__, __LINE__, reorder_matrix);
     reorder_matrix = NULL;
+
+    pangulu_cm_sync();
 
     (*pangulu_handle) = pangulu_malloc(__FILE__, __LINE__, sizeof(pangulu_handle_t));
     (*(pangulu_handle_t **)pangulu_handle)->block_common = block_common;
@@ -245,59 +219,59 @@ void pangulu_gstrf(pangulu_gstrf_options *gstrf_options, void **pangulu_handle)
     pangulu_block_common *block_common = (*(pangulu_handle_t **)pangulu_handle)->block_common;
     pangulu_block_smatrix *block_smatrix = (*(pangulu_handle_t **)pangulu_handle)->block_smatrix;
     pangulu_common *common = (*(pangulu_handle_t **)pangulu_handle)->commmon;
+    pangulu_int32_t size, rank;
+    pangulu_cm_rank(&rank);
+    pangulu_cm_size(&size);
+    if (rank == 0)
+    {
+#ifdef PANGULU_PERF
+        printf(PANGULU_W_PERF_MODE_ON);
+#endif
+        if (gstrf_options == NULL)
+        {
+            printf(PANGULU_E_GSTRF_OPTION_IS_NULLPTR);
+            exit(1);
+        }
+    }
 
     struct timeval time_start;
     double elapsed_time;
 
-    if (rank == 0)
-    {
-        if (gstrf_options == NULL)
-        {
-            printf(PANGULU_E_GSTRF_OPTION_IS_NULLPTR);
-            pangulu_exit(1);
-        }
-    }
-
-#ifdef CHECK_TIME
-    pangulu_time_init();
-#endif
-    MPI_Barrier(MPI_COMM_WORLD);
-
-#ifdef OVERLAP
-    pangulu_create_pthread(block_common,
-                           block_smatrix);
-#endif
-
-    pangulu_time_init();
-    MPI_Barrier(MPI_COMM_WORLD);
+    pangulu_cm_sync();
     pangulu_time_start(&time_start);
-
-    pangulu_numeric(block_common,
+    pangulu_numeric(common,
+                    block_common,
                     block_smatrix);
-
-    MPI_Barrier(MPI_COMM_WORLD);
+    pangulu_cm_sync();
     elapsed_time = pangulu_time_stop(&time_start);
+#ifdef PANGULU_PERF
+    long long flop_recvbuf;
+    MPI_Reduce(&global_stat.flop, &flop_recvbuf, 1, MPI_LONG_LONG, MPI_SUM, 0, MPI_COMM_WORLD);
+    global_stat.flop = flop_recvbuf;
+#endif
+    if (rank == 0){printf(PANGULU_I_TIME_NUMERICAL);}
 
-    if (rank == 0)
-    {
-
-        pangulu_int64_t another_calculate_time = 0;
-        for (pangulu_int64_t i = 1; i < block_common->sum_rank_size; i++)
-        {
-            pangulu_recv_vector_int(&another_calculate_time, 1, i, 0);
-            calculate_time += another_calculate_time;
+#ifdef PANGULU_PERF
+    if(rank == 0){
+        printf(PANGULU_I_PERF_TABLE_HEAD);
+        fflush(stdout);
+    }
+    pangulu_cm_sync();
+    for(int i = 0; i < size; i++){
+        if(rank == i){
+            printf(PANGULU_I_PERF_TABLE_ROW);
+            fflush(stdout);
         }
-        flop = calculate_time * 2;
+        pangulu_cm_sync();
+        usleep(10);
     }
-    else
-    {
-        pangulu_send_vector_int(&calculate_time, 1, 0, 0);
-    }
-
-    if (rank == 0)
-    {
-        printf(PANGULU_I_TIME_NUMERICAL);
-    }
+#endif
+    pangulu_cm_sync();
+    pangulu_log_memory_usage();
+#ifdef PANGULU_PERF
+    pangulu_numeric_check(common, block_common, block_smatrix);
+    pangulu_cm_sync();
+#endif
 }
 
 void pangulu_gstrs(calculate_type *rhs, pangulu_gstrs_options *gstrs_options, void **pangulu_handle)
@@ -305,24 +279,21 @@ void pangulu_gstrs(calculate_type *rhs, pangulu_gstrs_options *gstrs_options, vo
     pangulu_block_common *block_common = (*(pangulu_handle_t **)pangulu_handle)->block_common;
     pangulu_block_smatrix *block_smatrix = (*(pangulu_handle_t **)pangulu_handle)->block_smatrix;
     pangulu_common *common = (*(pangulu_handle_t **)pangulu_handle)->commmon;
-
-    struct timeval time_start;
-    double elapsed_time;
-
+    pangulu_int32_t size, rank;
+    pangulu_cm_rank(&rank);
+    pangulu_cm_size(&size);
     if (rank == 0)
     {
         if (gstrs_options == NULL)
         {
             printf(PANGULU_E_GSTRS_OPTION_IS_NULLPTR);
-            pangulu_exit(1);
+            exit(1);
         }
     }
-
     pangulu_int64_t vector_length = common->n;
     pangulu_vector *x_vector = NULL;
     pangulu_vector *b_vector = NULL;
     pangulu_vector *answer_vector = NULL;
-
     if (rank == 0)
     {
         x_vector = (pangulu_vector *)pangulu_malloc(__FILE__, __LINE__, sizeof(pangulu_vector));
@@ -332,47 +303,27 @@ void pangulu_gstrs(calculate_type *rhs, pangulu_gstrs_options *gstrs_options, vo
         b_vector->value = rhs;
         pangulu_init_pangulu_vector(x_vector, vector_length);
         pangulu_init_pangulu_vector(answer_vector, vector_length);
-        pangulu_reorder_vector_b_tran(block_smatrix, b_vector, answer_vector);
+        pangulu_reorder_vector_b_tran(block_smatrix->row_perm, block_smatrix->metis_perm, block_smatrix->row_scale, b_vector, answer_vector);
     }
-
     pangulu_sptrsv_preprocessing(
         block_common,
         block_smatrix,
         answer_vector);
-
-#ifdef PANGULU_SPTRSV
-
-    MPI_Barrier(MPI_COMM_WORLD);
+    struct timeval time_start;
+    double elapsed_time;
+    pangulu_cm_sync();
     pangulu_time_start(&time_start);
-
-    pangulu_sptrsv_L(block_common, block_smatrix);
-    pangulu_init_heap_select(4);
-    pangulu_sptrsv_U(block_common, block_smatrix);
-
-    MPI_Barrier(MPI_COMM_WORLD);
+    pangulu_solve(block_common, block_smatrix, answer_vector);
+    pangulu_cm_sync();
     elapsed_time = pangulu_time_stop(&time_start);
-
     if (rank == 0)
     {
         printf(PANGULU_I_TIME_SPTRSV);
-    }
-
-#endif
-
-    // check sptrsv answer
-    pangulu_sptrsv_vector_gather(block_common, block_smatrix, answer_vector);
-
-    int n = common->n;
-
-    if (rank == 0)
-    {
         pangulu_reorder_vector_x_tran(block_smatrix, answer_vector, x_vector);
-
-        for (int i = 0; i < n; i++)
+        for (int i = 0; i < common->n; i++)
         {
             rhs[i] = x_vector->value[i];
         }
-
         pangulu_destroy_pangulu_vector(x_vector);
         pangulu_destroy_pangulu_vector(answer_vector);
         pangulu_free(__FILE__, __LINE__, b_vector);
