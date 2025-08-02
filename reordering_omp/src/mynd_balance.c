@@ -5,22 +5,22 @@
 
 /*************************************************************************/
 /*! Computes the maximum load imbalance difference of a partitioning 
-    solution over all the constraHunyuan_int_ts. 
+    solution over all the constraints. 
     The difference is defined with respect to the allowed maximum 
-    unbalance for the respective constraHunyuan_int_t. 
+    unbalance for the respective constraint. 
  */
 /**************************************************************************/ 
-Hunyuan_real_t mynd_ComputeLoadImbalanceDiff(graph_t *graph, Hunyuan_int_t nparts, Hunyuan_real_t ubvec)
+reordering_real_t mynd_ComputeLoadImbalanceDiff(graph_t *graph, reordering_int_t nparts, reordering_real_t ubvec)
 {
-    Hunyuan_int_t j, *pwgts;
-    Hunyuan_real_t max, cur;
+    reordering_int_t j, *pwgts;
+    reordering_real_t max, cur;
 
     pwgts = graph->pwgts;
 
     max = -1.0;
     for (j = 0; j < nparts; j++) 
     {
-        cur = pwgts[j] * (Hunyuan_real_t)((Hunyuan_real_t)graph->invtvwgt[0] / (Hunyuan_real_t)0.5) - ubvec;
+        cur = pwgts[j] * (reordering_real_t)((reordering_real_t)graph->invtvwgt[0] / (reordering_real_t)0.5) - ubvec;
         if (cur > max)
             max = cur;
     }
@@ -32,14 +32,14 @@ Hunyuan_real_t mynd_ComputeLoadImbalanceDiff(graph_t *graph, Hunyuan_int_t npart
 * This function balances two partitions by moving boundary nodes
 * from the domain that is overweight to the one that is underweight.
 **************************************************************************/
-void mynd_Bnd2WayBalance(graph_t *graph, Hunyuan_real_t *ntpwgts)
+void mynd_Bnd2WayBalance(graph_t *graph, reordering_real_t *ntpwgts)
 {
-    Hunyuan_int_t i, ii, j, k, kwgt, nvtxs, nbnd, nswaps, from, to, tmp;
-    Hunyuan_int_t *xadj, *vwgt, *adjncy, *adjwgt, *where, *id, *ed, *bndptr, *bndind, *pwgts;
-    Hunyuan_int_t *moved, *perm;
+    reordering_int_t i, ii, j, k, kwgt, nvtxs, nbnd, nswaps, from, to, tmp;
+    reordering_int_t *xadj, *vwgt, *adjncy, *adjwgt, *where, *id, *ed, *bndptr, *bndind, *pwgts;
+    reordering_int_t *moved, *perm;
     priority_queue_t *queue;
-    Hunyuan_int_t higain, mincut, mindiff;
-    Hunyuan_int_t tpwgts[2];
+    reordering_int_t higain, mincut, mindiff;
+    reordering_int_t tpwgts[2];
 
     nvtxs  = graph->nvtxs;
     xadj   = graph->xadj;
@@ -53,8 +53,8 @@ void mynd_Bnd2WayBalance(graph_t *graph, Hunyuan_real_t *ntpwgts)
     bndptr = graph->bndptr;
     bndind = graph->bndind;
 
-    moved = (Hunyuan_int_t *)mynd_check_malloc(sizeof(Hunyuan_int_t) * nvtxs, "mynd_Bnd2WayBalance: moved");
-    perm  = (Hunyuan_int_t *)mynd_check_malloc(sizeof(Hunyuan_int_t) * nvtxs, "mynd_Bnd2WayBalance: perm");
+    moved = (reordering_int_t *)mynd_check_malloc(sizeof(reordering_int_t) * nvtxs, "mynd_Bnd2WayBalance: moved");
+    perm  = (reordering_int_t *)mynd_check_malloc(sizeof(reordering_int_t) * nvtxs, "mynd_Bnd2WayBalance: perm");
 
     /* Determine from which domain you will be moving data */
     tpwgts[0] = graph->tvwgt[0] * ntpwgts[0];
@@ -150,8 +150,8 @@ void mynd_Bnd2WayBalance(graph_t *graph, Hunyuan_real_t *ntpwgts)
 
     mynd_priority_queue_Destroy(queue);
 
-    mynd_check_free(moved, sizeof(Hunyuan_int_t) * nvtxs, "mynd_Bnd2WayBalance: moved");
-    mynd_check_free(perm, sizeof(Hunyuan_int_t) * nvtxs, "mynd_Bnd2WayBalance: perm");
+    mynd_check_free(moved, sizeof(reordering_int_t) * nvtxs, "mynd_Bnd2WayBalance: moved");
+    mynd_check_free(perm, sizeof(reordering_int_t) * nvtxs, "mynd_Bnd2WayBalance: perm");
 }
 
 /*************************************************************************
@@ -162,14 +162,14 @@ void mynd_Bnd2WayBalance(graph_t *graph, Hunyuan_real_t *ntpwgts)
 * It moves vertices from the domain that is overweight to the one that 
 * is underweight.
 **************************************************************************/
-void mynd_General2WayBalance(graph_t *graph, Hunyuan_real_t *ntpwgts)
+void mynd_General2WayBalance(graph_t *graph, reordering_real_t *ntpwgts)
 {
-    Hunyuan_int_t i, ii, j, k, kwgt, nvtxs, nbnd, nswaps, from, to, tmp;
-    Hunyuan_int_t *xadj, *vwgt, *adjncy, *adjwgt, *where, *id, *ed, *bndptr, *bndind, *pwgts;
-    Hunyuan_int_t *moved, *perm;
+    reordering_int_t i, ii, j, k, kwgt, nvtxs, nbnd, nswaps, from, to, tmp;
+    reordering_int_t *xadj, *vwgt, *adjncy, *adjwgt, *where, *id, *ed, *bndptr, *bndind, *pwgts;
+    reordering_int_t *moved, *perm;
     priority_queue_t *queue;
-    Hunyuan_int_t higain, mincut, mindiff;
-    Hunyuan_int_t tpwgts[2];
+    reordering_int_t higain, mincut, mindiff;
+    reordering_int_t tpwgts[2];
 
     nvtxs  = graph->nvtxs;
     xadj   = graph->xadj;
@@ -183,8 +183,8 @@ void mynd_General2WayBalance(graph_t *graph, Hunyuan_real_t *ntpwgts)
     bndptr = graph->bndptr;
     bndind = graph->bndind;
 
-    moved = (Hunyuan_int_t *)mynd_check_malloc(sizeof(Hunyuan_int_t) * nvtxs, "mynd_Bnd2WayBalance: moved");
-    perm  = (Hunyuan_int_t *)mynd_check_malloc(sizeof(Hunyuan_int_t) * nvtxs, "mynd_Bnd2WayBalance: perm");
+    moved = (reordering_int_t *)mynd_check_malloc(sizeof(reordering_int_t) * nvtxs, "mynd_Bnd2WayBalance: moved");
+    perm  = (reordering_int_t *)mynd_check_malloc(sizeof(reordering_int_t) * nvtxs, "mynd_Bnd2WayBalance: perm");
 
     /* Determine from which domain you will be moving data */
     tpwgts[0] = graph->tvwgt[0] * ntpwgts[0];
@@ -264,11 +264,11 @@ void mynd_General2WayBalance(graph_t *graph, Hunyuan_real_t *ntpwgts)
 
     mynd_priority_queue_Destroy(queue);
 
-    mynd_check_free(moved, sizeof(Hunyuan_int_t) * nvtxs, "mynd_General2WayBalance: moved");
-    mynd_check_free(perm, sizeof(Hunyuan_int_t) * nvtxs, "mynd_General2WayBalance: perm");
+    mynd_check_free(moved, sizeof(reordering_int_t) * nvtxs, "mynd_General2WayBalance: moved");
+    mynd_check_free(perm, sizeof(reordering_int_t) * nvtxs, "mynd_General2WayBalance: perm");
 }
 
-void mynd_Balance2Way(graph_t *graph, Hunyuan_real_t *ntpwgts)
+void mynd_Balance2Way(graph_t *graph, reordering_real_t *ntpwgts)
 {
     // printf("Balance2Way begin %lf\n",mynd_ComputeLoadImbalanceDiff(graph, 2, 1.200050));
     // printf("ubvec=%lf\n",ubvec);
@@ -295,13 +295,13 @@ void mynd_Balance2Way(graph_t *graph, Hunyuan_real_t *ntpwgts)
 /*************************************************************************/
 void mynd_FM_2WayNodeBalance(graph_t *graph)
 {
-    Hunyuan_int_t i, ii, j, k, jj, kk, nvtxs, nbnd, nswaps, gain;
-    Hunyuan_int_t badmaxpwgt, higain, oldgain, to, other;
-    Hunyuan_int_t *xadj, *vwgt, *adjncy, *where, *pwgts, *edegrees, *bndind, *bndptr;
-    Hunyuan_int_t *perm, *moved;
+    reordering_int_t i, ii, j, k, jj, kk, nvtxs, nbnd, nswaps, gain;
+    reordering_int_t badmaxpwgt, higain, oldgain, to, other;
+    reordering_int_t *xadj, *vwgt, *adjncy, *where, *pwgts, *edegrees, *bndind, *bndptr;
+    reordering_int_t *perm, *moved;
     priority_queue_t *queue; 
     nrinfo_t *rinfo;
-    Hunyuan_real_t mult;
+    reordering_real_t mult;
 
     nvtxs  = graph->nvtxs;
     xadj   = graph->xadj;
@@ -316,7 +316,7 @@ void mynd_FM_2WayNodeBalance(graph_t *graph)
 
     mult = 0.5 * 1.2000499;
 
-    badmaxpwgt = (Hunyuan_int_t)(mult * (pwgts[0] + pwgts[1]));
+    badmaxpwgt = (reordering_int_t)(mult * (pwgts[0] + pwgts[1]));
     if (lyj_max(pwgts[0], pwgts[1]) < badmaxpwgt)
         return;
     if (lyj_abs(pwgts[0] - pwgts[1]) < 3 * graph->tvwgt[0] / nvtxs)
@@ -327,8 +327,8 @@ void mynd_FM_2WayNodeBalance(graph_t *graph)
 
     queue = mynd_priority_queue_Create(nvtxs);
 
-    perm   = (Hunyuan_int_t *)mynd_check_malloc(sizeof(Hunyuan_int_t) * nvtxs, "FM_2WayNodeBalance: perm");
-    moved  = (Hunyuan_int_t *)mynd_check_malloc(sizeof(Hunyuan_int_t) * nvtxs, "FM_2WayNodeBalance: moved");
+    perm   = (reordering_int_t *)mynd_check_malloc(sizeof(reordering_int_t) * nvtxs, "FM_2WayNodeBalance: perm");
+    moved  = (reordering_int_t *)mynd_check_malloc(sizeof(reordering_int_t) * nvtxs, "FM_2WayNodeBalance: moved");
     mynd_set_value_int(nvtxs,-1,moved);
 
 
@@ -345,7 +345,7 @@ void mynd_FM_2WayNodeBalance(graph_t *graph)
     }
 
     /******************************************************
-     * Get Hunyuan_int_to the FM loop
+     * Get into the FM loop
      *******************************************************/
     for (nswaps = 0; nswaps < nvtxs; nswaps++) 
     {
@@ -355,7 +355,7 @@ void mynd_FM_2WayNodeBalance(graph_t *graph)
         moved[higain] = 1;
 
         gain = vwgt[higain] - rinfo[higain].edegrees[other];
-        badmaxpwgt = (Hunyuan_int_t)(mult * (pwgts[0] + pwgts[1]));
+        badmaxpwgt = (reordering_int_t)(mult * (pwgts[0] + pwgts[1]));
 
         /* break if other is now underwight */
         if (pwgts[to] > pwgts[other])
@@ -389,7 +389,7 @@ void mynd_FM_2WayNodeBalance(graph_t *graph)
                 rinfo[k].edegrees[to] += vwgt[higain];
             }
             else if (where[k] == other) 
-            { /* This vertex is pulled Hunyuan_int_to the separator */
+            { /* This vertex is pulled into the separator */
                 nbnd = mynd_insert_queue(nbnd, bndptr, bndind, k);
 
                 where[k] = 2;
@@ -412,7 +412,7 @@ void mynd_FM_2WayNodeBalance(graph_t *graph)
                     }
                 }
 
-                /* Insert the new vertex Hunyuan_int_to the priority queue */
+                /* Insert the new vertex into the priority queue */
                 mynd_priority_queue_Insert(queue, k, vwgt[k]-edegrees[other]);
             }
         }
@@ -425,8 +425,8 @@ void mynd_FM_2WayNodeBalance(graph_t *graph)
 
     mynd_priority_queue_Destroy(queue);
 
-    mynd_check_free(moved, sizeof(Hunyuan_int_t) * nvtxs, "FM_2WayNodeBalance: moved");
-    mynd_check_free(perm, sizeof(Hunyuan_int_t) * nvtxs, "FM_2WayNodeBalance: perm");
+    mynd_check_free(moved, sizeof(reordering_int_t) * nvtxs, "FM_2WayNodeBalance: moved");
+    mynd_check_free(perm, sizeof(reordering_int_t) * nvtxs, "FM_2WayNodeBalance: perm");
 }
 
 #endif

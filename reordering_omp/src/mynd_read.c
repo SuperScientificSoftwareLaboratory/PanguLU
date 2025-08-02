@@ -6,7 +6,7 @@
 /*************************************************************************
 * This function checks if a file exists
 **************************************************************************/
-Hunyuan_int_t mynd_Is_file_exists(char *fname)
+reordering_int_t mynd_Is_file_exists(char *fname)
 {
     struct stat status;
 
@@ -39,10 +39,10 @@ FILE * mynd_check_fopen(char *fname, char *mode, const char *message)
              number of bytes read.
 */
 /*************************************************************************/
-ssize_t  mynd_check_getline(char **lineptr, Hunyuan_int_t *n, FILE *stream)
+ssize_t  mynd_check_getline(char **lineptr, reordering_int_t *n, FILE *stream)
 {
-    Hunyuan_int_t i;
-    Hunyuan_int_t ch;
+    reordering_int_t i;
+    reordering_int_t ch;
 
     /* Check whether the file stream reaches the end of the file, and if it does, return -1 */
     if (feof(stream))
@@ -54,7 +54,7 @@ ssize_t  mynd_check_getline(char **lineptr, Hunyuan_int_t *n, FILE *stream)
         *lineptr = (char *)mynd_check_malloc(sizeof(char) * (*n), "check_getline: lineptr");
     }
 
-    /* get Hunyuan_int_to the main loop */
+    /* get into the main loop */
     i = 0;
     /* The getc function is used to read characters from the file stream until the end of the file is reached */
     while ((ch = getc(stream)) != EOF) {
@@ -89,13 +89,13 @@ void  mynd_check_fclose(FILE *fp)
 params->filename = graphfile
 
 */
-void mynd_ReadGraph(char *filename, Hunyuan_int_t *nvtxs, Hunyuan_int_t *nedges, Hunyuan_int_t **txadj, Hunyuan_int_t **tvwgt, Hunyuan_int_t **tadjncy, Hunyuan_int_t **tadjwgt)
+void mynd_ReadGraph(char *filename, reordering_int_t *nvtxs, reordering_int_t *nedges, reordering_int_t **txadj, reordering_int_t **tvwgt, reordering_int_t **tadjncy, reordering_int_t **tadjwgt)
 {
-    Hunyuan_int_t i, k, l, fmt, nfields, readew, readvw, readvs, edge, ewgt;
-    Hunyuan_int_t *xadj, *adjncy, *vwgt, *adjwgt;
-	Hunyuan_int_t *vsize;
+    reordering_int_t i, k, l, fmt, nfields, readew, readvw, readvs, edge, ewgt;
+    reordering_int_t *xadj, *adjncy, *vwgt, *adjwgt;
+	reordering_int_t *vsize;
     char *line = NULL, fmtstr[256], *curstr, *newstr;
-    Hunyuan_int_t lnlen = 0;
+    reordering_int_t lnlen = 0;
     FILE *fpin;
     graph_t *graph;
 
@@ -167,16 +167,16 @@ void mynd_ReadGraph(char *filename, Hunyuan_int_t *nvtxs, Hunyuan_int_t *nedges,
 	graph->nedges *=2;
 	// ncon = graph->ncon = (ncon == 0 ? 1 : ncon);
 
-	// xadj   = graph->xadj   = (Hunyuan_int_t *)mynd_check_malloc(sizeof(Hunyuan_int_t) * (graph->nvtxs + 1), "ReadGraph: xadj");
-	// adjncy = graph->adjncy = (Hunyuan_int_t *)mynd_check_malloc(sizeof(Hunyuan_int_t) * graph->nedges, "ReadGraph: adjncy");
-	// vwgt   = graph->vwgt   = (Hunyuan_int_t *)mynd_check_malloc(sizeof(Hunyuan_int_t) * graph->nvtxs, "ReadGraph: vwgt");
-	// adjwgt = graph->adjwgt = (Hunyuan_int_t *)mynd_check_malloc(sizeof(Hunyuan_int_t) * graph->nedges,"ReadGraph: adjwgt");
-	xadj   = *txadj   = (Hunyuan_int_t *)malloc(sizeof(Hunyuan_int_t) * (graph->nvtxs + 1));
-	adjncy = *tadjncy = (Hunyuan_int_t *)malloc(sizeof(Hunyuan_int_t) * graph->nedges);
-	vwgt   = *tvwgt   = (Hunyuan_int_t *)malloc(sizeof(Hunyuan_int_t) * graph->nvtxs);
-	adjwgt = *tadjwgt = (Hunyuan_int_t *)malloc(sizeof(Hunyuan_int_t) * graph->nedges);
+	// xadj   = graph->xadj   = (reordering_int_t *)mynd_check_malloc(sizeof(reordering_int_t) * (graph->nvtxs + 1), "ReadGraph: xadj");
+	// adjncy = graph->adjncy = (reordering_int_t *)mynd_check_malloc(sizeof(reordering_int_t) * graph->nedges, "ReadGraph: adjncy");
+	// vwgt   = graph->vwgt   = (reordering_int_t *)mynd_check_malloc(sizeof(reordering_int_t) * graph->nvtxs, "ReadGraph: vwgt");
+	// adjwgt = graph->adjwgt = (reordering_int_t *)mynd_check_malloc(sizeof(reordering_int_t) * graph->nedges,"ReadGraph: adjwgt");
+	xadj   = *txadj   = (reordering_int_t *)malloc(sizeof(reordering_int_t) * (graph->nvtxs + 1));
+	adjncy = *tadjncy = (reordering_int_t *)malloc(sizeof(reordering_int_t) * graph->nedges);
+	vwgt   = *tvwgt   = (reordering_int_t *)malloc(sizeof(reordering_int_t) * graph->nvtxs);
+	adjwgt = *tadjwgt = (reordering_int_t *)malloc(sizeof(reordering_int_t) * graph->nedges);
 
-	// vsize  = graph->vsize  = (Hunyuan_int_t *)mynd_check_malloc(sizeof(Hunyuan_int_t) * graph->nvtxs,"ReadGraph: vsize");
+	// vsize  = graph->vsize  = (reordering_int_t *)mynd_check_malloc(sizeof(reordering_int_t) * graph->nvtxs,"ReadGraph: vsize");
 
 	mynd_set_value_int(graph->nvtxs + 1, 0, xadj);
 	mynd_set_value_int(graph->nvtxs, 1, vwgt);

@@ -3,9 +3,9 @@
 
 #include "mynd_functionset.h"
 
-graph_t *mynd_CoarsenGraph(graph_t *graph, Hunyuan_int_t Coarsen_Threshold)
+graph_t *mynd_CoarsenGraph(graph_t *graph, reordering_int_t Coarsen_Threshold)
 {
-	Hunyuan_int_t i, eqewgts, level, maxvwgt, cnvtxs;
+	reordering_int_t i, eqewgts, level, maxvwgt, cnvtxs;
 
 	/* determine if the weights on the edges are all the same */
 	for (eqewgts = 1, i = 1; i < graph->nedges; i++) 
@@ -29,11 +29,11 @@ graph_t *mynd_CoarsenGraph(graph_t *graph, Hunyuan_int_t Coarsen_Threshold)
 		/* allocate memory for cmap, if it has not already been done due to
 			multiple cuts */
 		if (graph->match == NULL)
-			graph->match = (Hunyuan_int_t *)mynd_check_malloc(sizeof(Hunyuan_int_t) * graph->nvtxs, "CoarsenGraph: graph->match");
+			graph->match = (reordering_int_t *)mynd_check_malloc(sizeof(reordering_int_t) * graph->nvtxs, "CoarsenGraph: graph->match");
 		if (graph->cmap == NULL)
-			graph->cmap = (Hunyuan_int_t *)mynd_check_malloc(sizeof(Hunyuan_int_t) * graph->nvtxs, "CoarsenGraph: graph->cmap");
+			graph->cmap = (reordering_int_t *)mynd_check_malloc(sizeof(reordering_int_t) * graph->nvtxs, "CoarsenGraph: graph->cmap");
 		if (graph->where == NULL)
-			graph->where  = (Hunyuan_int_t *)mynd_check_malloc(sizeof(Hunyuan_int_t) * graph->nvtxs, "CoarsenGraph: graph->where");
+			graph->where  = (reordering_int_t *)mynd_check_malloc(sizeof(reordering_int_t) * graph->nvtxs, "CoarsenGraph: graph->where");
 		/* determine which matching scheme you will use */
 
 		// printf("CoarsenGraph 0\n");
@@ -63,14 +63,14 @@ graph_t *mynd_CoarsenGraph(graph_t *graph, Hunyuan_int_t Coarsen_Threshold)
 		level++;
 
 		//  sort for adjncy adjwgt
-		// for(Hunyuan_int_t z = 0;z < graph->nvtxs;z++)
+		// for(reordering_int_t z = 0;z < graph->nvtxs;z++)
 		// {
-		// 	for(Hunyuan_int_t y = graph->xadj[z];y < graph->xadj[z + 1];y++)
+		// 	for(reordering_int_t y = graph->xadj[z];y < graph->xadj[z + 1];y++)
 		// 	{
-		// 		Hunyuan_int_t t = y;
-		// 		for(Hunyuan_int_t x = y + 1;x < graph->xadj[z + 1];x++)
+		// 		reordering_int_t t = y;
+		// 		for(reordering_int_t x = y + 1;x < graph->xadj[z + 1];x++)
 		// 			if(graph->adjncy[x] < graph->adjncy[t]) t = x;
-		// 		Hunyuan_int_t temp;
+		// 		reordering_int_t temp;
 		// 		temp = graph->adjncy[t],graph->adjncy[t] = graph->adjncy[y], graph->adjncy[y] = temp;
 		// 		temp = graph->adjwgt[t],graph->adjwgt[t] = graph->adjwgt[y], graph->adjwgt[y] = temp;
 		// 	}
@@ -93,9 +93,9 @@ graph_t *mynd_CoarsenGraph(graph_t *graph, Hunyuan_int_t Coarsen_Threshold)
     graphs, where nlevels is an input parameter.
  */
 /*************************************************************************/
-graph_t *mynd_CoarsenGraphNlevels_metis(graph_t *graph, Hunyuan_int_t Coarsen_Threshold, Hunyuan_int_t nlevels)
+graph_t *mynd_CoarsenGraphNlevels_metis(graph_t *graph, reordering_int_t Coarsen_Threshold, reordering_int_t nlevels)
 {
-	Hunyuan_int_t i, eqewgts, level, maxvwgt, cnvtxs;
+	reordering_int_t i, eqewgts, level, maxvwgt, cnvtxs;
 
 	/* determine if the weights on the edges are all the same */
 	for (eqewgts = 1, i = 1; i < graph->nedges; i++) 
@@ -117,11 +117,11 @@ graph_t *mynd_CoarsenGraphNlevels_metis(graph_t *graph, Hunyuan_int_t Coarsen_Th
 		/* allocate memory for cmap, if it has not already been done due to
 			multiple cuts */
 		if (graph->match == NULL)
-			graph->match = (Hunyuan_int_t *)mynd_check_malloc(sizeof(Hunyuan_int_t) * graph->nvtxs, "CoarsenGraphNlevels_metis: graph->match");
+			graph->match = (reordering_int_t *)mynd_check_malloc(sizeof(reordering_int_t) * graph->nvtxs, "CoarsenGraphNlevels_metis: graph->match");
 		if (graph->cmap == NULL)
-			graph->cmap = (Hunyuan_int_t *)mynd_check_malloc(sizeof(Hunyuan_int_t) * graph->nvtxs, "CoarsenGraphNlevels_metis: graph->cmap");
+			graph->cmap = (reordering_int_t *)mynd_check_malloc(sizeof(reordering_int_t) * graph->nvtxs, "CoarsenGraphNlevels_metis: graph->cmap");
 		if (graph->where == NULL)
-			graph->where  = (Hunyuan_int_t *)mynd_check_malloc(sizeof(Hunyuan_int_t) * graph->nvtxs, "CoarsenGraphNlevels_metis: graph->where");
+			graph->where  = (reordering_int_t *)mynd_check_malloc(sizeof(reordering_int_t) * graph->nvtxs, "CoarsenGraphNlevels_metis: graph->where");
 		
 		// printf("CoarsenGraphNlevels 0\n");
     	/* determine which matching scheme you will use */
@@ -153,14 +153,14 @@ graph_t *mynd_CoarsenGraphNlevels_metis(graph_t *graph, Hunyuan_int_t Coarsen_Th
 		// 	printf("level=0\n");
 
 		//  sort for adjncy adjwgt
-		// for(Hunyuan_int_t z = 0;z < graph->nvtxs;z++)
+		// for(reordering_int_t z = 0;z < graph->nvtxs;z++)
 		// {
-		// 	for(Hunyuan_int_t y = graph->xadj[z];y < graph->xadj[z + 1];y++)
+		// 	for(reordering_int_t y = graph->xadj[z];y < graph->xadj[z + 1];y++)
 		// 	{
-		// 		Hunyuan_int_t t = y;
-		// 		for(Hunyuan_int_t x = y + 1;x < graph->xadj[z + 1];x++)
+		// 		reordering_int_t t = y;
+		// 		for(reordering_int_t x = y + 1;x < graph->xadj[z + 1];x++)
 		// 			if(graph->adjncy[x] < graph->adjncy[t]) t = x;
-		// 		Hunyuan_int_t temp;
+		// 		reordering_int_t temp;
 		// 		temp = graph->adjncy[t],graph->adjncy[t] = graph->adjncy[y], graph->adjncy[y] = temp;
 		// 		temp = graph->adjwgt[t],graph->adjwgt[t] = graph->adjwgt[y], graph->adjwgt[y] = temp;
 		// 	}

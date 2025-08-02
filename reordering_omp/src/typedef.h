@@ -73,7 +73,7 @@ typedef __int64 int64_t;
 * Setup the basic datatypes
 *-------------------------------------------------------------------------*/
 #if IDXTYPEWIDTH == 32
-  typedef int32_t Hunyuan_int_t;
+  typedef int32_t reordering_int_t;
 
   #define IDX_MAX   INT32_MAX
   #define IDX_MIN   INT32_MIN
@@ -84,7 +84,7 @@ typedef __int64 int64_t;
   #define strtoidx      strtol
   #define lyj_abs          abs
 #elif IDXTYPEWIDTH == 64
-  typedef int64_t Hunyuan_int_t;
+  typedef int64_t reordering_int_t;
 
   #define IDX_MAX   INT64_MAX
   #define IDX_MIN   INT64_MIN
@@ -104,7 +104,7 @@ typedef __int64 int64_t;
 
 
 #if REALTYPEWIDTH == 32
-  typedef float Hunyuan_real_t;
+  typedef float reordering_real_t;
 
   #define SCREAL         "f"
   #define PRREAL         "f"
@@ -121,7 +121,7 @@ typedef __int64 int64_t;
   #define strtoreal     strtof
 #endif
 #elif REALTYPEWIDTH == 64
-  typedef double Hunyuan_real_t;
+  typedef double reordering_real_t;
 
   #define SCREAL         "lf"
   #define PRREAL         "lf"

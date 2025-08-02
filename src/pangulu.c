@@ -65,10 +65,10 @@ void pangulu_init(
 
     common->basic_param = init_options->mpi_recv_buffer_level;
 
-    if(init_options->hunyuan_nthread == 0){
-        common->hunyuan_nthread = 4;
+    if(init_options->reordering_nthread == 0){
+        common->reordering_nthread = 4;
     }else{
-        common->hunyuan_nthread = init_options->hunyuan_nthread;
+        common->reordering_nthread = init_options->reordering_nthread;
     }
 
     if(init_options->gpu_data_move_warp_per_block == 0){
@@ -159,7 +159,7 @@ void pangulu_init(
         block_smatrix,
         origin_smatrix,
         reorder_matrix,
-        common->hunyuan_nthread
+        common->reordering_nthread
     );
     pangulu_cm_sync();
     elapsed_time = pangulu_time_stop(&time_start);

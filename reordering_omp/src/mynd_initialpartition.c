@@ -4,18 +4,18 @@
 #include "mynd_functionset.h"
 
 //  InitSeparator + GrowBisectionNode
-void mynd_ReorderBisection(graph_t *graph, Hunyuan_int_t niparts)
+void mynd_ReorderBisection(graph_t *graph, reordering_int_t niparts)
 {
-    Hunyuan_real_t ntpwgts[2] = {0.5, 0.5};
+    reordering_real_t ntpwgts[2] = {0.5, 0.5};
 
     /* this is required for the cut-based part of the refinement */
     // Setup2WayBalMultipliers(graph, ntpwgts);
 
     // GrowBisectionNode(graph, ntpwgts, niparts);
-    Hunyuan_int_t i, j, k, nvtxs, drain, nleft, first, last, pwgts[2], oneminpwgt, 
+    reordering_int_t i, j, k, nvtxs, drain, nleft, first, last, pwgts[2], oneminpwgt, 
         onemaxpwgt, bestcut=0, inbfs;
-    Hunyuan_int_t *xadj, *vwgt, *adjncy, *where, *bndind;
-    Hunyuan_int_t *queue, *touched, *bestwhere;
+    reordering_int_t *xadj, *vwgt, *adjncy, *where, *bndind;
+    reordering_int_t *queue, *touched, *bestwhere;
 
     nvtxs  = graph->nvtxs;
     xadj   = graph->xadj;
@@ -26,17 +26,17 @@ void mynd_ReorderBisection(graph_t *graph, Hunyuan_int_t niparts)
     oneminpwgt = (1.0 / 1.2000499) * graph->tvwgt[0] * 0.5;
 
     /* Allocate refinement memory. Allocate sufficient memory for both edge and node */
-    graph->where  = (Hunyuan_int_t *)mynd_check_malloc(sizeof(Hunyuan_int_t) * nvtxs, "ReorderBisection: graph->where");
-    graph->pwgts  = (Hunyuan_int_t *)mynd_check_malloc(sizeof(Hunyuan_int_t) * 3, "ReorderBisection: graph->pwgts");
-    graph->bndptr = (Hunyuan_int_t *)mynd_check_malloc(sizeof(Hunyuan_int_t) * nvtxs, "ReorderBisection: graph->bndptr");
-    graph->bndind = (Hunyuan_int_t *)mynd_check_malloc(sizeof(Hunyuan_int_t) * nvtxs, "ReorderBisection: graph->bndind");
-    graph->id     = (Hunyuan_int_t *)mynd_check_malloc(sizeof(Hunyuan_int_t) * nvtxs, "ReorderBisection: graph->id");
-    graph->ed     = (Hunyuan_int_t *)mynd_check_malloc(sizeof(Hunyuan_int_t) * nvtxs, "ReorderBisection: graph->ed");
+    graph->where  = (reordering_int_t *)mynd_check_malloc(sizeof(reordering_int_t) * nvtxs, "ReorderBisection: graph->where");
+    graph->pwgts  = (reordering_int_t *)mynd_check_malloc(sizeof(reordering_int_t) * 3, "ReorderBisection: graph->pwgts");
+    graph->bndptr = (reordering_int_t *)mynd_check_malloc(sizeof(reordering_int_t) * nvtxs, "ReorderBisection: graph->bndptr");
+    graph->bndind = (reordering_int_t *)mynd_check_malloc(sizeof(reordering_int_t) * nvtxs, "ReorderBisection: graph->bndind");
+    graph->id     = (reordering_int_t *)mynd_check_malloc(sizeof(reordering_int_t) * nvtxs, "ReorderBisection: graph->id");
+    graph->ed     = (reordering_int_t *)mynd_check_malloc(sizeof(reordering_int_t) * nvtxs, "ReorderBisection: graph->ed");
     graph->nrinfo = (nrinfo_t *)mynd_check_malloc(sizeof(nrinfo_t) * nvtxs, "ReorderBisection: graph->nrinfo");
 
-    bestwhere = (Hunyuan_int_t *)mynd_check_malloc(sizeof(Hunyuan_int_t) * nvtxs, "ReorderBisection: bestwhere");
-    queue     = (Hunyuan_int_t *)mynd_check_malloc(sizeof(Hunyuan_int_t) * nvtxs, "ReorderBisection: queue");
-    touched   = (Hunyuan_int_t *)mynd_check_malloc(sizeof(Hunyuan_int_t) * nvtxs, "ReorderBisection: touched");
+    bestwhere = (reordering_int_t *)mynd_check_malloc(sizeof(reordering_int_t) * nvtxs, "ReorderBisection: bestwhere");
+    queue     = (reordering_int_t *)mynd_check_malloc(sizeof(reordering_int_t) * nvtxs, "ReorderBisection: queue");
+    touched   = (reordering_int_t *)mynd_check_malloc(sizeof(reordering_int_t) * nvtxs, "ReorderBisection: touched");
   
     where  = graph->where;
     bndind = graph->bndind;
@@ -178,9 +178,9 @@ void mynd_ReorderBisection(graph_t *graph, Hunyuan_int_t niparts)
     graph->mincut = bestcut;
     mynd_copy_int(nvtxs, bestwhere, where);
     // printf("ReorderBisection 9\n");
-    mynd_check_free(touched, sizeof(Hunyuan_int_t) * nvtxs, "ReorderBisection: touched");
-    mynd_check_free(queue, sizeof(Hunyuan_int_t) * nvtxs, "ReorderBisection: queue");
-    mynd_check_free(bestwhere, sizeof(Hunyuan_int_t) * nvtxs, "ReorderBisection: bestwhere");
+    mynd_check_free(touched, sizeof(reordering_int_t) * nvtxs, "ReorderBisection: touched");
+    mynd_check_free(queue, sizeof(reordering_int_t) * nvtxs, "ReorderBisection: queue");
+    mynd_check_free(bestwhere, sizeof(reordering_int_t) * nvtxs, "ReorderBisection: bestwhere");
     //     exam_where(graph);
 }
 

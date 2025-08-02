@@ -3,75 +3,75 @@
 
 #include "mynd_functionset.h"
 
-/*Hunyuan_real_t time_all = 0;
+/*reordering_real_t time_all = 0;
 struct timeval start_all;
 struct timeval end_all;
 
-Hunyuan_real_t time_nestedbisection = 0;
+reordering_real_t time_nestedbisection = 0;
 struct timeval start_nestedbisection;
 struct timeval end_nestedbisection;
 
-Hunyuan_real_t time_bisectionbest = 0;
+reordering_real_t time_bisectionbest = 0;
 struct timeval start_bisectionbest;
 struct timeval end_bisectionbest;
 
-Hunyuan_real_t time_coarsen = 0;
+reordering_real_t time_coarsen = 0;
 struct timeval start_coarsen;
 struct timeval end_coarsen;
 
-Hunyuan_real_t time_reorderbisection = 0;
+reordering_real_t time_reorderbisection = 0;
 struct timeval start_reorderbisection;
 struct timeval end_reorderbisection;
 
-Hunyuan_real_t time_refine2waynode = 0;
+reordering_real_t time_refine2waynode = 0;
 struct timeval start_refine2waynode;
 struct timeval end_refine2waynode;
 
-Hunyuan_real_t time_splitgraphreorder = 0;
+reordering_real_t time_splitgraphreorder = 0;
 struct timeval start_splitgraphreorder;
 struct timeval end_splitgraphreorder;
 
-Hunyuan_real_t time_match = 0;
+reordering_real_t time_match = 0;
 struct timeval start_match;
 struct timeval end_match;
 
-Hunyuan_real_t time_createcoarsengraph = 0;
+reordering_real_t time_createcoarsengraph = 0;
 struct timeval start_createcoarsengraph;
 struct timeval end_createcoarsengraph;
 
-Hunyuan_real_t time_partitioninf2way = 0;
+reordering_real_t time_partitioninf2way = 0;
 struct timeval start_partitioninf2way;
 struct timeval end_partitioninf2way;
 
-Hunyuan_real_t time_fm2waycutbalance = 0;
+reordering_real_t time_fm2waycutbalance = 0;
 struct timeval start_fm2waycutbalance;
 struct timeval end_fm2waycutbalance;
 
-Hunyuan_real_t time_fm2waycutrefine = 0;
+reordering_real_t time_fm2waycutrefine = 0;
 struct timeval start_fm2waycutrefine;
 struct timeval end_fm2waycutrefine;
 
-Hunyuan_real_t time_reorderinf2way = 0;
+reordering_real_t time_reorderinf2way = 0;
 struct timeval start_reorderinf2way;
 struct timeval end_reorderinf2way;
 
-Hunyuan_real_t time_fmnodebalance = 0;
+reordering_real_t time_fmnodebalance = 0;
 struct timeval start_fmnodebalance;
 struct timeval end_fmnodebalance;
 
-Hunyuan_real_t time_fm1sidenoderefine = 0;
+reordering_real_t time_fm1sidenoderefine = 0;
 struct timeval start_fm1sidenoderefine;
 struct timeval end_fm1sidenoderefine;
 
-Hunyuan_real_t time_fm2sidenoderefine = 0;
+reordering_real_t time_fm2sidenoderefine = 0;
 struct timeval start_fm2sidenoderefine;
 struct timeval end_fm2sidenoderefine;
 
-Hunyuan_real_t time_malloc = 0;
+reordering_real_t time_malloc = 0;
 struct timeval start_malloc;
 struct timeval end_malloc;
 
-Hunyuan_real_t time_free = 0;
+reordering_real_t time_free = 0;
 struct timeval start_free;
 struct timeval end_free;*/
 
@@ -97,12 +97,12 @@ void mynd_Timer_Init()
 	time_free = 0;
 }
 
-void mynd_gettimebegin(struct timeval *start, struct timeval *end, Hunyuan_real_t *time)
+void mynd_gettimebegin(struct timeval *start, struct timeval *end, reordering_real_t *time)
 {
 	gettimeofday(start,NULL);
 }
 
-void mynd_gettimeend(struct timeval *start, struct timeval *end, Hunyuan_real_t *time)
+void mynd_gettimeend(struct timeval *start, struct timeval *end, reordering_real_t *time)
 {
 	gettimeofday(end,NULL);
 	time[0] += (end[0].tv_sec - start[0].tv_sec) * 1000 + (end[0].tv_usec - start[0].tv_usec) / 1000.0;
@@ -152,7 +152,7 @@ void mynd_PrintTimeSteps()
 
 }
 
-void mynd_PrintTime(Hunyuan_int_t control)
+void mynd_PrintTime(reordering_int_t control)
 {
 	//	001
 	if(control & PRINTTIMESTEPS) 

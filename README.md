@@ -9,14 +9,14 @@ PanguLU is an open source software package for solving a linear system *Ax = b* 
 ## Structure of code
 
 ```
-PanguLU/README        instructions on installation
-PanguLU/src           C and CUDA source code, to be compiled into libpangulu.a and libpangulu.so
-PanguLU/examples      example code
-PanguLU/include       contains headers archieve pangulu.h
-PanguLU/lib           contains library archieve libpangulu.a and libpangulu.so
-PanguLU/hunyuan_omp   Hunyuan - parallel graph partitioning and fill-reducing matrix ordering
-PanguLU/Makefile      top-level Makefile that does installation and testing
-PanguLU/make.inc      compiler, compiler flags included in all Makefiles (excepts examples/Makefile)
+PanguLU/README         instructions on installation
+PanguLU/src            C and CUDA source code, to be compiled into libpangulu.a and libpangulu.so
+PanguLU/examples       example code
+PanguLU/include        contains headers archieve pangulu.h
+PanguLU/lib            contains library archieve libpangulu.a and libpangulu.so
+PanguLU/reordering_omp Parallel graph partitioning and fill-reducing matrix ordering
+PanguLU/Makefile       top-level Makefile that does installation and testing
+PanguLU/make.inc       compiler, compiler flags included in all Makefiles (excepts examples/Makefile)
 ```
 
 ## Installation
@@ -61,8 +61,8 @@ Use `-DCALCULATE_TYPE_R64` (double real) or `-DCALCULATE_TYPE_CR64` (double comp
 #### Decide if or not using MC64 reordering algorithm.
 Use `-DPANGULU_MC64` to enable MC64 algorithm. Please notice that MC64 is not supported when matrix entries are complex numbers. If complex values are selected and `-DPANGULU_MC64` flag is used, MC64 would not enable.
 
-#### Decide using Hunyuan or METIS reordering tool.
-Use `-DMETIS` if you want to use METIS; otherwise, Hunyuan matrix reordering will be used by default.
+#### Decide using our parallel reordering algorithm or METIS reordering tool.
+Use `-DMETIS` if you want to use METIS; otherwise, our parallel reordering algorithm will be used by default.
 
 #### Decide log level.
 Please select zero or one of these flags : `-DPANGULU_LOG_INFO`, `-DPANGULU_LOG_WARNING` or `-DPANGULU_LOG_ERROR`. Log level "INFO" prints all messages to standard output (including warnings and errors). Log level "WANRING" only prints warnings and errors. Log level "ERROR" only prints fatal errors causing PanguLU to terminate abnormally.
@@ -160,7 +160,7 @@ In this example, 4 processes are used to test, the block_size is 10, matrix name
 
 * Added a task aggregator to increase numeric factorisation performance;
 * Optimised performance of preprocessing phase;
-* Added the Hunyuan reordering algorithm on CPU as the default reordering algorithm;
+* Added parallel reordering algorithm on CPU as the default reordering algorithm;
 * Optimised GPU memory layout to reduce GPU memory usage.
 
 #### <p align='left'>Version 4.1.0 (Sep. 1, 2024) </p>

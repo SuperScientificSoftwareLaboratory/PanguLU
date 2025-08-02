@@ -10,12 +10,12 @@
     The requirement of the 2-hop matching is a simple non-empty overlap
     between the adjancency lists of the vertices. */
 /**************************************************************************/
-Hunyuan_int_t Match_2HopAny(graph_t *graph, Hunyuan_int_t *perm, Hunyuan_int_t *match, Hunyuan_int_t cnvtxs, Hunyuan_int_t *r_nunmatched, Hunyuan_int_t maxdegree)
+reordering_int_t Match_2HopAny(graph_t *graph, reordering_int_t *perm, reordering_int_t *match, reordering_int_t cnvtxs, reordering_int_t *r_nunmatched, reordering_int_t maxdegree)
 {
-	Hunyuan_int_t i, pi, j, jj, nvtxs;
-	Hunyuan_int_t *xadj, *adjncy, *colptr, *rowind;
-	Hunyuan_int_t *cmap;
-	Hunyuan_int_t nunmatched;
+	reordering_int_t i, pi, j, jj, nvtxs;
+	reordering_int_t *xadj, *adjncy, *colptr, *rowind;
+	reordering_int_t *cmap;
+	reordering_int_t nunmatched;
 
 	nvtxs  = graph->nvtxs;
 	xadj   = graph->xadj;
@@ -25,7 +25,7 @@ Hunyuan_int_t Match_2HopAny(graph_t *graph, Hunyuan_int_t *perm, Hunyuan_int_t *
 	nunmatched = *r_nunmatched;
 
 	/* create the inverted index */
-	colptr = (Hunyuan_int_t *)mynd_check_malloc(sizeof(Hunyuan_int_t) * (nvtxs + 1), "Match_2HopAny: colptr");
+	colptr = (reordering_int_t *)mynd_check_malloc(sizeof(reordering_int_t) * (nvtxs + 1), "Match_2HopAny: colptr");
 	mynd_set_value_int(nvtxs + 1, 0, colptr);
 
 	for (i = 0; i < nvtxs; i++) 
@@ -38,8 +38,8 @@ Hunyuan_int_t Match_2HopAny(graph_t *graph, Hunyuan_int_t *perm, Hunyuan_int_t *
 	}
 	MAKECSR(i, nvtxs, colptr);
 
-	Hunyuan_int_t rowind_size = colptr[nvtxs];
-	rowind = (Hunyuan_int_t *)mynd_check_malloc(sizeof(Hunyuan_int_t) * colptr[nvtxs], "Match_2HopAny: rowind");
+	reordering_int_t rowind_size = colptr[nvtxs];
+	rowind = (reordering_int_t *)mynd_check_malloc(sizeof(reordering_int_t) * colptr[nvtxs], "Match_2HopAny: rowind");
 	for (pi = 0; pi < nvtxs; pi++) 
 	{
 		i = perm[pi];
@@ -80,8 +80,8 @@ Hunyuan_int_t Match_2HopAny(graph_t *graph, Hunyuan_int_t *perm, Hunyuan_int_t *
 	}
 
 	// printf("Match_2HopAny 1\n");
-	mynd_check_free(rowind, sizeof(Hunyuan_int_t) * rowind_size, "Match_2HopAny: rowind");
-	mynd_check_free(colptr, sizeof(Hunyuan_int_t) * (nvtxs + 1), "Match_2HopAny: colptr");
+	mynd_check_free(rowind, sizeof(reordering_int_t) * rowind_size, "Match_2HopAny: rowind");
+	mynd_check_free(colptr, sizeof(reordering_int_t) * (nvtxs + 1), "Match_2HopAny: colptr");
 
 	*r_nunmatched = nunmatched;
 	return cnvtxs;
@@ -95,13 +95,13 @@ Hunyuan_int_t Match_2HopAny(graph_t *graph, Hunyuan_int_t *perm, Hunyuan_int_t *
     lists.
  */
 /**************************************************************************/
-Hunyuan_int_t Match_2HopAll(graph_t *graph, Hunyuan_int_t *perm, Hunyuan_int_t *match, Hunyuan_int_t cnvtxs, Hunyuan_int_t *r_nunmatched, Hunyuan_int_t maxdegree)
+reordering_int_t Match_2HopAll(graph_t *graph, reordering_int_t *perm, reordering_int_t *match, reordering_int_t cnvtxs, reordering_int_t *r_nunmatched, reordering_int_t maxdegree)
 {
-	Hunyuan_int_t i, pi, pk, j, jj, k, nvtxs, mask, idegree;
-	Hunyuan_int_t *xadj, *adjncy;
-	Hunyuan_int_t *cmap, *mark;
+	reordering_int_t i, pi, pk, j, jj, k, nvtxs, mask, idegree;
+	reordering_int_t *xadj, *adjncy;
+	reordering_int_t *cmap, *mark;
 	ikv_t *keys;
-	Hunyuan_int_t nunmatched, ncand;
+	reordering_int_t nunmatched, ncand;
 
 	nvtxs  = graph->nvtxs;
 	xadj   = graph->xadj;
@@ -128,7 +128,7 @@ Hunyuan_int_t Match_2HopAll(graph_t *graph, Hunyuan_int_t *perm, Hunyuan_int_t *
 	}
 	mynd_ikvsorti(ncand, keys);
 
-	mark = (Hunyuan_int_t *)mynd_check_malloc(sizeof(Hunyuan_int_t) * nvtxs, "Match_2HopAll: mark");
+	mark = (reordering_int_t *)mynd_check_malloc(sizeof(reordering_int_t) * nvtxs, "Match_2HopAll: mark");
 	mynd_set_value_int(nvtxs, 0, mark);
 	for (pi = 0; pi < ncand; pi++) 
 	{
@@ -166,7 +166,7 @@ Hunyuan_int_t Match_2HopAll(graph_t *graph, Hunyuan_int_t *perm, Hunyuan_int_t *
 		}
 	}
 
-	mynd_check_free(mark, sizeof(Hunyuan_int_t) * nvtxs, "Match_2HopAll: mark");
+	mynd_check_free(mark, sizeof(reordering_int_t) * nvtxs, "Match_2HopAll: mark");
 	mynd_check_free(keys, sizeof(ikv_t) * (*r_nunmatched), "Match_2HopAll: keys");
 
 	*r_nunmatched = nunmatched;
@@ -177,7 +177,7 @@ Hunyuan_int_t Match_2HopAll(graph_t *graph, Hunyuan_int_t *perm, Hunyuan_int_t *
 /*! This function matches the unmatched vertices using a 2-hop matching 
     that involves vertices that are two hops away from each other. */
 /**************************************************************************/
-Hunyuan_int_t Match_2Hop(graph_t *graph, Hunyuan_int_t *perm, Hunyuan_int_t *match, Hunyuan_int_t cnvtxs, Hunyuan_int_t nunmatched)
+reordering_int_t Match_2Hop(graph_t *graph, reordering_int_t *perm, reordering_int_t *match, reordering_int_t cnvtxs, reordering_int_t nunmatched)
 {
 	// printf("Match_2Hop 0\n");
 	cnvtxs = Match_2HopAny(graph, perm, match, cnvtxs, &nunmatched, 2);
@@ -209,12 +209,12 @@ Hunyuan_int_t Match_2Hop(graph_t *graph, Hunyuan_int_t *perm, Hunyuan_int_t *mat
     unmatched adjacent vertices. 
  */
 /**************************************************************************/
-Hunyuan_int_t mynd_Match_RM(graph_t *graph, Hunyuan_int_t maxvwgt)
+reordering_int_t mynd_Match_RM(graph_t *graph, reordering_int_t maxvwgt)
 {
-	Hunyuan_int_t i, pi, j,  k, nvtxs, cnvtxs, maxidx, last_unmatched;
-	Hunyuan_int_t *xadj, *vwgt, *adjncy;
-	Hunyuan_int_t *match, *cmap, *perm;
-	Hunyuan_int_t nunmatched = 0;
+	reordering_int_t i, pi, j,  k, nvtxs, cnvtxs, maxidx, last_unmatched;
+	reordering_int_t *xadj, *vwgt, *adjncy;
+	reordering_int_t *match, *cmap, *perm;
+	reordering_int_t nunmatched = 0;
 
 	nvtxs  = graph->nvtxs;
 	// ncon   = graph->ncon;
@@ -223,11 +223,11 @@ Hunyuan_int_t mynd_Match_RM(graph_t *graph, Hunyuan_int_t maxvwgt)
 	adjncy = graph->adjncy;
 	cmap   = graph->cmap;
 
-	// graph->match = (Hunyuan_int_t *)mynd_check_malloc(sizeof(Hunyuan_int_t) * nvtxs, "mynd_Match_RM: graph->match");
+	// graph->match = (reordering_int_t *)mynd_check_malloc(sizeof(reordering_int_t) * nvtxs, "mynd_Match_RM: graph->match");
 	match = graph->match;
 	mynd_set_value_int(nvtxs, -1, match);
 
-	perm  = (Hunyuan_int_t *)mynd_check_malloc(sizeof(Hunyuan_int_t) * nvtxs, "mynd_Match_RM: perm");
+	perm  = (reordering_int_t *)mynd_check_malloc(sizeof(reordering_int_t) * nvtxs, "mynd_Match_RM: perm");
 
   	mynd_irandArrayPermute(nvtxs, perm, nvtxs/8, 1);
 	// printf("perm\n");
@@ -263,7 +263,7 @@ Hunyuan_int_t mynd_Match_RM(graph_t *graph, Hunyuan_int_t maxvwgt)
 				}
 				else
 				{
-					/* single constraHunyuan_int_t version */
+					/* single constraint version */
 					for (j = xadj[i]; j < xadj[i + 1]; j++) 
 					{
 						k = adjncy[j];
@@ -321,7 +321,7 @@ Hunyuan_int_t mynd_Match_RM(graph_t *graph, Hunyuan_int_t maxvwgt)
 	}
 
 	// printf("mynd_Match_RM 3\n");
-	mynd_check_free(perm, sizeof(Hunyuan_int_t) * nvtxs, "mynd_Match_RM: perm");
+	mynd_check_free(perm, sizeof(reordering_int_t) * nvtxs, "mynd_Match_RM: perm");
 	// exam_num(match,nvtxs);
 
 	return cnvtxs;
@@ -332,12 +332,12 @@ Hunyuan_int_t mynd_Match_RM(graph_t *graph, Hunyuan_int_t maxvwgt)
 * corresponding to the sorted order. The keys are arsumed to start from
 * 0 and they are positive.  This sorting is used during matching.
 **************************************************************************/
-void BucketSortKeysInc(Hunyuan_int_t n, Hunyuan_int_t max, Hunyuan_int_t *keys, Hunyuan_int_t *tperm, Hunyuan_int_t *perm)
+void BucketSortKeysInc(reordering_int_t n, reordering_int_t max, reordering_int_t *keys, reordering_int_t *tperm, reordering_int_t *perm)
 {
-	Hunyuan_int_t i, ii;
-	Hunyuan_int_t *counts;
+	reordering_int_t i, ii;
+	reordering_int_t *counts;
 
-	counts = (Hunyuan_int_t *)mynd_check_malloc(sizeof(Hunyuan_int_t) * (max + 2), "BucketSortKeysInc: counts");
+	counts = (reordering_int_t *)mynd_check_malloc(sizeof(reordering_int_t) * (max + 2), "BucketSortKeysInc: counts");
 	mynd_set_value_int(max + 2, 0, counts);
 
 	for (i = 0; i < n; i++)
@@ -350,7 +350,7 @@ void BucketSortKeysInc(Hunyuan_int_t n, Hunyuan_int_t max, Hunyuan_int_t *keys, 
 		perm[counts[keys[i]]++] = i;
 	}
 
-	mynd_check_free(counts, sizeof(Hunyuan_int_t) * (max + 2), "BucketSortKeysInc: counts");
+	mynd_check_free(counts, sizeof(reordering_int_t) * (max + 2), "BucketSortKeysInc: counts");
 }
 
 /**************************************************************************/
@@ -359,13 +359,13 @@ void BucketSortKeysInc(Hunyuan_int_t n, Hunyuan_int_t max, Hunyuan_int_t *keys, 
     given a chance to match with something. 
  */
 /**************************************************************************/
-Hunyuan_int_t mynd_Match_SHEM(graph_t *graph, Hunyuan_int_t maxvwgt)
+reordering_int_t mynd_Match_SHEM(graph_t *graph, reordering_int_t maxvwgt)
 {
-	Hunyuan_int_t i, pi, j, k, nvtxs, cnvtxs, maxidx, maxwgt, 
+	reordering_int_t i, pi, j, k, nvtxs, cnvtxs, maxidx, maxwgt, 
 			last_unmatched, avgdegree;
-	Hunyuan_int_t *xadj, *vwgt, *adjncy, *adjwgt;
-	Hunyuan_int_t *match, *cmap, *degrees, *perm, *tperm;
-	Hunyuan_int_t nunmatched=0;
+	reordering_int_t *xadj, *vwgt, *adjncy, *adjwgt;
+	reordering_int_t *match, *cmap, *degrees, *perm, *tperm;
+	reordering_int_t nunmatched=0;
 
 	nvtxs  = graph->nvtxs;
 	// ncon   = graph->ncon;
@@ -377,9 +377,9 @@ Hunyuan_int_t mynd_Match_SHEM(graph_t *graph, Hunyuan_int_t maxvwgt)
 
 	match = graph->match;
 	mynd_set_value_int(nvtxs, -1, match);
-	perm = (Hunyuan_int_t *)mynd_check_malloc(sizeof(Hunyuan_int_t) * nvtxs, "mynd_Match_SHEM: perm");
-	tperm = (Hunyuan_int_t *)mynd_check_malloc(sizeof(Hunyuan_int_t) * nvtxs, "mynd_Match_SHEM: tperm");
-	degrees = (Hunyuan_int_t *)mynd_check_malloc(sizeof(Hunyuan_int_t) * nvtxs, "mynd_Match_SHEM: degrees");
+	perm = (reordering_int_t *)mynd_check_malloc(sizeof(reordering_int_t) * nvtxs, "mynd_Match_SHEM: perm");
+	tperm = (reordering_int_t *)mynd_check_malloc(sizeof(reordering_int_t) * nvtxs, "mynd_Match_SHEM: tperm");
+	degrees = (reordering_int_t *)mynd_check_malloc(sizeof(reordering_int_t) * nvtxs, "mynd_Match_SHEM: degrees");
 
 	mynd_irandArrayPermute(nvtxs, tperm, nvtxs/8, 1);
 
@@ -417,8 +417,8 @@ Hunyuan_int_t mynd_Match_SHEM(graph_t *graph, Hunyuan_int_t maxvwgt)
 				}
 				else 
 				{
-					/* Find a heavy-edge matching, subject to maxvwgt constraHunyuan_int_ts */
-					/* single constraHunyuan_int_t version */
+					/* Find a heavy-edge matching, subject to maxvwgt constraints */
+					/* single constraint version */
 					for (j = xadj[i]; j < xadj[i + 1]; j++) 
 					{
 						k = adjncy[j];
@@ -472,9 +472,9 @@ Hunyuan_int_t mynd_Match_SHEM(graph_t *graph, Hunyuan_int_t maxvwgt)
 		}
 	}
 	// printf("mynd_Match_SHEM 3\n");
-	mynd_check_free(degrees, sizeof(Hunyuan_int_t) * nvtxs, "mynd_Match_SHEM: degrees");
-	mynd_check_free(tperm, sizeof(Hunyuan_int_t) * nvtxs, "mynd_Match_SHEM: tperm");
-	mynd_check_free(perm, sizeof(Hunyuan_int_t) * nvtxs, "mynd_Match_SHEM: perm");
+	mynd_check_free(degrees, sizeof(reordering_int_t) * nvtxs, "mynd_Match_SHEM: degrees");
+	mynd_check_free(tperm, sizeof(reordering_int_t) * nvtxs, "mynd_Match_SHEM: tperm");
+	mynd_check_free(perm, sizeof(reordering_int_t) * nvtxs, "mynd_Match_SHEM: perm");
 	// exam_num(match,nvtxs);
 	return cnvtxs;
 }

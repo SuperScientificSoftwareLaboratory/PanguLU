@@ -705,7 +705,7 @@ void pangulu_reorder_vector_x_tran(
     pangulu_exblock_idx *metis_perm = block_smatrix->metis_perm;
     calculate_type *col_scale = block_smatrix->col_scale;
 
-    for (Hunyuan_int_t i = 0; i < n; i++)
+    for (reordering_int_t i = 0; i < n; i++)
     {
         pangulu_int64_t now_col = metis_perm[i];
         X_trans->value[i] = X_origin->value[now_col] * col_scale[i];
@@ -846,13 +846,13 @@ void pangulu_origin_smatrix_add_csr(pangulu_origin_smatrix *a)
     pangulu_free(__FILE__, __LINE__, index_columnpointer);
 }
 
-void pangulu_get_graph_struct(pangulu_origin_smatrix *s, Hunyuan_int_t **xadj_address, Hunyuan_int_t **adjncy_address)
+void pangulu_get_graph_struct(pangulu_origin_smatrix *s, reordering_int_t **xadj_address, reordering_int_t **adjncy_address)
 {
     pangulu_add_diagonal_element(s);
     pangulu_origin_smatrix_add_csc(s);
 
-    Hunyuan_int_t *xadj = (Hunyuan_int_t *)pangulu_malloc(__FILE__, __LINE__, sizeof(Hunyuan_int_t) * (s->row + 1));
-    Hunyuan_int_t *adjncy = pangulu_malloc(__FILE__, __LINE__, sizeof(Hunyuan_int_t) * s->nnz * 2);
+    reordering_int_t *xadj = (reordering_int_t *)pangulu_malloc(__FILE__, __LINE__, sizeof(reordering_int_t) * (s->row + 1));
+    reordering_int_t *adjncy = pangulu_malloc(__FILE__, __LINE__, sizeof(reordering_int_t) * s->nnz * 2);
 
     xadj[0] = 0;
     for (pangulu_exblock_idx rc = 0; rc < s->row; rc++)
@@ -949,18 +949,18 @@ void pangulu_get_graph_struct(pangulu_origin_smatrix *s, Hunyuan_int_t **xadj_ad
         }
     }
 
-    adjncy = pangulu_realloc(__FILE__, __LINE__, adjncy, sizeof(Hunyuan_int_t) * xadj[s->row]);
+    adjncy = pangulu_realloc(__FILE__, __LINE__, adjncy, sizeof(reordering_int_t) * xadj[s->row]);
     *xadj_address = xadj;
     *adjncy_address = adjncy;
 }
 
-void pangulu_get_graph_struct_csc(pangulu_origin_smatrix *s, Hunyuan_int_t **xadj_address, Hunyuan_int_t **adjncy_address)
+void pangulu_get_graph_struct_csc(pangulu_origin_smatrix *s, reordering_int_t **xadj_address, reordering_int_t **adjncy_address)
 {
     pangulu_add_diagonal_element_csc(s);
     pangulu_origin_smatrix_add_csr(s);
 
-    Hunyuan_int_t *xadj = (Hunyuan_int_t *)pangulu_malloc(__FILE__, __LINE__, sizeof(Hunyuan_int_t) * (s->row + 1));
-    Hunyuan_int_t *adjncy = pangulu_malloc(__FILE__, __LINE__, sizeof(Hunyuan_int_t) * s->nnz * 2);
+    reordering_int_t *xadj = (reordering_int_t *)pangulu_malloc(__FILE__, __LINE__, sizeof(reordering_int_t) * (s->row + 1));
+    reordering_int_t *adjncy = pangulu_malloc(__FILE__, __LINE__, sizeof(reordering_int_t) * s->nnz * 2);
 
     xadj[0] = 0;
     for (pangulu_exblock_idx rc = 0; rc < s->row; rc++)
@@ -1057,23 +1057,23 @@ void pangulu_get_graph_struct_csc(pangulu_origin_smatrix *s, Hunyuan_int_t **xad
         }
     }
 
-    adjncy = pangulu_realloc(__FILE__, __LINE__, adjncy, sizeof(Hunyuan_int_t) * xadj[s->row]);
+    adjncy = pangulu_realloc(__FILE__, __LINE__, adjncy, sizeof(reordering_int_t) * xadj[s->row]);
     *xadj_address = xadj;
     *adjncy_address = adjncy;
 }
 
 #ifdef METIS
-void pangulu_metis(pangulu_origin_smatrix *a, Hunyuan_int_t **metis_perm)
+void pangulu_metis(pangulu_origin_smatrix *a, reordering_int_t **metis_perm)
 {
-    Hunyuan_int_t nvtxs, nedges, compress, control, is_memery_manage_before;
-    Hunyuan_int_t *xadj, *adjncy, *vwgt, *adjwgt, *perm, *iperm;
+    reordering_int_t nvtxs, nedges, compress, control, is_memery_manage_before;
+    reordering_int_t *xadj, *adjncy, *vwgt, *adjwgt, *perm, *iperm;
 
     nvtxs = a->row;
 
-    iperm = (Hunyuan_int_t *)pangulu_malloc(__FILE__, __LINE__, sizeof(Hunyuan_int_t) * nvtxs);
-    perm = (Hunyuan_int_t *)pangulu_malloc(__FILE__, __LINE__, sizeof(Hunyuan_int_t) * nvtxs);
-    memset(iperm, 0, sizeof(Hunyuan_int_t) * nvtxs);
-    memset(perm, 0, sizeof(Hunyuan_int_t) * nvtxs);
+    iperm = (reordering_int_t *)pangulu_malloc(__FILE__, __LINE__, sizeof(reordering_int_t) * nvtxs);
+    perm = (reordering_int_t *)pangulu_malloc(__FILE__, __LINE__, sizeof(reordering_int_t) * nvtxs);
+    memset(iperm, 0, sizeof(reordering_int_t) * nvtxs);
+    memset(perm, 0, sizeof(reordering_int_t) * nvtxs);
 
     pangulu_get_graph_struct_csc(a, &xadj, &adjncy);
 
@@ -1087,25 +1087,25 @@ void pangulu_metis(pangulu_origin_smatrix *a, Hunyuan_int_t **metis_perm)
     a->columnindex = NULL;
 }
 #else
-void pangulu_hunyuan_mt(pangulu_origin_smatrix *a, Hunyuan_int_t **metis_perm, Hunyuan_int_t nthreads)
+void pangulu_reordering_mt(pangulu_origin_smatrix *a, reordering_int_t **metis_perm, reordering_int_t nthreads)
 {
-    Hunyuan_int_t nvtxs, nedges, compress, control, is_memery_manage_before;
-    Hunyuan_int_t *xadj, *adjncy, *vwgt, *adjwgt, *perm, *iperm;
+    reordering_int_t nvtxs, nedges, compress, control, is_memery_manage_before;
+    reordering_int_t *xadj, *adjncy, *vwgt, *adjwgt, *perm, *iperm;
 
     nvtxs = a->row;
 
-    iperm = (Hunyuan_int_t *)pangulu_malloc(__FILE__, __LINE__, sizeof(Hunyuan_int_t) * nvtxs);
-    perm = (Hunyuan_int_t *)pangulu_malloc(__FILE__, __LINE__, sizeof(Hunyuan_int_t) * nvtxs);
-    vwgt = (Hunyuan_int_t *)pangulu_malloc(__FILE__, __LINE__, sizeof(Hunyuan_int_t) * nvtxs);
+    iperm = (reordering_int_t *)pangulu_malloc(__FILE__, __LINE__, sizeof(reordering_int_t) * nvtxs);
+    perm = (reordering_int_t *)pangulu_malloc(__FILE__, __LINE__, sizeof(reordering_int_t) * nvtxs);
+    vwgt = (reordering_int_t *)pangulu_malloc(__FILE__, __LINE__, sizeof(reordering_int_t) * nvtxs);
 
     pangulu_get_graph_struct_csc(a, &xadj, &adjncy);
 
     nedges = xadj[nvtxs];
-    adjwgt = (Hunyuan_int_t *)pangulu_malloc(__FILE__, __LINE__, sizeof(Hunyuan_int_t) * nedges);
+    adjwgt = (reordering_int_t *)pangulu_malloc(__FILE__, __LINE__, sizeof(reordering_int_t) * nedges);
 
-    for (Hunyuan_int_t i = 0; i < nvtxs; i++)
+    for (reordering_int_t i = 0; i < nvtxs; i++)
         vwgt[i] = 1;
-    for (Hunyuan_int_t i = 0; i < nedges; i++)
+    for (reordering_int_t i = 0; i < nedges; i++)
         adjwgt[i] = 1;
 
     compress = 1;
@@ -1171,7 +1171,7 @@ void pangulu_reordering(
     pangulu_block_smatrix *block_smatrix,
     pangulu_origin_smatrix *origin_matrix,
     pangulu_origin_smatrix *reorder_matrix,
-    pangulu_int32_t hunyuan_nthread)
+    pangulu_int32_t reordering_nthread)
 {
     int rank;
     MPI_Comm_rank(MPI_COMM_WORLD, &rank);
@@ -1183,7 +1183,7 @@ void pangulu_reordering(
         pangulu_exblock_idx *perm = NULL;
         pangulu_exblock_idx *iperm = NULL;
         pangulu_exblock_idx *metis_perm = NULL;
-        Hunyuan_int_t *metis_perm_tmp = NULL;
+        reordering_int_t *metis_perm_tmp = NULL;
         calculate_type *row_scale = NULL;
         calculate_type *col_scale = NULL;
         pangulu_origin_smatrix *tmp;
@@ -1274,9 +1274,9 @@ void pangulu_reordering(
 #ifdef METIS
         pangulu_metis(tmp, &metis_perm_tmp);
 #else
-        pangulu_hunyuan_mt(tmp, &metis_perm_tmp, hunyuan_nthread);
+        pangulu_reordering_mt(tmp, &metis_perm_tmp, reordering_nthread);
 #endif
-        if (sizeof(pangulu_exblock_idx) == sizeof(Hunyuan_int_t))
+        if (sizeof(pangulu_exblock_idx) == sizeof(reordering_int_t))
         {
             metis_perm = metis_perm_tmp;
         }

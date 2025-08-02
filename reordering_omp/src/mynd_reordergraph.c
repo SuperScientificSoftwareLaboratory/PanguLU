@@ -3,13 +3,13 @@
 
 #include "mynd_functionset.h"
 
-Hunyuan_int_t num = 0;
+reordering_int_t num = 0;
 
-void mynd_Reorderpartition(graph_t *graph, Hunyuan_int_t niparts, Hunyuan_int_t level)
+void mynd_Reorderpartition(graph_t *graph, reordering_int_t niparts, reordering_int_t level)
 {
 	graph_t *cgraph;
 
-	Hunyuan_int_t Coarsen_Threshold = graph->nvtxs / 8;
+	reordering_int_t Coarsen_Threshold = graph->nvtxs / 8;
 	if (Coarsen_Threshold > 100)
 		Coarsen_Threshold = 100;
 	else if (Coarsen_Threshold < 40)
@@ -47,7 +47,7 @@ void mynd_Reorderpartition(graph_t *graph, Hunyuan_int_t niparts, Hunyuan_int_t 
     // exam_where(graph);
 
     /*// choose the best one later
-    Hunyuan_int_t Coarsen_Threshold = lyj_max(graph->nvtxs / 8, 128);
+    reordering_int_t Coarsen_Threshold = lyj_max(graph->nvtxs / 8, 128);
     printf("Reorderpartition 0\n");
     printf("Coarsen_Threshold=%d\n",Coarsen_Threshold);
     graph_t *cgraph = graph;
@@ -60,17 +60,17 @@ void mynd_Reorderpartition(graph_t *graph, Hunyuan_int_t niparts, Hunyuan_int_t 
 
 /*************************************************************************/
 /*! This version of the main idea of the Bisection function
-		*1 the coarsening is divided Hunyuan_int_to two times
+		*1 the coarsening is divided into two times
 		*2 the graph is small in second coarsening, 
             so can execute a few times to select the best one
-		*3 the vertex weight constraHunyuan_int_t in coarsening is removed
+		*3 the vertex weight constraint in coarsening is removed
 */
 /*************************************************************************/
-void mynd_Bisection(graph_t *graph, Hunyuan_int_t niparts, Hunyuan_int_t nthreads, Hunyuan_int_t level)
+void mynd_Bisection(graph_t *graph, reordering_int_t niparts, reordering_int_t nthreads, reordering_int_t level)
 {
-	Hunyuan_int_t i, mincut, nruns = 5;
+	reordering_int_t i, mincut, nruns = 5;
 	graph_t *cgraph; 
-	Hunyuan_int_t *bestwhere;
+	reordering_int_t *bestwhere;
 
 	/* if the graph is small, just find a single vertex separator */
 	if (graph->nvtxs < 5000) 
@@ -81,7 +81,7 @@ void mynd_Bisection(graph_t *graph, Hunyuan_int_t niparts, Hunyuan_int_t nthread
 		return;
 	}
 
-	Hunyuan_int_t Coarsen_Threshold = lyj_max(100, graph->nvtxs / 30);
+	reordering_int_t Coarsen_Threshold = lyj_max(100, graph->nvtxs / 30);
 	
     // printf("Bisection 00\n");
     CONTROL_COMMAND(control, COARSEN_Time, mynd_gettimebegin(&start_coarsen, &end_coarsen, &time_coarsen));
@@ -95,7 +95,7 @@ void mynd_Bisection(graph_t *graph, Hunyuan_int_t niparts, Hunyuan_int_t nthread
 	// exam_vwgt(cgraph);
 	// exam_adjncy_adjwgt(cgraph);
 
-	bestwhere = (Hunyuan_int_t *)mynd_check_malloc(sizeof(Hunyuan_int_t) * cgraph->nvtxs, "Bisection: bestwhere");
+	bestwhere = (reordering_int_t *)mynd_check_malloc(sizeof(reordering_int_t) * cgraph->nvtxs, "Bisection: bestwhere");
     
 	mincut = graph->tvwgt[0];
 	for (i = 0; i < nruns; i++) 
@@ -121,7 +121,7 @@ void mynd_Bisection(graph_t *graph, Hunyuan_int_t niparts, Hunyuan_int_t nthread
 
 	if (mincut != cgraph->mincut) 
 		mynd_copy_int(cgraph->nvtxs, bestwhere, cgraph->where);
-    mynd_check_free(bestwhere, sizeof(Hunyuan_int_t) * cgraph->nvtxs, "Bisection: bestwhere");
+    mynd_check_free(bestwhere, sizeof(reordering_int_t) * cgraph->nvtxs, "Bisection: bestwhere");
 
     // printf("Bisection 5\n");
     CONTROL_COMMAND(control, REFINE2WAYNODE_Time, mynd_gettimebegin(&start_refine2waynode, &end_refine2waynode, &time_refine2waynode));
@@ -133,7 +133,7 @@ void mynd_Bisection(graph_t *graph, Hunyuan_int_t niparts, Hunyuan_int_t nthread
     // exam_where(graph);
 }
 
-void mynd_BisectionBest(graph_t *graph, Hunyuan_int_t nthreads, Hunyuan_int_t level)
+void mynd_BisectionBest(graph_t *graph, reordering_int_t nthreads, reordering_int_t level)
 {
 	/* if the graph is small, just find a single vertex separator */
 	if (1 || graph->nvtxs < (0 ? 1000 : 2000)) 
@@ -145,7 +145,7 @@ void mynd_BisectionBest(graph_t *graph, Hunyuan_int_t nthreads, Hunyuan_int_t le
 	}
 }
 
-void mynd_NestedBisection(graph_t *graph, Hunyuan_int_t *reflect, Hunyuan_int_t *reordernumend, Hunyuan_int_t nthreads, Hunyuan_int_t level)
+void mynd_NestedBisection(graph_t *graph, reordering_int_t *reflect, reordering_int_t *reordernumend, reordering_int_t nthreads, reordering_int_t level)
 {
     int tid = omp_get_thread_num();
     cpu_set_t cpuset;
@@ -157,17 +157,17 @@ void mynd_NestedBisection(graph_t *graph, Hunyuan_int_t *reflect, Hunyuan_int_t 
     }
 
     // printf("begin level=%"PRIDX" reordernum=%"PRIDX"\n",level, reordernumend[level]);
-    Hunyuan_int_t *treordernum = (Hunyuan_int_t *)malloc(sizeof(Hunyuan_int_t));
+    reordering_int_t *treordernum = (reordering_int_t *)malloc(sizeof(reordering_int_t));
     treordernum[0] = reordernumend[level];
 	// struct timeval nb_t1, nb_t2;
     // gettimeofday(&nb_t1, NULL);
 
-    Hunyuan_int_t *bndind, *label;
+    reordering_int_t *bndind, *label;
     graph_t *lgraph, *rgraph;
 
     // printf("NestedBisection 0\n");
     // printf("BisectionBest begin ccnt=%"PRIDX"\n",rand_count());
-    // Hunyuan_int_t nthread_id = omp_get_thread_num();
+    // reordering_int_t nthread_id = omp_get_thread_num();
     // printf("nthread_id=%"PRIDX" graph->nvtxs=%"PRIDX"\n",nthread_id,graph->nvtxs);
     //  Bisection
     CONTROL_COMMAND(control, BISECTIONBEST_Time, mynd_gettimebegin(&start_bisectionbest, &end_bisectionbest, &time_bisectionbest));
@@ -177,19 +177,19 @@ void mynd_NestedBisection(graph_t *graph, Hunyuan_int_t *reflect, Hunyuan_int_t 
     // printf("BisectionBest end ccnt=%"PRIDX"\n",rand_count());
 
     //  check function SplitGraphoRerder
-    // graph->where = (Hunyuan_int_t *)mynd_check_malloc(sizeof(Hunyuan_int_t) * graph->nvtxs, "NestedBisection: where");
-    // for(Hunyuan_int_t i = 0;i < graph->nvtxs / 3;i++)
+    // graph->where = (reordering_int_t *)mynd_check_malloc(sizeof(reordering_int_t) * graph->nvtxs, "NestedBisection: where");
+    // for(reordering_int_t i = 0;i < graph->nvtxs / 3;i++)
     //    graph->where[i] = 0;
-    // for(Hunyuan_int_t i = graph->nvtxs / 3;i < graph->nvtxs / 3 * 2;i++)
+    // for(reordering_int_t i = graph->nvtxs / 3;i < graph->nvtxs / 3 * 2;i++)
     //    graph->where[i] = 2;
-    // for(Hunyuan_int_t i = graph->nvtxs / 3 * 2;i < graph->nvtxs;i++)
+    // for(reordering_int_t i = graph->nvtxs / 3 * 2;i < graph->nvtxs;i++)
     //    graph->where[i] = 1;
     // exam_where(graph);
     // printf("NestedBisection 1\n");
     //  set up reflect
     bndind = graph->bndind;
     label  = graph->label;
-    for(Hunyuan_int_t i = 0;i < graph->nbnd;i++)
+    for(reordering_int_t i = 0;i < graph->nbnd;i++)
     {
         // if( reflect[label[bndind[i]]] != -1)
         // {
@@ -229,7 +229,7 @@ void mynd_NestedBisection(graph_t *graph, Hunyuan_int_t *reflect, Hunyuan_int_t 
     //     printf("level=%"PRIDX" lgraph->nvtxs=%"PRIDX" rgraph->nvtxs=%"PRIDX" NestedBisection used %4.2f ms\n", level, lgraph->nvtxs, rgraph->nvtxs, time_nb);
 	// printf("level=%"PRIDX" NestedBisection used %4.2f ms\n", level, time_nb);
     
-    // Hunyuan_int_t *treordernum = (Hunyuan_int_t *)malloc(sizeof(Hunyuan_int_t));
+    // reordering_int_t *treordernum = (reordering_int_t *)malloc(sizeof(reordering_int_t));
     // treordernum[0] = reordernum;
     //  Nest
     if(lgraph->nvtxs > 120 && lgraph->nedges > 0)
@@ -289,11 +289,11 @@ void mynd_NestedBisection(graph_t *graph, Hunyuan_int_t *reflect, Hunyuan_int_t 
     }
 }
 
-void mynd_NestedBisection_omp(graph_t *graph, Hunyuan_int_t *reflect, Hunyuan_int_t *reordernum, Hunyuan_int_t nthreads, Hunyuan_int_t level)
+void mynd_NestedBisection_omp(graph_t *graph, reordering_int_t *reflect, reordering_int_t *reordernum, reordering_int_t nthreads, reordering_int_t level)
 {
-    Hunyuan_int_t nvtxs = graph->nvtxs;
+    reordering_int_t nvtxs = graph->nvtxs;
 
-    Hunyuan_int_t *reordernumend = (Hunyuan_int_t * )mynd_check_malloc(sizeof(Hunyuan_int_t) * nvtxs, "NestedBisection_omp: reordernumend");
+    reordering_int_t *reordernumend = (reordering_int_t * )mynd_check_malloc(sizeof(reordering_int_t) * nvtxs, "NestedBisection_omp: reordernumend");
     mynd_set_value_int(nvtxs,-1,reordernumend);
     reordernumend[0] = reordernum[0];
 
@@ -301,12 +301,12 @@ void mynd_NestedBisection_omp(graph_t *graph, Hunyuan_int_t *reflect, Hunyuan_in
     #pragma omp single //nowait
     mynd_NestedBisection(graph, reflect, reordernumend, nthreads, 0);
 
-    mynd_check_free(reordernumend, sizeof(Hunyuan_int_t) * nvtxs, "NestedBisection_omp: reordernumend");
+    mynd_check_free(reordernumend, sizeof(reordering_int_t) * nvtxs, "NestedBisection_omp: reordernumend");
 
 }
 
-void mynd_ReorderGraph(Hunyuan_int_t *nvtxs, Hunyuan_int_t *nedges, Hunyuan_int_t *xadj, Hunyuan_int_t *vwgt, Hunyuan_int_t *adjncy, Hunyuan_int_t *adjwgt, 
-    Hunyuan_int_t *treflect, Hunyuan_int_t *reflect, Hunyuan_int_t *compress, Hunyuan_int_t *tcontrol, Hunyuan_int_t *is_memery_manage_before, Hunyuan_int_t nthreads)
+void mynd_ReorderGraph(reordering_int_t *nvtxs, reordering_int_t *nedges, reordering_int_t *xadj, reordering_int_t *vwgt, reordering_int_t *adjncy, reordering_int_t *adjwgt, 
+    reordering_int_t *treflect, reordering_int_t *reflect, reordering_int_t *compress, reordering_int_t *tcontrol, reordering_int_t *is_memery_manage_before, reordering_int_t nthreads)
 {
     mynd_Timer_Init();
     control = tcontrol[0];
@@ -326,8 +326,8 @@ void mynd_ReorderGraph(Hunyuan_int_t *nvtxs, Hunyuan_int_t *nedges, Hunyuan_int_
     //  init
     mynd_InitRandom(-1);
     graph_t *graph = NULL;
-    Hunyuan_int_t nnvtxs = 0;
-    Hunyuan_int_t *cptr, *cind;
+    reordering_int_t nnvtxs = 0;
+    reordering_int_t *cptr, *cind;
 
     // printf("mynd_irandInRange(nvtxs)=%"PRIDX"\n",mynd_irandInRange(nvtxs[0]));
 
@@ -336,8 +336,8 @@ void mynd_ReorderGraph(Hunyuan_int_t *nvtxs, Hunyuan_int_t *nedges, Hunyuan_int_
     if(compress[0] == 1)
     {
         // exit(0);
-        cptr = (Hunyuan_int_t *)mynd_check_malloc(sizeof(Hunyuan_int_t) * (nvtxs[0] + 1), "ReorderGraph: cptr");
-        cind = (Hunyuan_int_t *)mynd_check_malloc(sizeof(Hunyuan_int_t) * nvtxs[0], "ReorderGraph: cind");
+        cptr = (reordering_int_t *)mynd_check_malloc(sizeof(reordering_int_t) * (nvtxs[0] + 1), "ReorderGraph: cptr");
+        cind = (reordering_int_t *)mynd_check_malloc(sizeof(reordering_int_t) * nvtxs[0], "ReorderGraph: cind");
 
         graph = mynd_Compress_Graph(nvtxs[0], xadj, adjncy, vwgt, cptr, cind);
 
@@ -345,22 +345,22 @@ void mynd_ReorderGraph(Hunyuan_int_t *nvtxs, Hunyuan_int_t *nedges, Hunyuan_int_
 
         if (graph == NULL) 
         {
-            mynd_check_free(cptr, sizeof(Hunyuan_int_t) * (nvtxs[0] + 1), "ReorderGraph: cptr");
-            mynd_check_free(cind, sizeof(Hunyuan_int_t) * nvtxs[0], "ReorderGraph: cind");
+            mynd_check_free(cptr, sizeof(reordering_int_t) * (nvtxs[0] + 1), "ReorderGraph: cptr");
+            mynd_check_free(cind, sizeof(reordering_int_t) * nvtxs[0], "ReorderGraph: cind");
             compress[0] = 0; 
         }
         else 
         {
-            // mynd_check_free(xadj, sizeof(Hunyuan_int_t) * (nvtxs[0] + 1), "main: xadj");
-            // mynd_check_free(vwgt, sizeof(Hunyuan_int_t) * nvtxs[0], "main: vwgt");
-            // mynd_check_free(adjncy, sizeof(Hunyuan_int_t) * nedges[0], "main: adjncy");
-            // mynd_check_free(adjwgt, sizeof(Hunyuan_int_t) * nedges[0], "main: adjwgt");
+            // mynd_check_free(xadj, sizeof(reordering_int_t) * (nvtxs[0] + 1), "main: xadj");
+            // mynd_check_free(vwgt, sizeof(reordering_int_t) * nvtxs[0], "main: vwgt");
+            // mynd_check_free(adjncy, sizeof(reordering_int_t) * nedges[0], "main: adjncy");
+            // mynd_check_free(adjwgt, sizeof(reordering_int_t) * nedges[0], "main: adjwgt");
             nnvtxs = graph->nvtxs;
             // printf("compress nnvtxs=%"PRIDX"\n",nnvtxs);
             // cfactor = 1.0 * (nvtxs[0]) / nnvtxs;
             // if (cfactor > 1.5 && nseps == 1)
             //     nseps = 2;
-            //ctrl->nseps = (Hunyuan_int_t)(ctrl->cfactor*ctrl->nseps);
+            //ctrl->nseps = (reordering_int_t)(ctrl->cfactor*ctrl->nseps);
         }
     }
 
@@ -368,9 +368,9 @@ void mynd_ReorderGraph(Hunyuan_int_t *nvtxs, Hunyuan_int_t *nedges, Hunyuan_int_
     if(compress[0] == 0)
         graph = mynd_SetupGraph(nvtxs[0], xadj, adjncy, vwgt, adjwgt); 
     // printf("graph->tvwgt[0]=%"PRIDX" cgraph->invtvwgt[0]=%lf\n", graph->tvwgt[0],graph->invtvwgt[0]);
-    Hunyuan_int_t reordernum = graph->nvtxs;
+    reordering_int_t reordernum = graph->nvtxs;
 
-    // Hunyuan_int_t *reflect = (Hunyuan_int_t *)mynd_check_malloc(sizeof(Hunyuan_int_t) * nvtxs[0], "ReorderGraph: reflect");
+    // reordering_int_t *reflect = (reordering_int_t *)mynd_check_malloc(sizeof(reordering_int_t) * nvtxs[0], "ReorderGraph: reflect");
     mynd_set_value_int(nvtxs[0],-1,reflect);
     mynd_set_value_int(nvtxs[0],-1,treflect);
     // printf("ReorderGraph 2\n");
@@ -382,7 +382,7 @@ void mynd_ReorderGraph(Hunyuan_int_t *nvtxs, Hunyuan_int_t *nedges, Hunyuan_int_
     // gettimeofday(&t1, NULL);
     mynd_NestedBisection_omp(graph, reflect, &reordernum, nthreads, 0);
     // gettimeofday(&t2, NULL);
-    // Hunyuan_real_t time_NestedBisection_omp = (t2.tv_sec - t1.tv_sec) * 1000.0 + (t2.tv_usec - t1.tv_usec) / 1000.0;
+    // reordering_real_t time_NestedBisection_omp = (t2.tv_sec - t1.tv_sec) * 1000.0 + (t2.tv_usec - t1.tv_usec) / 1000.0;
     // printf("[%2"PRIDX"-t] NestedBisection used %4.2"PRREAL" ms\n", nthreads, time_NestedBisection_omp);
 
 	// NestedBisection(graph, reflect, reordernum, 0);
@@ -395,8 +395,8 @@ void mynd_ReorderGraph(Hunyuan_int_t *nvtxs, Hunyuan_int_t *nedges, Hunyuan_int_
     if(compress[0] == 0)
         nnvtxs = nvtxs[0];
     // printf("compress[0]=%"PRIDX" nnvtxs=%"PRIDX"\n",compress[0],nnvtxs);
-    // Hunyuan_int_t cnt = 0, cnt1 = 0, cnt2 = 0, cnt3 = 0;
-    // for(Hunyuan_int_t i = 0;i < nnvtxs;i++)
+    // reordering_int_t cnt = 0, cnt1 = 0, cnt2 = 0, cnt3 = 0;
+    // for(reordering_int_t i = 0;i < nnvtxs;i++)
     // {
     //     if(reflect[i] >= nvtxs[0] || reflect[i] < 0)
     //     {
@@ -420,25 +420,25 @@ void mynd_ReorderGraph(Hunyuan_int_t *nvtxs, Hunyuan_int_t *nedges, Hunyuan_int_
 
     if(compress[0])
     {
-        for (Hunyuan_int_t i = 0; i < nnvtxs; i++)
+        for (reordering_int_t i = 0; i < nnvtxs; i++)
             treflect[reflect[i]] = i; 
-        for (Hunyuan_int_t l = 0, i = 0, ii = 0; ii < nnvtxs; ii++) 
+        for (reordering_int_t l = 0, i = 0, ii = 0; ii < nnvtxs; ii++) 
         {
             i = treflect[ii];
-            for (Hunyuan_int_t j = cptr[i];j < cptr[i + 1]; j++)
+            for (reordering_int_t j = cptr[i];j < cptr[i + 1]; j++)
                 reflect[cind[j]] = l++;
         }
 
-        mynd_check_free(cptr, sizeof(Hunyuan_int_t) * (nvtxs[0] + 1), "ReorderGraph: cptr");
-        mynd_check_free(cind, sizeof(Hunyuan_int_t) * nvtxs[0], "ReorderGraph: cind");
+        mynd_check_free(cptr, sizeof(reordering_int_t) * (nvtxs[0] + 1), "ReorderGraph: cptr");
+        mynd_check_free(cind, sizeof(reordering_int_t) * nvtxs[0], "ReorderGraph: cind");
 
-        mynd_check_free(xadj, sizeof(Hunyuan_int_t) * (nvtxs[0] + 1), "ReorderGraph: xadj");
-		mynd_check_free(vwgt, sizeof(Hunyuan_int_t) * nvtxs[0], "ReorderGraph: vwgt");
-		mynd_check_free(adjncy, sizeof(Hunyuan_int_t) * nedges[0], "ReorderGraph: adjncy");
-		mynd_check_free(adjwgt, sizeof(Hunyuan_int_t) * nedges[0], "ReorderGraph: adjwgt");
+        mynd_check_free(xadj, sizeof(reordering_int_t) * (nvtxs[0] + 1), "ReorderGraph: xadj");
+		mynd_check_free(vwgt, sizeof(reordering_int_t) * nvtxs[0], "ReorderGraph: vwgt");
+		mynd_check_free(adjncy, sizeof(reordering_int_t) * nedges[0], "ReorderGraph: adjncy");
+		mynd_check_free(adjwgt, sizeof(reordering_int_t) * nedges[0], "ReorderGraph: adjwgt");
     }
 
-    // for (Hunyuan_int_t i = 0; i < nvtxs[0]; i++)
+    // for (reordering_int_t i = 0; i < nvtxs[0]; i++)
     // {
     //     if(reflect[i] >= nvtxs[0] || reflect[i] < 0)
     //         printf("reflect[%"PRIDX"]=%"PRIDX"\n",i,reflect[i]);

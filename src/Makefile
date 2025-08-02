@@ -5,7 +5,7 @@ src:=$(wildcard *.c)
 pangulu_host : pangulu_platforms $(src:.c=.o) 
 
 %.o:%.c
-	$(MPICC) $(MPICCFLAGS) $(METIS_INC) $(HUNYUAN_INC) $(PANGULU_FLAGS) -c $< -o $@ -fPIC
+	$(MPICC) $(MPICCFLAGS) $(METIS_INC) $(REORDERING_INC) $(PANGULU_FLAGS) -c $< -o $@ -fPIC
 	mv $@ ../lib
 
 pangulu_platforms:

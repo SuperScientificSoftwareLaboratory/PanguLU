@@ -6,7 +6,7 @@
 /*************************************************************************
 * This function returns the log2(x)
 **************************************************************************/
-Hunyuan_int_t lyj_log2(Hunyuan_int_t a) 
+reordering_int_t lyj_log2(reordering_int_t a) 
 {
     if (a <= 0) 
 	{
@@ -14,7 +14,7 @@ Hunyuan_int_t lyj_log2(Hunyuan_int_t a)
         return -1;
     }
 
-    Hunyuan_int_t i = 0;
+    reordering_int_t i = 0;
     while (a > 1) 
 	{
         a >>= 1;
@@ -24,64 +24,64 @@ Hunyuan_int_t lyj_log2(Hunyuan_int_t a)
     return i;
 }
 
-void mynd_set_value_int(Hunyuan_int_t n, Hunyuan_int_t val, Hunyuan_int_t *src)
+void mynd_set_value_int(reordering_int_t n, reordering_int_t val, reordering_int_t *src)
 {
-	Hunyuan_int_t i;
+	reordering_int_t i;
 	for (i = 0; i < n; i++)
     	src[i] = val;
 }
 
-void mynd_set_value_double(Hunyuan_int_t n, Hunyuan_real_t val, Hunyuan_real_t *src)
+void mynd_set_value_double(reordering_int_t n, reordering_real_t val, reordering_real_t *src)
 {
-	Hunyuan_int_t i;
+	reordering_int_t i;
 	for (i = 0; i < n; i++)
     	src[i] = val;
 }
 
-void mynd_copy_double(Hunyuan_int_t n, Hunyuan_real_t *src, Hunyuan_real_t *dst)
+void mynd_copy_double(reordering_int_t n, reordering_real_t *src, reordering_real_t *dst)
 {
-	for (Hunyuan_int_t i = 0; i < n; i++)
+	for (reordering_int_t i = 0; i < n; i++)
     	dst[i] = src[i];
 }
 
-void mynd_copy_int(Hunyuan_int_t n, Hunyuan_int_t *src, Hunyuan_int_t *dst)
+void mynd_copy_int(reordering_int_t n, reordering_int_t *src, reordering_int_t *dst)
 {
-	for (Hunyuan_int_t i = 0; i < n; i++)
+	for (reordering_int_t i = 0; i < n; i++)
     	dst[i] = src[i];
 }
 
-Hunyuan_int_t mynd_sum_int(Hunyuan_int_t n, Hunyuan_int_t *src, Hunyuan_int_t ncon)
+reordering_int_t mynd_sum_int(reordering_int_t n, reordering_int_t *src, reordering_int_t ncon)
 {
-	Hunyuan_int_t sum = 0;
-	for(Hunyuan_int_t i = 0;i < n;i++)
+	reordering_int_t sum = 0;
+	for(reordering_int_t i = 0;i < n;i++)
 		sum += src[i];
 	return sum;
 }
 
-void mynd_select_sort(Hunyuan_int_t *num, Hunyuan_int_t length)
+void mynd_select_sort(reordering_int_t *num, reordering_int_t length)
 {
-	for(Hunyuan_int_t i = 0;i < length;i++)
+	for(reordering_int_t i = 0;i < length;i++)
 	{
-		Hunyuan_int_t t = i;
-		for(Hunyuan_int_t j = i + 1;j < length;j++)
+		reordering_int_t t = i;
+		for(reordering_int_t j = i + 1;j < length;j++)
 			if(num[j] < num[t]) t = j;
-		Hunyuan_int_t z;
+		reordering_int_t z;
 		lyj_swap(num[t], num[i],z);
 		// printf("i=%d t=%d num: ",i,t);
-		// for(Hunyuan_int_t j = 0;j < length;j++)
+		// for(reordering_int_t j = 0;j < length;j++)
 		// 	printf("%d ",num[j]);
 		// printf("\n");
 	}
 }
 
-void mynd_select_sort_val(Hunyuan_int_t *num, Hunyuan_int_t length)
+void mynd_select_sort_val(reordering_int_t *num, reordering_int_t length)
 {
-	for(Hunyuan_int_t i = 0;i < length;i++)
+	for(reordering_int_t i = 0;i < length;i++)
 	{
-		Hunyuan_int_t t = i;
-		for(Hunyuan_int_t j = i + 1;j < length;j++)
+		reordering_int_t t = i;
+		for(reordering_int_t j = i + 1;j < length;j++)
 			if(num[j] < num[t]) t = j;
-		Hunyuan_int_t z;
+		reordering_int_t z;
 		lyj_swap(num[t], num[i], z);
 		lyj_swap(num[t + length], num[i + length],z);
 	}
@@ -101,7 +101,7 @@ void mynd_gk_randinit(uint64_t seed)
 /*************************************************************************/
 /*! Initializes the generator */ 
 /**************************************************************************/
-void mynd_isrand(Hunyuan_int_t seed)
+void mynd_isrand(reordering_int_t seed)
 {
   mynd_gk_randinit((uint64_t) seed);
 }
@@ -110,12 +110,12 @@ void mynd_isrand(Hunyuan_int_t seed)
 /*! This function initializes the random number generator 
   */
 /*************************************************************************/
-void mynd_InitRandom(Hunyuan_int_t seed)
+void mynd_InitRandom(reordering_int_t seed)
 {
 	mynd_isrand((seed == -1 ? 4321 : seed));
 }
 
-/* generates a random number on [0, 2^64-1]-Hunyuan_int_terval */
+/* generates a random number on [0, 2^64-1]-interval */
 uint64_t mynd_gk_randint64(void)
 {
 #ifdef USE_GKRAND
@@ -124,7 +124,7 @@ uint64_t mynd_gk_randint64(void)
 #endif
 }
 
-/* generates a random number on [0, 2^32-1]-Hunyuan_int_terval */
+/* generates a random number on [0, 2^32-1]-interval */
 uint32_t mynd_gk_randint32(void)
 {
 #ifdef USE_GKRAND
@@ -136,15 +136,15 @@ uint32_t mynd_gk_randint32(void)
 /*************************************************************************/
 /*! Returns a random number */ 
 /**************************************************************************/
-Hunyuan_int_t mynd_irand()
+reordering_int_t mynd_irand()
 {
-  if (sizeof(Hunyuan_int_t) <= sizeof(int32_t)) 
-    return (Hunyuan_int_t)mynd_gk_randint32();
+  if (sizeof(reordering_int_t) <= sizeof(int32_t)) 
+    return (reordering_int_t)mynd_gk_randint32();
   else 
-    return (Hunyuan_int_t)mynd_gk_randint64(); 
+    return (reordering_int_t)mynd_gk_randint64(); 
 }
 
-Hunyuan_int_t mynd_rand_count()
+reordering_int_t mynd_rand_count()
 {
 	static int ccnt = 0;  
 	ccnt++;   
@@ -154,11 +154,11 @@ Hunyuan_int_t mynd_rand_count()
 /*************************************************************************/
 /*! Returns a random number between [0, max) */ 
 /**************************************************************************/
-Hunyuan_int_t mynd_irandInRange(Hunyuan_int_t max) 
+reordering_int_t mynd_irandInRange(reordering_int_t max) 
 {
-	// Hunyuan_int_t t = rand_count(); 
+	// reordering_int_t t = rand_count(); 
 	// if(t % 10000 == 0)  printf("ccnt=%d\n",t);
-	return (Hunyuan_int_t)((mynd_irand())%max); 
+	return (reordering_int_t)((mynd_irand())%max); 
 }
 
 /*************************************************************************/
@@ -166,15 +166,15 @@ Hunyuan_int_t mynd_irandInRange(Hunyuan_int_t max)
     flag == 1, p[i] = i prior to permutation, 
     flag == 0, p[] is not initialized. */
 /**************************************************************************/
-void mynd_irandArrayPermute(Hunyuan_int_t n, Hunyuan_int_t *p, Hunyuan_int_t nshuffles, Hunyuan_int_t flag)
+void mynd_irandArrayPermute(reordering_int_t n, reordering_int_t *p, reordering_int_t nshuffles, reordering_int_t flag)
 {
-	Hunyuan_int_t i, u, v;
-	Hunyuan_int_t tmp;
+	reordering_int_t i, u, v;
+	reordering_int_t tmp;
 
 	if (flag == 1) 
 	{
 		for (i = 0; i < n; i++)
-			p[i] = (Hunyuan_int_t)i;
+			p[i] = (reordering_int_t)i;
 	}
 
 	if (n < 10) 

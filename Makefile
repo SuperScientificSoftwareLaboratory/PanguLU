@@ -8,16 +8,16 @@ examples : lib
 lib : src
 	$(MAKE) -C $@
 
-src: hunyuan
+src: reordering
 	$(MAKE) -C $@
 
-hunyuan:
-	$(MAKE) -C hunyuan_omp
+reordering:
+	$(MAKE) -C reordering_omp
 
 clean:
 	$(MAKE) -C src clean
 	$(MAKE) -C lib clean
 	$(MAKE) -C examples clean
-	$(MAKE) -C hunyuan_omp clean
+	$(MAKE) -C reordering_omp clean
 
 update : clean all

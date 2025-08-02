@@ -5,12 +5,12 @@
 
 memory_manage *memorymanage = NULL;
 char *name = NULL;
-Hunyuan_real_t log_time;
+reordering_real_t log_time;
 struct timeval start_log;
 struct timeval end_log;
 
 /*************************************************************************/
-/*! This function prHunyuan_int_ts an error message and exits  
+/*! This function prints an error message and exits  
  */
 /*************************************************************************/
 void mynd_error_exit(const char *error_message) 
@@ -22,7 +22,7 @@ void mynd_error_exit(const char *error_message)
     exit(1);
 }
 
-Hunyuan_int_t mynd_find_between_last_slash_and_dotgraph(const char *filename) 
+reordering_int_t mynd_find_between_last_slash_and_dotgraph(const char *filename) 
 {
     name = (char *)malloc(sizeof(char) * 128);
     const char *last_slash_pos = strrchr(filename, '/');
@@ -38,7 +38,7 @@ Hunyuan_int_t mynd_find_between_last_slash_and_dotgraph(const char *filename)
         const char *end_pos = dotgraph_pos; // '.graph' 前的位置
         
         // 计算需要复制的字符数量
-        Hunyuan_int_t len = end_pos - start_pos;
+        reordering_int_t len = end_pos - start_pos;
 
         strncpy(name, start_pos, len);
         name[len] = '\0'; // 确保字符串以 null 结尾
@@ -61,7 +61,7 @@ Hunyuan_int_t mynd_find_between_last_slash_and_dotgraph(const char *filename)
         * 1 -> init successfully
 */
 /**************************************************************************/
-Hunyuan_int_t mynd_init_memery_manage(char *filename)
+reordering_int_t mynd_init_memery_manage(char *filename)
 {
     //  already init
     if(memorymanage != NULL)
@@ -90,7 +90,7 @@ Hunyuan_int_t mynd_init_memery_manage(char *filename)
 		sprintf(error_message, "***Memory allocation failed for memoryblock.");
 		mynd_error_exit(error_message);
     }
-    for(Hunyuan_int_t i = 0;i < memorymanage->all_block;i++)
+    for(reordering_int_t i = 0;i < memorymanage->all_block;i++)
     {
         memorymanage->memoryblock[i].ptr = NULL;
         memorymanage->memoryblock[i].nbytes = 0;
@@ -102,7 +102,7 @@ Hunyuan_int_t mynd_init_memery_manage(char *filename)
     return 1;
 }
 
-void mynd_log_memory(Hunyuan_int_t task_type, Hunyuan_int_t nbytes, void *ptr, char *message) 
+void mynd_log_memory(reordering_int_t task_type, reordering_int_t nbytes, void *ptr, char *message) 
 {
     // 打开文件
     FILE *file = fopen(name, "a"); // "a" 模式表示追加到文件末尾
@@ -126,7 +126,7 @@ void mynd_log_memory(Hunyuan_int_t task_type, Hunyuan_int_t nbytes, void *ptr, c
     fclose(file);
 }
 
-void mynd_add_memory_block(void *ptr, Hunyuan_int_t nbytes, char *message)
+void mynd_add_memory_block(void *ptr, reordering_int_t nbytes, char *message)
 {
     // need to realloc
     if(memorymanage->used_block >= memorymanage->all_block)
@@ -141,14 +141,14 @@ void mynd_add_memory_block(void *ptr, Hunyuan_int_t nbytes, char *message)
 			sprintf(error_message, "***Memory allocation failed for memoryblock.");
 			mynd_error_exit(error_message);
         }
-        for(Hunyuan_int_t i = memorymanage->all_block / 2;i < memorymanage->all_block;i++)
+        for(reordering_int_t i = memorymanage->all_block / 2;i < memorymanage->all_block;i++)
         {
             memorymanage->memoryblock[i].ptr = NULL;
             memorymanage->memoryblock[i].nbytes = 0;
         }
     }
 
-    Hunyuan_int_t choose = memorymanage->used_block;
+    reordering_int_t choose = memorymanage->used_block;
     memorymanage->memoryblock[choose].ptr = ptr;
     memorymanage->memoryblock[choose].nbytes = nbytes;
     memorymanage->now_memory += nbytes;
@@ -162,9 +162,9 @@ void mynd_add_memory_block(void *ptr, Hunyuan_int_t nbytes, char *message)
     return ;
 }
 
-void mynd_update_memory_block(void *ptr, void *oldptr, Hunyuan_int_t nbytes, Hunyuan_int_t old_nbytes, char *message)
+void mynd_update_memory_block(void *ptr, void *oldptr, reordering_int_t nbytes, reordering_int_t old_nbytes, char *message)
 {
-    for(Hunyuan_int_t i = 0;i < memorymanage->all_block;i++)
+    for(reordering_int_t i = 0;i < memorymanage->all_block;i++)
     {
         if(memorymanage->memoryblock[i].ptr == oldptr)
         {
@@ -189,8 +189,8 @@ void mynd_update_memory_block(void *ptr, void *oldptr, Hunyuan_int_t nbytes, Hun
 
 void mynd_delete_memory_block(void *ptr, char *message)
 {
-    Hunyuan_int_t choose = memorymanage->used_block - 1;
-    for(Hunyuan_int_t i = choose;i >= 0;i--)
+    reordering_int_t choose = memorymanage->used_block - 1;
+    for(reordering_int_t i = choose;i >= 0;i--)
     {
         if(memorymanage->memoryblock[i].ptr == ptr)
         {
@@ -217,7 +217,7 @@ void mynd_delete_memory_block(void *ptr, char *message)
             return ;
         }
         // printf("loop mynd_check_free for %s ptr=%p\n",message,ptr);
-        // for(Hunyuan_int_t i = 0;i <= choose;i++)
+        // for(reordering_int_t i = 0;i <= choose;i++)
         // {
         //     printf("i=%"PRIDX" ptr=%p nbytes=%zu\n",i,memorymanage->memoryblock[i].ptr, memorymanage->memoryblock[i].nbytes);
         // }
@@ -260,10 +260,10 @@ void mynd_free_memory_block()
 /* function:
         *Check whether memory is allocated successfully
         *Compute the amount of memory used
-        *The request space poHunyuan_int_ter type is set to void
+        *The request space pointer type is set to void
 */
 /**************************************************************************/
-void *mynd_check_malloc(Hunyuan_int_t nbytes, char *message)
+void *mynd_check_malloc(reordering_int_t nbytes, char *message)
 {
 	void *ptr = NULL;
     
@@ -299,10 +299,10 @@ void *mynd_check_malloc(Hunyuan_int_t nbytes, char *message)
 /* function:
         *Check whether memory is allocated successfully
         *Compute the amount of memory used
-        *The request space poHunyuan_int_ter type is set to void
+        *The request space pointer type is set to void
 */
 /**************************************************************************/
-void *mynd_check_realloc(void *oldptr, Hunyuan_int_t nbytes, Hunyuan_int_t old_nbytes, char *message)
+void *mynd_check_realloc(void *oldptr, reordering_int_t nbytes, reordering_int_t old_nbytes, char *message)
 {
 	void *ptr = NULL;
 
@@ -338,7 +338,7 @@ void *mynd_check_realloc(void *oldptr, Hunyuan_int_t nbytes, Hunyuan_int_t old_n
         *Compute the amount of memory used
 */
 /**************************************************************************/
-void mynd_check_free(void *ptr, Hunyuan_int_t nbytes, char *message)
+void mynd_check_free(void *ptr, reordering_int_t nbytes, char *message)
 {
 	if (ptr != NULL) 
 	{
@@ -370,7 +370,7 @@ void mynd_PrintMemory()
 
 void mynd_exam_memory()
 {
-    for(Hunyuan_int_t i = 0;i < memorymanage->all_block;i++)
+    for(reordering_int_t i = 0;i < memorymanage->all_block;i++)
     {
         if(memorymanage->memoryblock[i].ptr != NULL)
             printf("memorymanage->memoryblock[i].ptr=%p nbyte=%"PRIDX"\n",memorymanage->memoryblock[i].ptr,memorymanage->memoryblock[i].nbytes);

@@ -96,7 +96,7 @@ typedef calculate_real_type sparse_value_real_t;
 #ifndef PANGULU_PLATFORM_ENV
 #ifdef METIS
 #include <metis.h>
-typedef idx_t Hunyuan_int_t;
+typedef idx_t reordering_int_t;
 #else
 #include <mynd_omp.h>
 #endif
@@ -170,7 +170,7 @@ typedef struct pangulu_common
     pangulu_inblock_idx nb;
     pangulu_int32_t sum_rank_size;
     pangulu_int32_t omp_thread;
-    pangulu_int32_t hunyuan_nthread;
+    pangulu_int32_t reordering_nthread;
     pangulu_int32_t p;
     pangulu_int32_t q;
     float basic_param;
@@ -698,12 +698,12 @@ extern "C"
         pangulu_vector *X_trans);
     void pangulu_add_diagonal_element_csc(pangulu_origin_smatrix *s);
     void pangulu_origin_smatrix_add_csr(pangulu_origin_smatrix *a);
-    void pangulu_get_graph_struct(pangulu_origin_smatrix *s, Hunyuan_int_t **xadj_address, Hunyuan_int_t **adjncy_address);
-    void pangulu_get_graph_struct_csc(pangulu_origin_smatrix *s, Hunyuan_int_t **xadj_address, Hunyuan_int_t **adjncy_address);
+    void pangulu_get_graph_struct(pangulu_origin_smatrix *s, reordering_int_t **xadj_address, reordering_int_t **adjncy_address);
+    void pangulu_get_graph_struct_csc(pangulu_origin_smatrix *s, reordering_int_t **xadj_address, reordering_int_t **adjncy_address);
 #ifdef METIS
-    void pangulu_metis(pangulu_origin_smatrix *a, Hunyuan_int_t **metis_perm);
+    void pangulu_metis(pangulu_origin_smatrix *a, reordering_int_t **metis_perm);
 #else
-void pangulu_hunyuan_mt(pangulu_origin_smatrix *a, Hunyuan_int_t **metis_perm, Hunyuan_int_t nthreads);
+    void pangulu_reordering_mt(pangulu_origin_smatrix *a, reordering_int_t **metis_perm, reordering_int_t nthreads);
 #endif
     void pangulu_origin_smatrix_transport_transport_iperm(
         pangulu_origin_smatrix *s,
@@ -713,7 +713,7 @@ void pangulu_hunyuan_mt(pangulu_origin_smatrix *a, Hunyuan_int_t **metis_perm, H
         pangulu_block_smatrix *block_smatrix,
         pangulu_origin_smatrix *origin_matrix,
         pangulu_origin_smatrix *reorder_matrix,
-        pangulu_int32_t hunyuan_nthread);
+        pangulu_int32_t reordering_nthread);
 #endif
     // pangulu_reordering.c end
 

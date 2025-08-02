@@ -92,7 +92,7 @@ typedef __int64 int64_t;
 * Setup the basic datatypes
 *-------------------------------------------------------------------------*/
 #if IDXTYPEWIDTH == 32
-  typedef int32_t Hunyuan_int_t;
+  typedef int32_t reordering_int_t;
 
   #define IDX_MAX   INT32_MAX
   #define IDX_MIN   INT32_MIN
@@ -103,7 +103,7 @@ typedef __int64 int64_t;
   #define strtoidx      strtol
   #define lyj_abs          abs
 #elif IDXTYPEWIDTH == 64
-  typedef int64_t Hunyuan_int_t;
+  typedef int64_t reordering_int_t;
 
   #define IDX_MAX   INT64_MAX
   #define IDX_MIN   INT64_MIN
@@ -123,7 +123,7 @@ typedef __int64 int64_t;
 
 
 #if REALTYPEWIDTH == 32
-  typedef float Hunyuan_real_t;
+  typedef float reordering_real_t;
 
   #define SCREAL         "f"
   #define PRREAL         "f"
@@ -140,7 +140,7 @@ typedef __int64 int64_t;
   #define strtoreal     strtof
 #endif
 #elif REALTYPEWIDTH == 64
-  typedef double Hunyuan_real_t;
+  typedef double reordering_real_t;
 
   #define SCREAL         "lf"
   #define PRREAL         "lf"
@@ -162,7 +162,7 @@ typedef __int64 int64_t;
 #ifndef CONTROL_H
 #define CONTROL_H
 
-extern Hunyuan_int_t control;
+extern reordering_int_t control;
 
 #define ALL_Time                    7
 #define PRINTTIMEGENERAL            7
@@ -192,7 +192,7 @@ extern Hunyuan_int_t control;
 #ifndef MKQSORT_H
 #define MKQSORT_H
 
-/* Swap two items poHunyuan_int_ted to by A and B using temporary buffer t. */
+/* Swap two items pointed to by A and B using temporary buffer t. */
 #define _GKQSORT_SWAP(a, b, t) ((void)((t = *a), (*a = *b), (*b = t)))
 
 /* Discontinue quicksort algorithm when partition gets below this size.
@@ -217,7 +217,7 @@ extern Hunyuan_int_t control;
     return;                                                             \
                                                                         \
   /* Don't declare two variables of type GKQSORT_TYPE in a single	\
-   * statement: eg `TYPE a, b;', in case if TYPE is a poHunyuan_int_ter,		\
+   * statement: eg `TYPE a, b;', in case if TYPE is a pointer,		\
    * expands to `type* a, b;' wich isn't what we want.			\
    */									\
 									\
@@ -278,7 +278,7 @@ extern Hunyuan_int_t control;
         }								\
       } while (_left_ptr <= _right_ptr);				\
 									\
-     /* Set up poHunyuan_int_ters for next iteration.  First determine whether	\
+     /* Set up pointers for next iteration.  First determine whether	\
         left and right partitions are below the threshold size.  If so,	\
         ignore one or both.  Otherwise, push the larger partition's	\
         bounds on the stack and continue sorting the smaller one. */	\
@@ -309,8 +309,8 @@ extern Hunyuan_int_t control;
 									\
   /* Once the BASE array is partially sorted by quicksort the rest	\
      is completely sorted using insertion sort, since this is efficient	\
-     for partitions below MAX_THRESH size. BASE poHunyuan_int_ts to the		\
-     beginning of the array to sort, and END_PTR poHunyuan_int_ts at the very	\
+     for partitions below MAX_THRESH size. BASE points to the		\
+     beginning of the array to sort, and END_PTR points at the very	\
      last element in the array (*not* one beyond it!). */		\
 									\
   {									\
@@ -371,35 +371,35 @@ extern Hunyuan_int_t control;
 /*************************************************************************/
 typedef struct 
 {
-	Hunyuan_int_t ptype;
-	Hunyuan_int_t objtype;
-	Hunyuan_int_t ctype;
-	Hunyuan_int_t iptype;
-	Hunyuan_int_t rtype;
+	reordering_int_t ptype;
+	reordering_int_t objtype;
+	reordering_int_t ctype;
+	reordering_int_t iptype;
+	reordering_int_t rtype;
 
-	Hunyuan_int_t no2hop;
-	Hunyuan_int_t minconn;
-	Hunyuan_int_t contig;
+	reordering_int_t no2hop;
+	reordering_int_t minconn;
+	reordering_int_t contig;
 
-	Hunyuan_int_t nooutput;
+	reordering_int_t nooutput;
 
-	Hunyuan_int_t balance;
-	Hunyuan_int_t ncuts;
-	Hunyuan_int_t niter;
+	reordering_int_t balance;
+	reordering_int_t ncuts;
+	reordering_int_t niter;
 
-	Hunyuan_int_t gtype;
-	Hunyuan_int_t ncommon;
+	reordering_int_t gtype;
+	reordering_int_t ncommon;
 
-	Hunyuan_int_t seed;
-	Hunyuan_int_t dbglvl;
+	reordering_int_t seed;
+	reordering_int_t dbglvl;
 
-	Hunyuan_int_t nparts;
+	reordering_int_t nparts;
 
-	Hunyuan_int_t nseps;
-	Hunyuan_int_t ufactor;
-	Hunyuan_int_t pfactor;
-	Hunyuan_int_t compress;
-	Hunyuan_int_t ccorder;
+	reordering_int_t nseps;
+	reordering_int_t ufactor;
+	reordering_int_t pfactor;
+	reordering_int_t compress;
+	reordering_int_t ccorder;
 
 	char *filename;
 	char *outfile;
@@ -407,16 +407,16 @@ typedef struct
 	char *tpwgtsfile;
 	char *ubvecstr;
 
-	Hunyuan_int_t wgtflag;
-	Hunyuan_int_t numflag;
-	Hunyuan_real_t *tpwgts;
-	Hunyuan_real_t *ubvec;
+	reordering_int_t wgtflag;
+	reordering_int_t numflag;
+	reordering_real_t *tpwgts;
+	reordering_real_t *ubvec;
 
-	Hunyuan_real_t iotimer;
-	Hunyuan_real_t parttimer;
-	Hunyuan_real_t reporttimer;
+	reordering_real_t iotimer;
+	reordering_real_t parttimer;
+	reordering_real_t reporttimer;
 
-	Hunyuan_int_t maxmemory;
+	reordering_int_t maxmemory;
 } params_t;
 
 /*************************************************************************/
@@ -425,10 +425,10 @@ typedef struct
 /*************************************************************************/
 typedef struct ckrinfo_t 
 {
-	Hunyuan_int_t id;              /*!< The Hunyuan_int_ternal degree of a vertex (sum of weights) */
-	Hunyuan_int_t ed;            	/*!< The total external degree of a vertex */
-	Hunyuan_int_t nnbrs;          	/*!< The number of neighboring subdomains */
-	Hunyuan_int_t inbr;            /*!< The index in the cnbr_t array where the nnbrs list 
+	reordering_int_t id;              /*!< The internal degree of a vertex (sum of weights) */
+	reordering_int_t ed;            	/*!< The total external degree of a vertex */
+	reordering_int_t nnbrs;          	/*!< The number of neighboring subdomains */
+	reordering_int_t inbr;            /*!< The index in the cnbr_t array where the nnbrs list 
                              of neighbors is stored */
 } ckrinfo_t;
 
@@ -438,11 +438,11 @@ typedef struct ckrinfo_t
 /*************************************************************************/
 typedef struct vkrinfo_t 
 {
-	Hunyuan_int_t nid;             /*!< The Hunyuan_int_ternal degree of a vertex (count of edges) */
-	Hunyuan_int_t ned;            	/*!< The total external degree of a vertex (count of edges) */
-	Hunyuan_int_t gv;            	/*!< The volume gain of moving that vertex */
-	Hunyuan_int_t nnbrs;          	/*!< The number of neighboring subdomains */
-	Hunyuan_int_t inbr;            /*!< The index in the vnbr_t array where the nnbrs list 
+	reordering_int_t nid;             /*!< The internal degree of a vertex (count of edges) */
+	reordering_int_t ned;            	/*!< The total external degree of a vertex (count of edges) */
+	reordering_int_t gv;            	/*!< The volume gain of moving that vertex */
+	reordering_int_t nnbrs;          	/*!< The number of neighboring subdomains */
+	reordering_int_t inbr;            /*!< The index in the vnbr_t array where the nnbrs list 
                              of neighbors is stored */
 } vkrinfo_t;
 
@@ -452,7 +452,7 @@ typedef struct vkrinfo_t
 /*************************************************************************/
 typedef struct nrinfo_t 
 {
-	Hunyuan_int_t edegrees[2];  
+	reordering_int_t edegrees[2];  
 } nrinfo_t;
 
 /*************************************************************************/
@@ -460,8 +460,8 @@ typedef struct nrinfo_t
 /*************************************************************************/
 typedef struct treenode_t
 { 
-	Hunyuan_int_t val;  //  ncy
-	Hunyuan_int_t key;  //  wgt
+	reordering_int_t val;  //  ncy
+	reordering_int_t key;  //  wgt
 	struct treenode_t *left;
 	struct treenode_t *right;
 } treenode_t;
@@ -471,7 +471,7 @@ typedef struct treenode_t
 /*************************************************************************/
 typedef struct binary_search_tree_t
 { 
-	Hunyuan_int_t nownodes; 
+	reordering_int_t nownodes; 
 	// size_t maxnodes; 
 	treenode_t *treenode; 
 	
@@ -482,8 +482,8 @@ typedef struct binary_search_tree_t
 /*************************************************************************/
 typedef struct hashelement_t
 { 
-	Hunyuan_int_t val;  //  ncy
-	Hunyuan_int_t key;  //  wgt
+	reordering_int_t val;  //  ncy
+	reordering_int_t key;  //  wgt
 } hashelement_t;
 
 /*************************************************************************/
@@ -491,8 +491,8 @@ typedef struct hashelement_t
 /*************************************************************************/
 typedef struct hash_table_t
 { 
-	Hunyuan_int_t nownodes; 
-	Hunyuan_int_t maxnodes; 
+	reordering_int_t nownodes; 
+	reordering_int_t maxnodes; 
 	hashelement_t *hashelement; 
 } hash_table_t;
 
@@ -501,9 +501,9 @@ typedef struct hash_table_t
 /*************************************************************************/
 typedef struct hash_table2_t
 { 
-	Hunyuan_int_t nownodes; 
-	Hunyuan_int_t maxnodes; 
-	Hunyuan_int_t *hashelement; 
+	reordering_int_t nownodes; 
+	reordering_int_t maxnodes; 
+	reordering_int_t *hashelement; 
 } hash_table2_t;
 
 /*************************************************************************/
@@ -511,11 +511,11 @@ typedef struct hash_table2_t
 /*************************************************************************/
 typedef struct hash_table_omp_t
 { 
-	// Hunyuan_int_t *nownodes; 
-	Hunyuan_int_t *maxnodes; 
-	Hunyuan_int_t *index;
-	Hunyuan_int_t *val;
-	Hunyuan_int_t *key;
+	// reordering_int_t *nownodes; 
+	reordering_int_t *maxnodes; 
+	reordering_int_t *index;
+	reordering_int_t *val;
+	reordering_int_t *key;
 } hash_table_omp_t;
 
 /*************************************************************************/
@@ -523,9 +523,9 @@ typedef struct hash_table_omp_t
 /*************************************************************************/
 typedef struct hash_table_omp2_t
 {
-	Hunyuan_int_t maxnodes;
-	Hunyuan_int_t *val;
-	Hunyuan_int_t *key;
+	reordering_int_t maxnodes;
+	reordering_int_t *val;
+	reordering_int_t *key;
 } hash_table_omp2_t;
 
 /*************************************************************************/
@@ -533,8 +533,8 @@ typedef struct hash_table_omp2_t
 /*************************************************************************/
 typedef struct treenode2_t
 { 
-	Hunyuan_int_t val;  //  ncy
-	Hunyuan_int_t key;  //  wgt
+	reordering_int_t val;  //  ncy
+	reordering_int_t key;  //  wgt
 } treenode2_t;
 
 /*************************************************************************/
@@ -542,8 +542,8 @@ typedef struct treenode2_t
 /*************************************************************************/
 typedef struct binary_search_tree2_t
 { 
-	Hunyuan_int_t nownodes; 
-	Hunyuan_int_t maxnodes; 
+	reordering_int_t nownodes; 
+	reordering_int_t maxnodes; 
 	treenode2_t *treenode; 
 } binary_search_tree2_t;
 
@@ -552,37 +552,37 @@ typedef struct binary_search_tree2_t
 /*************************************************************************/
 typedef struct graph_t 
 {
-    Hunyuan_int_t nvtxs, nedges;	/* The # of vertices and edges in the graph */
-    // Hunyuan_int_t ncon;		/* The # of constrains */ 
-    Hunyuan_int_t *xadj;		/* PoHunyuan_int_ters to the locally stored vertices */
-    Hunyuan_int_t *vwgt;		/* Vertex weights */
-    // Hunyuan_int_t *vsize;		/* Vertex sizes for min-volume formulation */
-    Hunyuan_int_t *adjncy;        /* Array that stores the adjacency lists of nvtxs */
-    Hunyuan_int_t *adjwgt;        /* Array that stores the weights of the adjacency lists */
+    reordering_int_t nvtxs, nedges;	/* The # of vertices and edges in the graph */
+    // reordering_int_t ncon;		/* The # of constrains */ 
+    reordering_int_t *xadj;		/* Pointers to the locally stored vertices */
+    reordering_int_t *vwgt;		/* Vertex weights */
+    // reordering_int_t *vsize;		/* Vertex sizes for min-volume formulation */
+    reordering_int_t *adjncy;        /* Array that stores the adjacency lists of nvtxs */
+    reordering_int_t *adjwgt;        /* Array that stores the weights of the adjacency lists */
 
-    Hunyuan_int_t *tvwgt;         /* The sum of the vertex weights in the graph */
-    Hunyuan_real_t *invtvwgt;     /* The inverse of the sum of the vertex weights in the graph */
+    reordering_int_t *tvwgt;         /* The sum of the vertex weights in the graph */
+    reordering_real_t *invtvwgt;     /* The inverse of the sum of the vertex weights in the graph */
 
 
     /* These are to keep track control if the corresponding fields correspond to
         application or library memory */
-    // Hunyuan_int_t free_xadj, free_vwgt, free_vsize, free_adjncy, free_adjwgt;
+    // reordering_int_t free_xadj, free_vwgt, free_vsize, free_adjncy, free_adjwgt;
 
-    Hunyuan_int_t *label;
-    Hunyuan_int_t *cmap;
-    Hunyuan_int_t *match;
+    reordering_int_t *label;
+    reordering_int_t *cmap;
+    reordering_int_t *match;
     void **addr;
     binary_search_tree2_t *tree;
     hash_table2_t *hash;
 
     /* Partition parameters */
-    Hunyuan_int_t mincut, minvol;
-    Hunyuan_int_t *where, *pwgts;
-    Hunyuan_int_t nbnd;
-    Hunyuan_int_t *bndptr, *bndind;
+    reordering_int_t mincut, minvol;
+    reordering_int_t *where, *pwgts;
+    reordering_int_t nbnd;
+    reordering_int_t *bndptr, *bndind;
 
     /* Bisection refinement parameters */
-    Hunyuan_int_t *id, *ed;
+    reordering_int_t *id, *ed;
 
     /* K-way refinement parameters */
     // ckrinfo_t *ckrinfo;   /*!< The per-vertex cut-based refinement info */
@@ -596,8 +596,8 @@ typedef struct graph_t
 
 typedef struct ikv_t
 {
-  Hunyuan_int_t key;
-  Hunyuan_int_t val;
+  reordering_int_t key;
+  reordering_int_t val;
 } ikv_t;
 
 /*************************************************************************/
@@ -605,11 +605,11 @@ typedef struct ikv_t
 /*************************************************************************/
 typedef struct ctrl_t 
 {
-	Hunyuan_int_t optype;
-	Hunyuan_int_t objtype;
-	Hunyuan_int_t ctype;
-	Hunyuan_int_t iptype;
-	Hunyuan_int_t rtype;
+	reordering_int_t optype;
+	reordering_int_t objtype;
+	reordering_int_t ctype;
+	reordering_int_t iptype;
+	reordering_int_t rtype;
 	// moptype_et  optype;	        /* Type of operation */
 	// mobjtype_et objtype;          /* Type of refinement objective */
 	// mdbglvl_et  dbglvl;		/* Controls the debuging output of the program */
@@ -617,33 +617,33 @@ typedef struct ctrl_t
 	// miptype_et  iptype;		/* The type of initial partitioning */
 	// mrtype_et   rtype;		/* The type of refinement */
 
-	Hunyuan_int_t CoarsenTo;		/* The # of vertices in the coarsest graph */
-	Hunyuan_int_t nIparts;                /* The number of initial partitions to compute */
-	Hunyuan_int_t no2hop;                 /* Indicates if 2-hop matching will be used */
-	Hunyuan_int_t minconn;                /* Indicates if the subdomain connectivity will be minimized */
-	Hunyuan_int_t contig;                 /* Indicates if contigous partitions are required */
-	Hunyuan_int_t nseps;			/* The number of separators to be found during multiple bisections */
-	Hunyuan_int_t ufactor;                /* The user-supplied load imbalance factor */
-	Hunyuan_int_t compress;               /* If the graph will be compressed prior to ordering */
-	Hunyuan_int_t ccorder;                /* If connected components will be ordered separately */
-	Hunyuan_int_t seed;                   /* The seed for the random number generator */
-	Hunyuan_int_t ncuts;                  /* The number of different partitionings to compute */
-	Hunyuan_int_t niter;                  /* The number of iterations during each refinement */
-	Hunyuan_int_t numflag;                /* The user-supplied numflag for the graph */
-	Hunyuan_int_t *maxvwgt;		/* The maximum allowed weight for a vertex */
+	reordering_int_t CoarsenTo;		/* The # of vertices in the coarsest graph */
+	reordering_int_t nIparts;                /* The number of initial partitions to compute */
+	reordering_int_t no2hop;                 /* Indicates if 2-hop matching will be used */
+	reordering_int_t minconn;                /* Indicates if the subdomain connectivity will be minimized */
+	reordering_int_t contig;                 /* Indicates if contigous partitions are required */
+	reordering_int_t nseps;			/* The number of separators to be found during multiple bisections */
+	reordering_int_t ufactor;                /* The user-supplied load imbalance factor */
+	reordering_int_t compress;               /* If the graph will be compressed prior to ordering */
+	reordering_int_t ccorder;                /* If connected components will be ordered separately */
+	reordering_int_t seed;                   /* The seed for the random number generator */
+	reordering_int_t ncuts;                  /* The number of different partitionings to compute */
+	reordering_int_t niter;                  /* The number of iterations during each refinement */
+	reordering_int_t numflag;                /* The user-supplied numflag for the graph */
+	reordering_int_t *maxvwgt;		/* The maximum allowed weight for a vertex */
 
-	Hunyuan_int_t ncon;                   /*!< The number of balancing constraHunyuan_int_ts */
-	Hunyuan_int_t nparts;                 /*!< The number of partitions */
+	reordering_int_t ncon;                   /*!< The number of balancing constraints */
+	reordering_int_t nparts;                 /*!< The number of partitions */
 
-	Hunyuan_real_t pfactor;		/* .1*(user-supplied prunning factor) */
+	reordering_real_t pfactor;		/* .1*(user-supplied prunning factor) */
 
-	Hunyuan_real_t *ubfactors;            /*!< The per-constraHunyuan_int_t ubfactors */
+	reordering_real_t *ubfactors;            /*!< The per-constraint ubfactors */
 	
-	Hunyuan_real_t *tpwgts;               /*!< The target partition weights */
-	Hunyuan_real_t *pijbm;                /*!< The nparts*ncon multiplies for the ith partition
-										and jth constraHunyuan_int_t for obtaining the balance */
+	reordering_real_t *tpwgts;               /*!< The target partition weights */
+	reordering_real_t *pijbm;                /*!< The nparts*ncon multiplies for the ith partition
+										and jth constraint for obtaining the balance */
 
-	Hunyuan_real_t cfactor;               /*!< The achieved compression factor */
+	reordering_real_t cfactor;               /*!< The achieved compression factor */
 
   	/* These are for use by the k-way refinement routines */
 //   size_t nbrpoolsize;      /*!< The number of {c,v}nbr_t entries that have been allocated */
@@ -658,11 +658,11 @@ typedef struct ctrl_t
 //                              by nnbrs & cnbrs */
 
   	/* The subdomain graph, in sparse format  */ 
-	Hunyuan_int_t *maxnads;               /* The maximum allocated number of adjacent domains */
-	Hunyuan_int_t *nads;                  /* The number of adjacent domains */
-	Hunyuan_int_t **adids;                /* The IDs of the adjacent domains */
-	Hunyuan_int_t **adwgts;               /* The edge-weight to the adjacent domains */
-	Hunyuan_int_t *pvec1, *pvec2;         /* Auxiliar nparts-size vectors for efficiency */
+	reordering_int_t *maxnads;               /* The maximum allocated number of adjacent domains */
+	reordering_int_t *nads;                  /* The number of adjacent domains */
+	reordering_int_t **adids;                /* The IDs of the adjacent domains */
+	reordering_int_t **adwgts;               /* The edge-weight to the adjacent domains */
+	reordering_int_t *pvec1, *pvec2;         /* Auxiliar nparts-size vectors for efficiency */
 
 } ctrl_t;
 
@@ -671,8 +671,8 @@ typedef struct ctrl_t
 /*************************************************************************/
 typedef struct node_t
 { 
-	Hunyuan_int_t key;  //  ed - id
-	Hunyuan_int_t val;  //  vertex
+	reordering_int_t key;  //  ed - id
+	reordering_int_t val;  //  vertex
 } node_t;
 
 /*************************************************************************/
@@ -680,10 +680,10 @@ typedef struct node_t
 /*************************************************************************/
 typedef struct priority_queue_t
 { 
-	Hunyuan_int_t nownodes; 
-	Hunyuan_int_t maxnodes; 
+	reordering_int_t nownodes; 
+	reordering_int_t maxnodes; 
 	node_t *heap; 
-	Hunyuan_int_t *locator;
+	reordering_int_t *locator;
 } priority_queue_t;
 
 /*************************************************************************/
@@ -692,16 +692,16 @@ typedef struct priority_queue_t
     a gk_malloc if not sufficient workspace memory is available. */
 /*************************************************************************/
 typedef struct memory_block {
-	// Hunyuan_int_t type;
-	Hunyuan_int_t nbytes;
+	// reordering_int_t type;
+	reordering_int_t nbytes;
 	void *ptr;
 } memory_block;
 
 typedef struct memory_manage {
-	Hunyuan_int_t used_block;
-	Hunyuan_int_t all_block;
-	Hunyuan_int_t now_memory;
-	Hunyuan_int_t max_memory;
+	reordering_int_t used_block;
+	reordering_int_t all_block;
+	reordering_int_t now_memory;
+	reordering_int_t max_memory;
 	memory_block *memoryblock;
 } memory_manage;
 
@@ -826,182 +826,182 @@ typedef struct memory_manage {
 #endif
 
 /* timer.h */
-extern Hunyuan_real_t time_all;
+extern reordering_real_t time_all;
 extern struct timeval start_all;
 extern struct timeval end_all;
 
-extern Hunyuan_real_t time_nestedbisection;
+extern reordering_real_t time_nestedbisection;
 extern struct timeval start_nestedbisection;
 extern struct timeval end_nestedbisection;
 
-extern Hunyuan_real_t time_bisectionbest;
+extern reordering_real_t time_bisectionbest;
 extern struct timeval start_bisectionbest;
 extern struct timeval end_bisectionbest;
 
-extern Hunyuan_real_t time_coarsen;
+extern reordering_real_t time_coarsen;
 extern struct timeval start_coarsen;
 extern struct timeval end_coarsen;
 
-extern Hunyuan_real_t time_reorderbisection;
+extern reordering_real_t time_reorderbisection;
 extern struct timeval start_reorderbisection;
 extern struct timeval end_reorderbisection;
 
-extern Hunyuan_real_t time_refine2waynode;
+extern reordering_real_t time_refine2waynode;
 extern struct timeval start_refine2waynode;
 extern struct timeval end_refine2waynode;
 
-extern Hunyuan_real_t time_splitgraphreorder;
+extern reordering_real_t time_splitgraphreorder;
 extern struct timeval start_splitgraphreorder;
 extern struct timeval end_splitgraphreorder;
 
-extern Hunyuan_real_t time_match;
+extern reordering_real_t time_match;
 extern struct timeval start_match;
 extern struct timeval end_match;
 
-extern Hunyuan_real_t time_createcoarsengraph;
+extern reordering_real_t time_createcoarsengraph;
 extern struct timeval start_createcoarsengraph;
 extern struct timeval end_createcoarsengraph;
 
-extern Hunyuan_real_t time_partitioninf2way;
+extern reordering_real_t time_partitioninf2way;
 extern struct timeval start_partitioninf2way;
 extern struct timeval end_partitioninf2way;
 
-extern Hunyuan_real_t time_fm2waycutbalance;
+extern reordering_real_t time_fm2waycutbalance;
 extern struct timeval start_fm2waycutbalance;
 extern struct timeval end_fm2waycutbalance;
 
-extern Hunyuan_real_t time_fm2waycutrefine;
+extern reordering_real_t time_fm2waycutrefine;
 extern struct timeval start_fm2waycutrefine;
 extern struct timeval end_fm2waycutrefine;
 
-extern Hunyuan_real_t time_reorderinf2way;
+extern reordering_real_t time_reorderinf2way;
 extern struct timeval start_reorderinf2way;
 extern struct timeval end_reorderinf2way;
 
-extern Hunyuan_real_t time_fmnodebalance;
+extern reordering_real_t time_fmnodebalance;
 extern struct timeval start_fmnodebalance;
 extern struct timeval end_fmnodebalance;
 
-extern Hunyuan_real_t time_fm1sidenoderefine;
+extern reordering_real_t time_fm1sidenoderefine;
 extern struct timeval start_fm1sidenoderefine;
 extern struct timeval end_fm1sidenoderefine;
 
-extern Hunyuan_real_t time_fm2sidenoderefine;
+extern reordering_real_t time_fm2sidenoderefine;
 extern struct timeval start_fm2sidenoderefine;
 extern struct timeval end_fm2sidenoderefine;
 
-extern Hunyuan_real_t time_malloc;
+extern reordering_real_t time_malloc;
 extern struct timeval start_malloc;
 extern struct timeval end_malloc;
 
-extern Hunyuan_real_t time_free;
+extern reordering_real_t time_free;
 extern struct timeval start_free;
 extern struct timeval end_free;
 
 /* reordergraph.c */
-void mynd_Reorderpartition(graph_t *graph, Hunyuan_int_t niparts, Hunyuan_int_t level);
-void mynd_Bisection(graph_t *graph, Hunyuan_int_t niparts, Hunyuan_int_t nthreads, Hunyuan_int_t level);
-void mynd_BisectionBest(graph_t *graph, Hunyuan_int_t nthreads, Hunyuan_int_t level);
-void mynd_NestedBisection(graph_t *graph, Hunyuan_int_t *reflect, Hunyuan_int_t *reordernumend, Hunyuan_int_t nthreads, Hunyuan_int_t level);
-void mynd_NestedBisection_omp(graph_t *graph, Hunyuan_int_t *reflect, Hunyuan_int_t *reordernum, Hunyuan_int_t nthreads, Hunyuan_int_t level);
-void mynd_ReorderGraph(Hunyuan_int_t *nvtxs, Hunyuan_int_t *nedges, Hunyuan_int_t *xadj, Hunyuan_int_t *vwgt, Hunyuan_int_t *adjncy, Hunyuan_int_t *adjwgt, 
-    Hunyuan_int_t *treflect, Hunyuan_int_t *reflect, Hunyuan_int_t *compress, Hunyuan_int_t *tcontrol, Hunyuan_int_t *is_memery_manage_before, Hunyuan_int_t nthreads);
+void mynd_Reorderpartition(graph_t *graph, reordering_int_t niparts, reordering_int_t level);
+void mynd_Bisection(graph_t *graph, reordering_int_t niparts, reordering_int_t nthreads, reordering_int_t level);
+void mynd_BisectionBest(graph_t *graph, reordering_int_t nthreads, reordering_int_t level);
+void mynd_NestedBisection(graph_t *graph, reordering_int_t *reflect, reordering_int_t *reordernumend, reordering_int_t nthreads, reordering_int_t level);
+void mynd_NestedBisection_omp(graph_t *graph, reordering_int_t *reflect, reordering_int_t *reordernum, reordering_int_t nthreads, reordering_int_t level);
+void mynd_ReorderGraph(reordering_int_t *nvtxs, reordering_int_t *nedges, reordering_int_t *xadj, reordering_int_t *vwgt, reordering_int_t *adjncy, reordering_int_t *adjwgt, 
+    reordering_int_t *treflect, reordering_int_t *reflect, reordering_int_t *compress, reordering_int_t *tcontrol, reordering_int_t *is_memery_manage_before, reordering_int_t nthreads);
 
 /* compressgraph.c */
-graph_t *mynd_Compress_Graph(Hunyuan_int_t nvtxs, Hunyuan_int_t *xadj, Hunyuan_int_t *adjncy, Hunyuan_int_t *vwgt, Hunyuan_int_t *cptr, Hunyuan_int_t *cind);
+graph_t *mynd_Compress_Graph(reordering_int_t nvtxs, reordering_int_t *xadj, reordering_int_t *adjncy, reordering_int_t *vwgt, reordering_int_t *cptr, reordering_int_t *cind);
 
 /* coarsen.c */
-graph_t *mynd_CoarsenGraph(graph_t *graph, Hunyuan_int_t Coarsen_Threshold);
-graph_t *mynd_CoarsenGraphNlevels_metis(graph_t *graph, Hunyuan_int_t Coarsen_Threshold, Hunyuan_int_t nlevels);
+graph_t *mynd_CoarsenGraph(graph_t *graph, reordering_int_t Coarsen_Threshold);
+graph_t *mynd_CoarsenGraphNlevels_metis(graph_t *graph, reordering_int_t Coarsen_Threshold, reordering_int_t nlevels);
 
 /* initialpartition.c */
 //  InitSeparator + GrowBisectionNode
-void mynd_ReorderBisection(graph_t *graph, Hunyuan_int_t niparts);
+void mynd_ReorderBisection(graph_t *graph, reordering_int_t niparts);
 
 /* refine.c */
 void mynd_Compute_Partition_Informetion_2way(graph_t *graph);
 void mynd_Compute_Reorder_Informetion_2way(graph_t *graph);
 void mynd_project_Reorder(graph_t *graph);
-void mynd_FM_2WayCutRefine(graph_t *graph, Hunyuan_real_t *ntpwgts, Hunyuan_int_t niter);
-void mynd_FM_2WayNodeRefine2Sided(graph_t *graph, Hunyuan_int_t niter);
-void mynd_FM_2WayNodeRefine1Sided(graph_t *graph, Hunyuan_int_t niter);
+void mynd_FM_2WayCutRefine(graph_t *graph, reordering_real_t *ntpwgts, reordering_int_t niter);
+void mynd_FM_2WayNodeRefine2Sided(graph_t *graph, reordering_int_t niter);
+void mynd_FM_2WayNodeRefine1Sided(graph_t *graph, reordering_int_t niter);
 void mynd_Refine2WayNode(graph_t *graph, graph_t *origraph);
 
 /* splitgraph.c */
-void mynd_SplitGraphReorder(graph_t *graph, graph_t **sub_lgraph, graph_t **sub_rgraph, Hunyuan_int_t level);
+void mynd_SplitGraphReorder(graph_t *graph, graph_t **sub_lgraph, graph_t **sub_rgraph, reordering_int_t level);
 
 /* mmdorder.c */
-void mynd_MMD_Order_line(graph_t *graph, Hunyuan_int_t *reflect, Hunyuan_int_t *reordernum, Hunyuan_int_t task_id);
-Hunyuan_int_t mynd_mmdint(Hunyuan_int_t neqns, Hunyuan_int_t *xadj, Hunyuan_int_t *adjncy, Hunyuan_int_t *head, Hunyuan_int_t *forward,
-    Hunyuan_int_t *backward, Hunyuan_int_t *qsize, Hunyuan_int_t *list, Hunyuan_int_t *marker);
-void mynd_mmdnum(Hunyuan_int_t neqns, Hunyuan_int_t *perm, Hunyuan_int_t *invp, Hunyuan_int_t *qsize);
-void mynd_mmdelm(Hunyuan_int_t mdeg_node, Hunyuan_int_t *xadj, Hunyuan_int_t *adjncy, Hunyuan_int_t *head, Hunyuan_int_t *forward,
-    Hunyuan_int_t *backward, Hunyuan_int_t *qsize, Hunyuan_int_t *list, Hunyuan_int_t *marker, Hunyuan_int_t maxint, Hunyuan_int_t tag);
-void mynd_mmdupd(Hunyuan_int_t ehead, Hunyuan_int_t neqns, Hunyuan_int_t *xadj, Hunyuan_int_t *adjncy, Hunyuan_int_t delta, Hunyuan_int_t *mdeg,
-    Hunyuan_int_t *head, Hunyuan_int_t *forward, Hunyuan_int_t *backward, Hunyuan_int_t *qsize, Hunyuan_int_t *list,
-    Hunyuan_int_t *marker, Hunyuan_int_t maxint, Hunyuan_int_t *tag);
-void mynd_genmmd(Hunyuan_int_t neqns, Hunyuan_int_t *xadj, Hunyuan_int_t *adjncy, Hunyuan_int_t *invp, Hunyuan_int_t *perm,
-    Hunyuan_int_t delta, Hunyuan_int_t *head, Hunyuan_int_t *qsize, Hunyuan_int_t *list, Hunyuan_int_t *marker,
-    Hunyuan_int_t maxint, Hunyuan_int_t *ncsub);
-void mynd_MMD_Order(graph_t *graph, Hunyuan_int_t *order, Hunyuan_int_t *reordernum, Hunyuan_int_t task_id);
+void mynd_MMD_Order_line(graph_t *graph, reordering_int_t *reflect, reordering_int_t *reordernum, reordering_int_t task_id);
+reordering_int_t mynd_mmdint(reordering_int_t neqns, reordering_int_t *xadj, reordering_int_t *adjncy, reordering_int_t *head, reordering_int_t *forward,
+    reordering_int_t *backward, reordering_int_t *qsize, reordering_int_t *list, reordering_int_t *marker);
+void mynd_mmdnum(reordering_int_t neqns, reordering_int_t *perm, reordering_int_t *invp, reordering_int_t *qsize);
+void mynd_mmdelm(reordering_int_t mdeg_node, reordering_int_t *xadj, reordering_int_t *adjncy, reordering_int_t *head, reordering_int_t *forward,
+    reordering_int_t *backward, reordering_int_t *qsize, reordering_int_t *list, reordering_int_t *marker, reordering_int_t maxint, reordering_int_t tag);
+void mynd_mmdupd(reordering_int_t ehead, reordering_int_t neqns, reordering_int_t *xadj, reordering_int_t *adjncy, reordering_int_t delta, reordering_int_t *mdeg,
+    reordering_int_t *head, reordering_int_t *forward, reordering_int_t *backward, reordering_int_t *qsize, reordering_int_t *list,
+    reordering_int_t *marker, reordering_int_t maxint, reordering_int_t *tag);
+void mynd_genmmd(reordering_int_t neqns, reordering_int_t *xadj, reordering_int_t *adjncy, reordering_int_t *invp, reordering_int_t *perm,
+    reordering_int_t delta, reordering_int_t *head, reordering_int_t *qsize, reordering_int_t *list, reordering_int_t *marker,
+    reordering_int_t maxint, reordering_int_t *ncsub);
+void mynd_MMD_Order(graph_t *graph, reordering_int_t *order, reordering_int_t *reordernum, reordering_int_t task_id);
 
 /* match.c */
-Hunyuan_int_t mynd_Match_2HopAny(graph_t *graph, Hunyuan_int_t *perm, Hunyuan_int_t *match, Hunyuan_int_t cnvtxs, Hunyuan_int_t *r_nunmatched, Hunyuan_int_t maxdegree);
-Hunyuan_int_t mynd_Match_2HopAll(graph_t *graph, Hunyuan_int_t *perm, Hunyuan_int_t *match, Hunyuan_int_t cnvtxs, Hunyuan_int_t *r_nunmatched, Hunyuan_int_t maxdegree);
-Hunyuan_int_t mynd_Match_2Hop(graph_t *graph, Hunyuan_int_t *perm, Hunyuan_int_t *match, Hunyuan_int_t cnvtxs, Hunyuan_int_t nunmatched);
-Hunyuan_int_t mynd_Match_RM(graph_t *graph, Hunyuan_int_t maxvwgt);
-void mynd_BucketSortKeysInc(Hunyuan_int_t n, Hunyuan_int_t max, Hunyuan_int_t *keys, Hunyuan_int_t *tperm, Hunyuan_int_t *perm);
-Hunyuan_int_t mynd_Match_SHEM(graph_t *graph, Hunyuan_int_t maxvwgt);
+reordering_int_t mynd_Match_2HopAny(graph_t *graph, reordering_int_t *perm, reordering_int_t *match, reordering_int_t cnvtxs, reordering_int_t *r_nunmatched, reordering_int_t maxdegree);
+reordering_int_t mynd_Match_2HopAll(graph_t *graph, reordering_int_t *perm, reordering_int_t *match, reordering_int_t cnvtxs, reordering_int_t *r_nunmatched, reordering_int_t maxdegree);
+reordering_int_t mynd_Match_2Hop(graph_t *graph, reordering_int_t *perm, reordering_int_t *match, reordering_int_t cnvtxs, reordering_int_t nunmatched);
+reordering_int_t mynd_Match_RM(graph_t *graph, reordering_int_t maxvwgt);
+void mynd_BucketSortKeysInc(reordering_int_t n, reordering_int_t max, reordering_int_t *keys, reordering_int_t *tperm, reordering_int_t *perm);
+reordering_int_t mynd_Match_SHEM(graph_t *graph, reordering_int_t maxvwgt);
 
 /* createcoarsegraph.c */
-void mynd_CreateCoarseGraph(graph_t *graph, Hunyuan_int_t cnvtxs);
-void mynd_CreateCoarseGraph_S(graph_t *graph, Hunyuan_int_t cnvtxs);
-void mynd_CreateCoarseGraph_BST(graph_t *graph, Hunyuan_int_t cnvtxs);
-void mynd_CreateCoarseGraph_BST_2(graph_t *graph, Hunyuan_int_t cnvtxs);
-void mynd_CreateCoarseGraph_HT(graph_t *graph, Hunyuan_int_t cnvtxs);
-void mynd_CreateCoarseGraph_HT_2(graph_t *graph, Hunyuan_int_t cnvtxs);
+void mynd_CreateCoarseGraph(graph_t *graph, reordering_int_t cnvtxs);
+void mynd_CreateCoarseGraph_S(graph_t *graph, reordering_int_t cnvtxs);
+void mynd_CreateCoarseGraph_BST(graph_t *graph, reordering_int_t cnvtxs);
+void mynd_CreateCoarseGraph_BST_2(graph_t *graph, reordering_int_t cnvtxs);
+void mynd_CreateCoarseGraph_HT(graph_t *graph, reordering_int_t cnvtxs);
+void mynd_CreateCoarseGraph_HT_2(graph_t *graph, reordering_int_t cnvtxs);
 
 /* balance.c */
-Hunyuan_real_t mynd_ComputeLoadImbalanceDiff(graph_t *graph, Hunyuan_int_t nparts, Hunyuan_real_t ubvec);
-void mynd_Bnd2WayBalance(graph_t *graph, Hunyuan_real_t *ntpwgts);
-void mynd_General2WayBalance(graph_t *graph, Hunyuan_real_t *ntpwgts);
-void mynd_Balance2Way(graph_t *graph, Hunyuan_real_t *ntpwgts);
+reordering_real_t mynd_ComputeLoadImbalanceDiff(graph_t *graph, reordering_int_t nparts, reordering_real_t ubvec);
+void mynd_Bnd2WayBalance(graph_t *graph, reordering_real_t *ntpwgts);
+void mynd_General2WayBalance(graph_t *graph, reordering_real_t *ntpwgts);
+void mynd_Balance2Way(graph_t *graph, reordering_real_t *ntpwgts);
 void mynd_FM_2WayNodeBalance(graph_t *graph);
 
 /* ikvsorti.c */
 void mynd_ikvsorti(size_t n, ikv_t *base);
 
 /* commom.c*/
-Hunyuan_int_t lyj_log2(Hunyuan_int_t a);
-void mynd_set_value_int(Hunyuan_int_t n, Hunyuan_int_t val, Hunyuan_int_t *src);
-void mynd_set_value_double(Hunyuan_int_t n, Hunyuan_real_t val, Hunyuan_real_t *src);
-void mynd_copy_double(Hunyuan_int_t n, Hunyuan_real_t *src, Hunyuan_real_t *dst);
-void mynd_copy_int(Hunyuan_int_t n, Hunyuan_int_t *src, Hunyuan_int_t *dst);
-Hunyuan_int_t mynd_sum_int(Hunyuan_int_t n, Hunyuan_int_t *src, Hunyuan_int_t ncon);
-void mynd_select_sort(Hunyuan_int_t *num, Hunyuan_int_t length);
-void mynd_select_sort_val(Hunyuan_int_t *num, Hunyuan_int_t length);
+reordering_int_t lyj_log2(reordering_int_t a);
+void mynd_set_value_int(reordering_int_t n, reordering_int_t val, reordering_int_t *src);
+void mynd_set_value_double(reordering_int_t n, reordering_real_t val, reordering_real_t *src);
+void mynd_copy_double(reordering_int_t n, reordering_real_t *src, reordering_real_t *dst);
+void mynd_copy_int(reordering_int_t n, reordering_int_t *src, reordering_int_t *dst);
+reordering_int_t mynd_sum_int(reordering_int_t n, reordering_int_t *src, reordering_int_t ncon);
+void mynd_select_sort(reordering_int_t *num, reordering_int_t length);
+void mynd_select_sort_val(reordering_int_t *num, reordering_int_t length);
 void mynd_gk_randinit(uint64_t seed);
-void mynd_isrand(Hunyuan_int_t seed);
-void mynd_InitRandom(Hunyuan_int_t seed);
+void mynd_isrand(reordering_int_t seed);
+void mynd_InitRandom(reordering_int_t seed);
 uint64_t mynd_gk_randint64(void);
 uint32_t mynd_gk_randint32(void);
-Hunyuan_int_t mynd_irand();
-Hunyuan_int_t mynd_rand_count();
-Hunyuan_int_t mynd_irandInRange(Hunyuan_int_t max);
-void mynd_irandArrayPermute(Hunyuan_int_t n, Hunyuan_int_t *p, Hunyuan_int_t nshuffles, Hunyuan_int_t flag);
+reordering_int_t mynd_irand();
+reordering_int_t mynd_rand_count();
+reordering_int_t mynd_irandInRange(reordering_int_t max);
+void mynd_irandArrayPermute(reordering_int_t n, reordering_int_t *p, reordering_int_t nshuffles, reordering_int_t flag);
 
 /* graph.c */
 void mynd_InitGraph(graph_t *graph);
 graph_t *mynd_CreateGraph(void);
 void mynd_SetupGraph_tvwgt(graph_t *graph);
 void mynd_SetupGraph_label(graph_t *graph);
-graph_t *mynd_SetupGraph(Hunyuan_int_t nvtxs, Hunyuan_int_t *xadj, Hunyuan_int_t *adjncy, Hunyuan_int_t *vwgt, Hunyuan_int_t *adjwgt);
-graph_t *mynd_SetupCoarseGraph(graph_t *graph, Hunyuan_int_t cnvtxs);
-graph_t *mynd_SetupSplitGraph(graph_t *graph, Hunyuan_int_t subnvtxs, Hunyuan_int_t subnedges);
+graph_t *mynd_SetupGraph(reordering_int_t nvtxs, reordering_int_t *xadj, reordering_int_t *adjncy, reordering_int_t *vwgt, reordering_int_t *adjwgt);
+graph_t *mynd_SetupCoarseGraph(graph_t *graph, reordering_int_t cnvtxs);
+graph_t *mynd_SetupSplitGraph(graph_t *graph, reordering_int_t subnvtxs, reordering_int_t subnedges);
 void mynd_FreeRefineData(graph_t *graph);
 void mynd_FreeGraph(graph_t **r_graph);
-void mynd_Change2CNumbering(Hunyuan_int_t nvtxs, Hunyuan_int_t *xadj, Hunyuan_int_t *adjncy);
-void mynd_Change2FNumbering(Hunyuan_int_t nvtxs, Hunyuan_int_t *xadj, Hunyuan_int_t *adjncy, Hunyuan_int_t *vector);
+void mynd_Change2CNumbering(reordering_int_t nvtxs, reordering_int_t *xadj, reordering_int_t *adjncy);
+void mynd_Change2FNumbering(reordering_int_t nvtxs, reordering_int_t *xadj, reordering_int_t *adjncy, reordering_int_t *vector);
 void mynd_exam_nvtxs_nedges(graph_t *graph);
 void mynd_exam_xadj(graph_t *graph);
 void mynd_exam_vwgt(graph_t *graph);
@@ -1012,50 +1012,50 @@ void mynd_exam_pwgts(graph_t *graph);
 void mynd_exam_edid(graph_t *graph);
 void mynd_exam_bnd(graph_t *graph);
 void mynd_exam_nrinfo(graph_t *graph);
-void mynd_exam_num(Hunyuan_int_t *num, Hunyuan_int_t n);
+void mynd_exam_num(reordering_int_t *num, reordering_int_t n);
 
 /* hashtable.c */
 //  Hash Table Version 1.0
-void mynd_hash_table_Init(hash_table_t *hash, Hunyuan_int_t size);
-hash_table_t *mynd_hash_table_Create(Hunyuan_int_t size);
+void mynd_hash_table_Init(hash_table_t *hash, reordering_int_t size);
+hash_table_t *mynd_hash_table_Create(reordering_int_t size);
 void mynd_hashelement_Free(hash_table_t *hash);
 void mynd_hash_table_Destroy(hash_table_t *hash);
-Hunyuan_int_t mynd_hash_table_Length(hash_table_t *hash);
-Hunyuan_int_t mynd_hashFunction(Hunyuan_int_t val, Hunyuan_int_t size);
-Hunyuan_int_t mynd_Insert_hashelement(hashelement_t *element, Hunyuan_int_t size, Hunyuan_int_t val, Hunyuan_int_t key, Hunyuan_int_t index);
-void mynd_hash_table_Insert(hash_table_t *hash, Hunyuan_int_t val, Hunyuan_int_t key);
-void mynd_Traversal_hashelement(hashelement_t *element, Hunyuan_int_t size, Hunyuan_int_t *dst1, Hunyuan_int_t *dst2, Hunyuan_int_t ptr);
-void mynd_hash_table_Traversal(hash_table_t *hash, Hunyuan_int_t *dst1, Hunyuan_int_t *dst2);
+reordering_int_t mynd_hash_table_Length(hash_table_t *hash);
+reordering_int_t mynd_hashFunction(reordering_int_t val, reordering_int_t size);
+reordering_int_t mynd_Insert_hashelement(hashelement_t *element, reordering_int_t size, reordering_int_t val, reordering_int_t key, reordering_int_t index);
+void mynd_hash_table_Insert(hash_table_t *hash, reordering_int_t val, reordering_int_t key);
+void mynd_Traversal_hashelement(hashelement_t *element, reordering_int_t size, reordering_int_t *dst1, reordering_int_t *dst2, reordering_int_t ptr);
+void mynd_hash_table_Traversal(hash_table_t *hash, reordering_int_t *dst1, reordering_int_t *dst2);
 //  Hash Table Version 2.0
-void mynd_hash_table_Init2(hash_table2_t *hash, Hunyuan_int_t size);
-hash_table2_t *mynd_hash_table_Create2(Hunyuan_int_t size);
+void mynd_hash_table_Init2(hash_table2_t *hash, reordering_int_t size);
+hash_table2_t *mynd_hash_table_Create2(reordering_int_t size);
 void mynd_hashelement_Free2(hash_table2_t *hash);
 void mynd_hash_table_Destroy2(hash_table2_t *hash);
-Hunyuan_int_t mynd_hash_table_Length2(hash_table2_t *hash);
-void mynd_hash_table_Reset2(hash_table2_t *hash, Hunyuan_int_t *src);
-Hunyuan_int_t mynd_Insert_hashelement2(Hunyuan_int_t *element, Hunyuan_int_t val, Hunyuan_int_t key);
-Hunyuan_int_t mynd_hash_table_Insert2(hash_table2_t *hash, Hunyuan_int_t val, Hunyuan_int_t key);
-Hunyuan_int_t mynd_hash_table_Find2(hash_table2_t *hash, Hunyuan_int_t val);
+reordering_int_t mynd_hash_table_Length2(hash_table2_t *hash);
+void mynd_hash_table_Reset2(hash_table2_t *hash, reordering_int_t *src);
+reordering_int_t mynd_Insert_hashelement2(reordering_int_t *element, reordering_int_t val, reordering_int_t key);
+reordering_int_t mynd_hash_table_Insert2(hash_table2_t *hash, reordering_int_t val, reordering_int_t key);
+reordering_int_t mynd_hash_table_Find2(hash_table2_t *hash, reordering_int_t val);
 
 /* priorityqueue.c */
-void mynd_priority_queue_Init(priority_queue_t *queue, Hunyuan_int_t maxnodes);
-priority_queue_t *mynd_priority_queue_Create(Hunyuan_int_t maxnodes);
+void mynd_priority_queue_Init(priority_queue_t *queue, reordering_int_t maxnodes);
+priority_queue_t *mynd_priority_queue_Create(reordering_int_t maxnodes);
 void mynd_priority_queue_Reset(priority_queue_t *queue);
 void mynd_priority_queue_Free(priority_queue_t *queue);
 void mynd_priority_queue_Destroy(priority_queue_t *queue);
-Hunyuan_int_t mynd_priority_queue_Length(priority_queue_t *queue);
-Hunyuan_int_t mynd_priority_queue_Insert(priority_queue_t *queue, Hunyuan_int_t node, Hunyuan_int_t key);
-Hunyuan_int_t mynd_priority_queue_Delete(priority_queue_t *queue, Hunyuan_int_t node);
-void mynd_priority_queue_Update(priority_queue_t *queue, Hunyuan_int_t node, Hunyuan_int_t newkey);
-Hunyuan_int_t mynd_priority_queue_GetTop(priority_queue_t *queue);
-Hunyuan_int_t mynd_priority_queue_SeeTopVal(priority_queue_t *queue);
-Hunyuan_int_t mynd_priority_queue_SeeTopKey(priority_queue_t *queue);
+reordering_int_t mynd_priority_queue_Length(priority_queue_t *queue);
+reordering_int_t mynd_priority_queue_Insert(priority_queue_t *queue, reordering_int_t node, reordering_int_t key);
+reordering_int_t mynd_priority_queue_Delete(priority_queue_t *queue, reordering_int_t node);
+void mynd_priority_queue_Update(priority_queue_t *queue, reordering_int_t node, reordering_int_t newkey);
+reordering_int_t mynd_priority_queue_GetTop(priority_queue_t *queue);
+reordering_int_t mynd_priority_queue_SeeTopVal(priority_queue_t *queue);
+reordering_int_t mynd_priority_queue_SeeTopKey(priority_queue_t *queue);
 void mynd_exam_priority_queue(priority_queue_t *queue);
 
 /* queue.c */
-Hunyuan_int_t mynd_init_queue(Hunyuan_int_t ptr, Hunyuan_int_t *bndptr, Hunyuan_int_t nvtxs);
-Hunyuan_int_t mynd_insert_queue(Hunyuan_int_t nbnd, Hunyuan_int_t *bndptr, Hunyuan_int_t *bndind, Hunyuan_int_t vertex);
-Hunyuan_int_t mynd_delete_queue(Hunyuan_int_t nbnd, Hunyuan_int_t *bndptr, Hunyuan_int_t *bndind, Hunyuan_int_t vertex);
+reordering_int_t mynd_init_queue(reordering_int_t ptr, reordering_int_t *bndptr, reordering_int_t nvtxs);
+reordering_int_t mynd_insert_queue(reordering_int_t nbnd, reordering_int_t *bndptr, reordering_int_t *bndind, reordering_int_t vertex);
+reordering_int_t mynd_delete_queue(reordering_int_t nbnd, reordering_int_t *bndptr, reordering_int_t *bndind, reordering_int_t vertex);
 
 /* searchtree.h */
 //  Binary Search Tree Version 1.0
@@ -1064,56 +1064,56 @@ binary_search_tree_t *mynd_binary_search_tree_Create();
 void mynd_Free_Treenode(treenode_t *node);
 void mynd_binary_search_tree_Free(binary_search_tree_t *tree);
 void mynd_binary_search_tree_Destroy(binary_search_tree_t *tree);
-Hunyuan_int_t mynd_binary_search_tree_Length(binary_search_tree_t *tree);
-treenode_t *mynd_Create_TreeNode(Hunyuan_int_t val, Hunyuan_int_t key);
-treenode_t *mynd_Insert_TreeNode(treenode_t *node, Hunyuan_int_t val, Hunyuan_int_t key, Hunyuan_int_t *nownodes);
-void mynd_binary_search_tree_Insert(binary_search_tree_t *tree, Hunyuan_int_t val, Hunyuan_int_t key);
-Hunyuan_int_t mynd_InorderTraversal_TreeNode(treenode_t *root, Hunyuan_int_t *dst1, Hunyuan_int_t *dst2, Hunyuan_int_t *ptr);
-void mynd_binary_search_tree_Traversal(binary_search_tree_t *tree, Hunyuan_int_t *dst1, Hunyuan_int_t *dst2);
+reordering_int_t mynd_binary_search_tree_Length(binary_search_tree_t *tree);
+treenode_t *mynd_Create_TreeNode(reordering_int_t val, reordering_int_t key);
+treenode_t *mynd_Insert_TreeNode(treenode_t *node, reordering_int_t val, reordering_int_t key, reordering_int_t *nownodes);
+void mynd_binary_search_tree_Insert(binary_search_tree_t *tree, reordering_int_t val, reordering_int_t key);
+reordering_int_t mynd_InorderTraversal_TreeNode(treenode_t *root, reordering_int_t *dst1, reordering_int_t *dst2, reordering_int_t *ptr);
+void mynd_binary_search_tree_Traversal(binary_search_tree_t *tree, reordering_int_t *dst1, reordering_int_t *dst2);
 //  Binary Search Tree Version 2.0
-void mynd_binary_search_tree_Init2(binary_search_tree2_t *tree, Hunyuan_int_t size);
-binary_search_tree2_t *mynd_binary_search_tree_Create2(Hunyuan_int_t size);
+void mynd_binary_search_tree_Init2(binary_search_tree2_t *tree, reordering_int_t size);
+binary_search_tree2_t *mynd_binary_search_tree_Create2(reordering_int_t size);
 void mynd_exam_binary_search_tree2(binary_search_tree2_t *tree);
 void mynd_exam_binary_search_tree2_flag(binary_search_tree2_t *tree);
 void mynd_binary_search_tree_Free2(binary_search_tree2_t *tree);
 void mynd_binary_search_tree_Destroy2(binary_search_tree2_t *tree);
-Hunyuan_int_t mynd_binary_search_tree_Length2(binary_search_tree2_t *tree);
-void mynd_Insert_TreeNode2(binary_search_tree2_t *tree, Hunyuan_int_t val, Hunyuan_int_t key);
-void mynd_binary_search_tree_Insert2(binary_search_tree2_t *tree, Hunyuan_int_t val, Hunyuan_int_t key);
-void mynd_InorderTraversal_TreeNode2(binary_search_tree2_t *tree, treenode2_t *treenode, Hunyuan_int_t maxnodes, Hunyuan_int_t *dst1, Hunyuan_int_t *dst2, Hunyuan_int_t located, Hunyuan_int_t *ptr);
-void mynd_binary_search_tree_Traversal2(binary_search_tree2_t *tree, Hunyuan_int_t *dst1, Hunyuan_int_t *dst2);
-void mynd_Reset_TreeNode2(treenode2_t *treenode, Hunyuan_int_t maxnodes, Hunyuan_int_t located);
+reordering_int_t mynd_binary_search_tree_Length2(binary_search_tree2_t *tree);
+void mynd_Insert_TreeNode2(binary_search_tree2_t *tree, reordering_int_t val, reordering_int_t key);
+void mynd_binary_search_tree_Insert2(binary_search_tree2_t *tree, reordering_int_t val, reordering_int_t key);
+void mynd_InorderTraversal_TreeNode2(binary_search_tree2_t *tree, treenode2_t *treenode, reordering_int_t maxnodes, reordering_int_t *dst1, reordering_int_t *dst2, reordering_int_t located, reordering_int_t *ptr);
+void mynd_binary_search_tree_Traversal2(binary_search_tree2_t *tree, reordering_int_t *dst1, reordering_int_t *dst2);
+void mynd_Reset_TreeNode2(treenode2_t *treenode, reordering_int_t maxnodes, reordering_int_t located);
 void mynd_binary_search_tree_Reset2(binary_search_tree2_t *tree);
 
 /* timer.c */
 void mynd_Timer_Init();
-void mynd_gettimebegin(struct timeval *start, struct timeval *end, Hunyuan_real_t *time);
-void mynd_gettimeend(struct timeval *start, struct timeval *end, Hunyuan_real_t *time);
+void mynd_gettimebegin(struct timeval *start, struct timeval *end, reordering_real_t *time);
+void mynd_gettimeend(struct timeval *start, struct timeval *end, reordering_real_t *time);
 void mynd_PrintTimeGeneral();
 void mynd_PrintTimePhases();
 void mynd_PrintTimeSteps();
-void mynd_PrintTime(Hunyuan_int_t control);
+void mynd_PrintTime(reordering_int_t control);
 
 /* memory.c */
 void mynd_error_exit(const char *error_message);
-Hunyuan_int_t mynd_find_between_last_slash_and_dotgraph(const char *filename);
-Hunyuan_int_t mynd_init_memery_manage(char *filename);
-void mynd_log_memory(Hunyuan_int_t task_type, Hunyuan_int_t nbytes, void *ptr, char *message);
-void mynd_add_memory_block(void *ptr, Hunyuan_int_t nbytes, char *message);
-void mynd_update_memory_block(void *ptr, void *oldptr, Hunyuan_int_t nbytes, Hunyuan_int_t old_nbytes, char *message);
+reordering_int_t mynd_find_between_last_slash_and_dotgraph(const char *filename);
+reordering_int_t mynd_init_memery_manage(char *filename);
+void mynd_log_memory(reordering_int_t task_type, reordering_int_t nbytes, void *ptr, char *message);
+void mynd_add_memory_block(void *ptr, reordering_int_t nbytes, char *message);
+void mynd_update_memory_block(void *ptr, void *oldptr, reordering_int_t nbytes, reordering_int_t old_nbytes, char *message);
 void mynd_delete_memory_block(void *ptr, char *message);
 void mynd_free_memory_block();
-void *mynd_check_malloc(Hunyuan_int_t nbytes, char *message);
-void *mynd_check_realloc(void *oldptr, Hunyuan_int_t nbytes, Hunyuan_int_t old_nbytes, char *message);
-void mynd_check_free(void *ptr, Hunyuan_int_t nbytes, char *message);
+void *mynd_check_malloc(reordering_int_t nbytes, char *message);
+void *mynd_check_realloc(void *oldptr, reordering_int_t nbytes, reordering_int_t old_nbytes, char *message);
+void mynd_check_free(void *ptr, reordering_int_t nbytes, char *message);
 void mynd_PrintMemory();
 void mynd_exam_memory();
 
 /* read.h */
-Hunyuan_int_t mynd_Is_file_exists(char *fname);
+reordering_int_t mynd_Is_file_exists(char *fname);
 FILE *mynd_check_fopen(char *fname, char *mode, const char *message);
-ssize_t mynd_check_getline(char **lineptr, Hunyuan_int_t *n, FILE *stream);
+ssize_t mynd_check_getline(char **lineptr, reordering_int_t *n, FILE *stream);
 void mynd_check_fclose(FILE *fp);
-void mynd_ReadGraph(char *filename, Hunyuan_int_t *nvtxs, Hunyuan_int_t *nedges, Hunyuan_int_t **txadj, Hunyuan_int_t **tvwgt, Hunyuan_int_t **tadjncy, Hunyuan_int_t **tadjwgt);
+void mynd_ReadGraph(char *filename, reordering_int_t *nvtxs, reordering_int_t *nedges, reordering_int_t **txadj, reordering_int_t **tvwgt, reordering_int_t **tadjncy, reordering_int_t **tadjwgt);
 
 #endif

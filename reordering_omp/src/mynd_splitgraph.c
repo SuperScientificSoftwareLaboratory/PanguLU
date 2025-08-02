@@ -3,13 +3,13 @@
 
 #include "mynd_functionset.h"
 
-void mynd_SplitGraphReorder(graph_t *graph, graph_t **sub_lgraph, graph_t **sub_rgraph, Hunyuan_int_t level)
+void mynd_SplitGraphReorder(graph_t *graph, graph_t **sub_lgraph, graph_t **sub_rgraph, reordering_int_t level)
 {
-    Hunyuan_int_t nvtxs;
-    Hunyuan_int_t *xadj, *vwgt, *adjncy, *adjwgt, *label, *where;
-    Hunyuan_int_t subnvtxs[3], subnedges[3];
-    Hunyuan_int_t *subxadj[2], *subvwgt[2], *subadjncy[2], *subadjwgt[2], *sublabel[2];
-    Hunyuan_int_t *rename;
+    reordering_int_t nvtxs;
+    reordering_int_t *xadj, *vwgt, *adjncy, *adjwgt, *label, *where;
+    reordering_int_t subnvtxs[3], subnedges[3];
+    reordering_int_t *subxadj[2], *subvwgt[2], *subadjncy[2], *subadjwgt[2], *sublabel[2];
+    reordering_int_t *rename;
     graph_t *lgraph, *rgraph;
 
     nvtxs  = graph->nvtxs;
@@ -25,19 +25,19 @@ void mynd_SplitGraphReorder(graph_t *graph, graph_t **sub_lgraph, graph_t **sub_
 
     //cmap --> rename
     rename = graph->cmap;
-    // rename = (Hunyuan_int_t *)mynd_check_malloc(sizeof(Hunyuan_int_t) * nvtxs, "SplitGraphoRerder: rename");
+    // rename = (reordering_int_t *)mynd_check_malloc(sizeof(reordering_int_t) * nvtxs, "SplitGraphoRerder: rename");
 
     // printf("SplitGraphoRerder 0\n");
-    for(Hunyuan_int_t i = 0;i < nvtxs;i++)
+    for(reordering_int_t i = 0;i < nvtxs;i++)
     {
-        Hunyuan_int_t partition = where[i];
+        reordering_int_t partition = where[i];
         if(partition != 2)
         {
             rename[i] = subnvtxs[partition];
             subnvtxs[partition] ++;
-            for(Hunyuan_int_t j = xadj[i];j < xadj[i + 1];j++)
+            for(reordering_int_t j = xadj[i];j < xadj[i + 1];j++)
             {
-                Hunyuan_int_t k = adjncy[j];
+                reordering_int_t k = adjncy[j];
                 if(partition == where[k])
                     subnedges[partition]++;
             }
@@ -64,21 +64,21 @@ void mynd_SplitGraphReorder(graph_t *graph, graph_t **sub_lgraph, graph_t **sub_
     subnvtxs[0]  = subnvtxs[1]  = subnvtxs[2]  = 0;
     subnedges[0] = subnedges[1] = subnedges[2] = 0;
     subxadj[0][0] = subxadj[1][0] = 0;
-    for(Hunyuan_int_t i = 0;i < nvtxs;i++)
+    for(reordering_int_t i = 0;i < nvtxs;i++)
     {
-        Hunyuan_int_t partition = where[i];
+        reordering_int_t partition = where[i];
 
         if(partition == 2)
             continue;
         
-        Hunyuan_int_t numedge = 0;
-        Hunyuan_int_t map = subnvtxs[partition];
-        Hunyuan_int_t ptr = subnedges[partition];
+        reordering_int_t numedge = 0;
+        reordering_int_t map = subnvtxs[partition];
+        reordering_int_t ptr = subnedges[partition];
         subxadj[partition][map + 1] = subxadj[partition][map];
         // printf("subxadj[partition][map + 1]=%d\n", subxadj[partition][map + 1]);
-        for(Hunyuan_int_t j = xadj[i];j < xadj[i + 1];j++)
+        for(reordering_int_t j = xadj[i];j < xadj[i + 1];j++)
         {
-            Hunyuan_int_t k = adjncy[j];
+            reordering_int_t k = adjncy[j];
             if(where[k] == partition)
             {
                 subadjncy[partition][ptr] = rename[k];

@@ -4,7 +4,7 @@
 #include "mynd_functionset.h"
 
 //	common queue
-Hunyuan_int_t mynd_init_queue(Hunyuan_int_t ptr, Hunyuan_int_t *bndptr, Hunyuan_int_t nvtxs)
+reordering_int_t mynd_init_queue(reordering_int_t ptr, reordering_int_t *bndptr, reordering_int_t nvtxs)
 {
 	mynd_set_value_int(nvtxs, -1, bndptr);
 	return 0;
@@ -22,7 +22,7 @@ Hunyuan_int_t mynd_init_queue(Hunyuan_int_t ptr, Hunyuan_int_t *bndptr, Hunyuan_
  */
 /**************************************************************************/
 																//  /\		//
-Hunyuan_int_t mynd_insert_queue(Hunyuan_int_t nbnd, Hunyuan_int_t *bndptr, Hunyuan_int_t *bndind, Hunyuan_int_t vertex)// /  \		//
+reordering_int_t mynd_insert_queue(reordering_int_t nbnd, reordering_int_t *bndptr, reordering_int_t *bndind, reordering_int_t vertex)// /  \		//
 {													//				||
 	bndind[nbnd]   = vertex;						//	bndind[5] = 8
 	bndptr[vertex] = nbnd;							//	bndptr[8] = 5
@@ -43,7 +43,7 @@ Hunyuan_int_t mynd_insert_queue(Hunyuan_int_t nbnd, Hunyuan_int_t *bndptr, Hunyu
  */
 /**************************************************************************/
 																//  /\		//
-Hunyuan_int_t mynd_delete_queue(Hunyuan_int_t nbnd, Hunyuan_int_t *bndptr, Hunyuan_int_t *bndind, Hunyuan_int_t vertex)// /  \		//
+reordering_int_t mynd_delete_queue(reordering_int_t nbnd, reordering_int_t *bndptr, reordering_int_t *bndind, reordering_int_t vertex)// /  \		//
 {													//				||
 	bndind[bndptr[vertex]]   = bndind[nbnd - 1];	//	bndind[1] = 8
 	bndptr[bndind[nbnd - 1]] = bndptr[vertex];		//	bndptr[8] = 1

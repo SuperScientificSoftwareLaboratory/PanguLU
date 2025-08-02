@@ -100,7 +100,7 @@
 [PanguLU Info]       GPU Kernel Warp/Block:    %d\n\
 [PanguLU Info]       GPU Data Move Warp/Block: %d\n\
 [PanguLU Info] -------------------------------------------\n[PanguLU Info]\n\
-", n, origin_smatrix->columnpointer[n], nb, size, common->basic_param, (sizeof(Hunyuan_int_t) == 4) ? ("i32") : ((sizeof(Hunyuan_int_t) == 8) ? ("i64") : ("unknown")), \
+", n, origin_smatrix->columnpointer[n], nb, size, common->basic_param, (sizeof(reordering_int_t) == 4) ? ("i32") : ((sizeof(reordering_int_t) == 8) ? ("i64") : ("unknown")), \
 init_options->gpu_kernel_warp_per_block, init_options->gpu_data_move_warp_per_block
 #else
 #define PANGULU_I_BASIC_INFO "[PanguLU Info]\n\
@@ -110,13 +110,13 @@ init_options->gpu_kernel_warp_per_block, init_options->gpu_data_move_warp_per_bl
 [PanguLU Info]       Matrix Block Order (nb):  " FMT_PANGULU_INT32_T "\n\
 [PanguLU Info]       MPI Processes Count:      " FMT_PANGULU_INT32_T "\n\
 [PanguLU Info]       MPI Recv Buffer Level:    " "%.2f" "\n\
-[PanguLU Info]       Hunyuan Index Type:       %s\n\
-[PanguLU Info]       Hunyuan Thread Count:     %d\n\
+[PanguLU Info]       Reordering Index Type:    %s\n\
+[PanguLU Info]       Reordering Thread Count:  %d\n\
 [PanguLU Info]       GPU:                      Enabled\n\
 [PanguLU Info]       GPU Kernel Warp/Block:    %d\n\
 [PanguLU Info]       GPU Data Move Warp/Block: %d\n\
 [PanguLU Info] -------------------------------------------\n[PanguLU Info]\n\
-", n, origin_smatrix->columnpointer[n], nb, size, common->basic_param, (sizeof(Hunyuan_int_t) == 4) ? ("i32") : ((sizeof(Hunyuan_int_t) == 8) ? ("i64") : ("unknown")), init_options->hunyuan_nthread, \
+", n, origin_smatrix->columnpointer[n], nb, size, common->basic_param, (sizeof(reordering_int_t) == 4) ? ("i32") : ((sizeof(reordering_int_t) == 8) ? ("i64") : ("unknown")), init_options->reordering_nthread, \
 init_options->gpu_kernel_warp_per_block, init_options->gpu_data_move_warp_per_block
 #endif
 #else
@@ -131,7 +131,7 @@ init_options->gpu_kernel_warp_per_block, init_options->gpu_data_move_warp_per_bl
 [PanguLU Info]       METIS Index Type:         %s\n\
 [PanguLU Info]       GPU:                      Disabled\n\
 [PanguLU Info] -------------------------------------------\n[PanguLU Info]\n\
-", n, origin_smatrix->columnpointer[n], nb, size, common->basic_param, (sizeof(Hunyuan_int_t) == 4) ? ("i32") : ((sizeof(Hunyuan_int_t) == 8) ? ("i64") : ("unknown"))
+", n, origin_smatrix->columnpointer[n], nb, size, common->basic_param, (sizeof(reordering_int_t) == 4) ? ("i32") : ((sizeof(reordering_int_t) == 8) ? ("i64") : ("unknown"))
 #else
 #define PANGULU_I_BASIC_INFO "[PanguLU Info]\n\
 [PanguLU Info] --- PanguLU Configuration & Matrix Info ---\n\
@@ -140,11 +140,11 @@ init_options->gpu_kernel_warp_per_block, init_options->gpu_data_move_warp_per_bl
 [PanguLU Info]       Matrix Block Order (nb):  " FMT_PANGULU_INT32_T "\n\
 [PanguLU Info]       MPI Processes Count:      " FMT_PANGULU_INT32_T "\n\
 [PanguLU Info]       MPI Recv Buffer Level:    " "%.2f" "\n\
-[PanguLU Info]       Hunyuan Index Type:       %s\n\
-[PanguLU Info]       Hunyuan Thread Count:     %d\n\
+[PanguLU Info]       Reordering Index Type:    %s\n\
+[PanguLU Info]       Reordering Thread Count:  %d\n\
 [PanguLU Info]       GPU:                      Disabled\n\
 [PanguLU Info] -------------------------------------------\n[PanguLU Info]\n\
-", n, origin_smatrix->columnpointer[n], nb, size, common->basic_param, (sizeof(Hunyuan_int_t) == 4) ? ("i32") : ((sizeof(Hunyuan_int_t) == 8) ? ("i64") : ("unknown")), init_options->hunyuan_nthread
+", n, origin_smatrix->columnpointer[n], nb, size, common->basic_param, (sizeof(reordering_int_t) == 4) ? ("i32") : ((sizeof(reordering_int_t) == 8) ? ("i64") : ("unknown")), init_options->reordering_nthread
 #endif
 #endif
 

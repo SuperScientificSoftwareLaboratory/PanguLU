@@ -7,20 +7,20 @@
 /*************************************************************************/
 /*! This function initializes the data structures of the priority queue */
 /**************************************************************************/
-void mynd_priority_queue_Init(priority_queue_t *queue, Hunyuan_int_t maxnodes)
+void mynd_priority_queue_Init(priority_queue_t *queue, reordering_int_t maxnodes)
 {
 	queue->nownodes = 0;
 	queue->maxnodes = maxnodes;
 	queue->heap     = (node_t *)mynd_check_malloc(sizeof(node_t) * maxnodes, "priority_queue_Init: heap");
-	queue->locator  = (Hunyuan_int_t *)mynd_check_malloc(sizeof(Hunyuan_int_t) * maxnodes, "priority_queue_Init: locator");
-	for(Hunyuan_int_t i = 0;i < maxnodes;i++)
+	queue->locator  = (reordering_int_t *)mynd_check_malloc(sizeof(reordering_int_t) * maxnodes, "priority_queue_Init: locator");
+	for(reordering_int_t i = 0;i < maxnodes;i++)
 		queue->locator[i] = -1;
 }
 
 /*************************************************************************/
 /*! This function creates and initializes a priority queue */
 /**************************************************************************/
-priority_queue_t *mynd_priority_queue_Create(Hunyuan_int_t maxnodes)
+priority_queue_t *mynd_priority_queue_Create(reordering_int_t maxnodes)
 {
 	priority_queue_t *queue; 
 
@@ -35,8 +35,8 @@ priority_queue_t *mynd_priority_queue_Create(Hunyuan_int_t maxnodes)
 /**************************************************************************/
 void mynd_priority_queue_Reset(priority_queue_t *queue)
 {
-	Hunyuan_int_t i;
-	Hunyuan_int_t *locator = queue->locator;
+	reordering_int_t i;
+	reordering_int_t *locator = queue->locator;
 	node_t *heap    = queue->heap;
 
 	for (i = queue->nownodes - 1; i >= 0; i--)
@@ -45,18 +45,18 @@ void mynd_priority_queue_Reset(priority_queue_t *queue)
 }
 
 /*************************************************************************/
-/*! This function frees the Hunyuan_int_ternal datastructures of the priority queue */
+/*! This function frees the internal datastructures of the priority queue */
 /**************************************************************************/
 void mynd_priority_queue_Free(priority_queue_t *queue)
 {
 	if (queue == NULL) return;
-	mynd_check_free(queue->locator, sizeof(Hunyuan_int_t) * queue->maxnodes, "priority_queue_Free: queue->locator");
+	mynd_check_free(queue->locator, sizeof(reordering_int_t) * queue->maxnodes, "priority_queue_Free: queue->locator");
 	mynd_check_free(queue->heap, sizeof(node_t) * queue->maxnodes, "priority_queue_Free: queue->heap");
 	queue->maxnodes = 0;
 }
 
 /*************************************************************************/
-/*! This function frees the Hunyuan_int_ternal datastructures of the priority queue 
+/*! This function frees the internal datastructures of the priority queue 
     and the queue itself */
 /**************************************************************************/
 void mynd_priority_queue_Destroy(priority_queue_t *queue)
@@ -69,7 +69,7 @@ void mynd_priority_queue_Destroy(priority_queue_t *queue)
 /*************************************************************************/
 /*! This function returns the length of the queue */
 /**************************************************************************/
-Hunyuan_int_t mynd_priority_queue_Length(priority_queue_t *queue)
+reordering_int_t mynd_priority_queue_Length(priority_queue_t *queue)
 {
 	return queue->nownodes;
 }
@@ -77,10 +77,10 @@ Hunyuan_int_t mynd_priority_queue_Length(priority_queue_t *queue)
 /*************************************************************************/
 /*! This function adds an item in the priority queue */
 /**************************************************************************/
-Hunyuan_int_t mynd_priority_queue_Insert(priority_queue_t *queue, Hunyuan_int_t node, Hunyuan_int_t key)
+reordering_int_t mynd_priority_queue_Insert(priority_queue_t *queue, reordering_int_t node, reordering_int_t key)
 {
-	Hunyuan_int_t i, j;
-	Hunyuan_int_t *locator=queue->locator;
+	reordering_int_t i, j;
+	reordering_int_t *locator=queue->locator;
 	node_t *heap = queue->heap;
 
 	i = queue->nownodes++;
@@ -107,11 +107,11 @@ Hunyuan_int_t mynd_priority_queue_Insert(priority_queue_t *queue, Hunyuan_int_t 
 /*************************************************************************/
 /*! This function deletes an item from the priority queue */
 /**************************************************************************/
-Hunyuan_int_t mynd_priority_queue_Delete(priority_queue_t *queue, Hunyuan_int_t node)
+reordering_int_t mynd_priority_queue_Delete(priority_queue_t *queue, reordering_int_t node)
 {
-	Hunyuan_int_t i, j, nownodes;
-	Hunyuan_int_t newkey, oldkey;
-	Hunyuan_int_t *locator = queue->locator;
+	reordering_int_t i, j, nownodes;
+	reordering_int_t newkey, oldkey;
+	reordering_int_t *locator = queue->locator;
 	node_t *heap = queue->heap;
 
 	i = locator[node];
@@ -174,11 +174,11 @@ Hunyuan_int_t mynd_priority_queue_Delete(priority_queue_t *queue, Hunyuan_int_t 
 /*************************************************************************/
 /*! This function updates the key values associated for a particular item */ 
 /**************************************************************************/
-void mynd_priority_queue_Update(priority_queue_t *queue, Hunyuan_int_t node, Hunyuan_int_t newkey)
+void mynd_priority_queue_Update(priority_queue_t *queue, reordering_int_t node, reordering_int_t newkey)
 {
-	Hunyuan_int_t i, j, nownodes;
-	Hunyuan_int_t oldkey;
-	Hunyuan_int_t *locator = queue->locator;
+	reordering_int_t i, j, nownodes;
+	reordering_int_t oldkey;
+	reordering_int_t *locator = queue->locator;
 	node_t *heap = queue->heap;
 
 	oldkey = heap[locator[node]].key;
@@ -236,13 +236,13 @@ void mynd_priority_queue_Update(priority_queue_t *queue, Hunyuan_int_t node, Hun
 /*! This function returns the item at the top of the queue and removes
     it from the priority queue */
 /**************************************************************************/
-Hunyuan_int_t mynd_priority_queue_GetTop(priority_queue_t *queue)
+reordering_int_t mynd_priority_queue_GetTop(priority_queue_t *queue)
 {
-	Hunyuan_int_t i, j;
-	Hunyuan_int_t *locator;
+	reordering_int_t i, j;
+	reordering_int_t *locator;
 	node_t *heap;
-	Hunyuan_int_t vtx, node;
-	Hunyuan_int_t key;
+	reordering_int_t vtx, node;
+	reordering_int_t key;
 
 	if (queue->nownodes == 0)
 		return -1;
@@ -293,7 +293,7 @@ Hunyuan_int_t mynd_priority_queue_GetTop(priority_queue_t *queue)
 /*! This function returns the item at the top of the queue. The item is not
     deleted from the queue. */
 /**************************************************************************/
-Hunyuan_int_t mynd_priority_queue_SeeTopVal(priority_queue_t *queue)
+reordering_int_t mynd_priority_queue_SeeTopVal(priority_queue_t *queue)
 {
   return (queue->nownodes == 0 ? -1 : queue->heap[0].val);
 }
@@ -302,7 +302,7 @@ Hunyuan_int_t mynd_priority_queue_SeeTopVal(priority_queue_t *queue)
 /*! This function returns the item at the top of the queue. The item is not
     deleted from the queue. */
 /**************************************************************************/
-Hunyuan_int_t mynd_priority_queue_SeeTopKey(priority_queue_t *queue)
+reordering_int_t mynd_priority_queue_SeeTopKey(priority_queue_t *queue)
 {
   return (queue->nownodes == 0 ? -1 : queue->heap[0].key);
 }
@@ -311,11 +311,11 @@ void mynd_exam_priority_queue(priority_queue_t *queue)
 {
 	printf("nownodes=%"PRIDX" maxnodes=%"PRIDX"\n",queue->nownodes,queue->maxnodes);
 	printf("key:");
-	for(Hunyuan_int_t i = 0;i < queue->nownodes;i++)
+	for(reordering_int_t i = 0;i < queue->nownodes;i++)
 		printf("%"PRIDX" ",queue->heap[i].key);
 	printf("\n");
 	printf("val:");
-	for(Hunyuan_int_t i = 0;i < queue->nownodes;i++)
+	for(reordering_int_t i = 0;i < queue->nownodes;i++)
 		printf("%"PRIDX" ",queue->heap[i].val);
 	printf("\n");
 }

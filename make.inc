@@ -12,6 +12,6 @@ MPICC = mpicc $(COMPILE_LEVEL)
 OPENBLAS_INC = -I/path/to/openblas/include
 CFLAGS = $(OPENBLAS_INC) $(CUDA_INC) -fopenmp -lpthread -lm
 MPICCFLAGS = $(CFLAGS)
-HUNYUAN_INC = -I../hunyuan_omp/include
+REORDERING_INC = -I../reordering_omp/include
 #METIS_INC = -I/path/to/metis/include
 PANGULU_FLAGS = -DPANGULU_LOG_INFO -DCALCULATE_TYPE_R64 -DGPU_OPEN #-DMETIS #-DPANGULU_MC64 #-DPANGULU_PERF

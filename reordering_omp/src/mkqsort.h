@@ -1,7 +1,7 @@
 #ifndef MKQSORT_H
 #define MKQSORT_H
 
-/* Swap two items poHunyuan_int_ted to by A and B using temporary buffer t. */
+/* Swap two items pointed to by A and B using temporary buffer t. */
 #define _GKQSORT_SWAP(a, b, t) ((void)((t = *a), (*a = *b), (*b = t)))
 
 /* Discontinue quicksort algorithm when partition gets below this size.
@@ -26,7 +26,7 @@
     return;                                                             \
                                                                         \
   /* Don't declare two variables of type GKQSORT_TYPE in a single	\
-   * statement: eg `TYPE a, b;', in case if TYPE is a poHunyuan_int_ter,		\
+   * statement: eg `TYPE a, b;', in case if TYPE is a pointer,		\
    * expands to `type* a, b;' wich isn't what we want.			\
    */									\
 									\
@@ -87,7 +87,7 @@
         }								\
       } while (_left_ptr <= _right_ptr);				\
 									\
-     /* Set up poHunyuan_int_ters for next iteration.  First determine whether	\
+     /* Set up pointers for next iteration.  First determine whether	\
         left and right partitions are below the threshold size.  If so,	\
         ignore one or both.  Otherwise, push the larger partition's	\
         bounds on the stack and continue sorting the smaller one. */	\
@@ -118,8 +118,8 @@
 									\
   /* Once the BASE array is partially sorted by quicksort the rest	\
      is completely sorted using insertion sort, since this is efficient	\
-     for partitions below MAX_THRESH size. BASE poHunyuan_int_ts to the		\
-     beginning of the array to sort, and END_PTR poHunyuan_int_ts at the very	\
+     for partitions below MAX_THRESH size. BASE points to the		\
+     beginning of the array to sort, and END_PTR points at the very	\
      last element in the array (*not* one beyond it!). */		\
 									\
   {									\

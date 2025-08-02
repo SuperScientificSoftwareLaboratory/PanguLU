@@ -5,8 +5,8 @@
 
 void mynd_Compute_Partition_Informetion_2way(graph_t *graph)
 {
-    Hunyuan_int_t nvtxs, nbnd, mincut;
-    Hunyuan_int_t *xadj, *vwgt, *adjncy, *adjwgt, *where, *bndptr, *bndind, *ed, *id, *pwgts;
+    reordering_int_t nvtxs, nbnd, mincut;
+    reordering_int_t *xadj, *vwgt, *adjncy, *adjwgt, *where, *bndptr, *bndind, *ed, *id, *pwgts;
 
     nvtxs = graph->nvtxs;
     nbnd  = graph->nbnd;
@@ -31,14 +31,14 @@ void mynd_Compute_Partition_Informetion_2way(graph_t *graph)
     mynd_set_value_int(3,0,pwgts);
 
     //  compute array nbnd, bndptr, bndind, ed, id
-    for(Hunyuan_int_t i = 0;i < nvtxs;i++)
+    for(reordering_int_t i = 0;i < nvtxs;i++)
     {
-        Hunyuan_int_t partition = where[i];
-        Hunyuan_int_t ted = 0;
-        Hunyuan_int_t tid = 0;
-        for(Hunyuan_int_t j = xadj[i];j < xadj[i + 1];j++)
+        reordering_int_t partition = where[i];
+        reordering_int_t ted = 0;
+        reordering_int_t tid = 0;
+        for(reordering_int_t j = xadj[i];j < xadj[i + 1];j++)
         {
-            Hunyuan_int_t k = adjncy[j];
+            reordering_int_t k = adjncy[j];
             if(partition != where[k])
                 ted += adjwgt[j];
             else 
@@ -71,8 +71,8 @@ void mynd_Compute_Partition_Informetion_2way(graph_t *graph)
 
 void mynd_Compute_Reorder_Informetion_2way(graph_t *graph)
 {
-    Hunyuan_int_t nvtxs, nbnd;
-    Hunyuan_int_t *xadj, *vwgt, *adjncy, *where, *bndptr, *bndind, *pwgts;
+    reordering_int_t nvtxs, nbnd;
+    reordering_int_t *xadj, *vwgt, *adjncy, *where, *bndptr, *bndind, *pwgts;
     nrinfo_t *nrinfo;
 
     nvtxs = graph->nvtxs;
@@ -95,9 +95,9 @@ void mynd_Compute_Reorder_Informetion_2way(graph_t *graph)
     mynd_set_value_int(3,0,pwgts);
 
     //  compute array nbnd, bndptr, bndind, ed, id
-    for(Hunyuan_int_t i = 0;i < nvtxs;i++)
+    for(reordering_int_t i = 0;i < nvtxs;i++)
     {
-        Hunyuan_int_t partition = where[i];
+        reordering_int_t partition = where[i];
 
         pwgts[partition] += vwgt[i];
 
@@ -106,10 +106,10 @@ void mynd_Compute_Reorder_Informetion_2way(graph_t *graph)
             nbnd = mynd_insert_queue(nbnd, bndptr, bndind, i);
             nrinfo[i].edegrees[0] = nrinfo[i].edegrees[1] = 0;
 
-            for(Hunyuan_int_t j = xadj[i];j < xadj[i + 1];j++)
+            for(reordering_int_t j = xadj[i];j < xadj[i + 1];j++)
             {
-                Hunyuan_int_t k = adjncy[j];
-                Hunyuan_int_t other = where[k];
+                reordering_int_t k = adjncy[j];
+                reordering_int_t other = where[k];
                 if(other != 2)
                     nrinfo[i].edegrees[other] += vwgt[k];
             }
@@ -126,7 +126,7 @@ void mynd_Compute_Reorder_Informetion_2way(graph_t *graph)
 
 void mynd_project_Reorder(graph_t *graph)
 {
-    Hunyuan_int_t nvtxs, *cmap, *where, *cwhere;
+    reordering_int_t nvtxs, *cmap, *where, *cwhere;
     graph_t *cgraph = graph->coarser;
 
     nvtxs  = graph->nvtxs;
@@ -135,7 +135,7 @@ void mynd_project_Reorder(graph_t *graph)
 
     // printf("project_Reorder 0\n");
     where  = graph->where;
-    for(Hunyuan_int_t i = 0;i < nvtxs;i++)
+    for(reordering_int_t i = 0;i < nvtxs;i++)
         where[i] = cwhere[cmap[i]];
     
     // printf("project_Reorder 1\n");
@@ -143,9 +143,9 @@ void mynd_project_Reorder(graph_t *graph)
     mynd_FreeGraph(&graph->coarser);
     graph->coarser = NULL;
 
-    graph->pwgts  = (Hunyuan_int_t *)mynd_check_malloc(sizeof(Hunyuan_int_t) * 3, "project_Reorder: pwgts");
-    graph->bndptr = (Hunyuan_int_t *)mynd_check_malloc(sizeof(Hunyuan_int_t) * nvtxs, "project_Reorder: bndptr");
-    graph->bndind = (Hunyuan_int_t *)mynd_check_malloc(sizeof(Hunyuan_int_t) * nvtxs, "project_Reorder: bndind");
+    graph->pwgts  = (reordering_int_t *)mynd_check_malloc(sizeof(reordering_int_t) * 3, "project_Reorder: pwgts");
+    graph->bndptr = (reordering_int_t *)mynd_check_malloc(sizeof(reordering_int_t) * nvtxs, "project_Reorder: bndptr");
+    graph->bndind = (reordering_int_t *)mynd_check_malloc(sizeof(reordering_int_t) * nvtxs, "project_Reorder: bndind");
     graph->nrinfo = (nrinfo_t *)mynd_check_malloc(sizeof(nrinfo_t) * nvtxs, "project_Reorder: nrinfo");
 
 
@@ -157,14 +157,14 @@ void mynd_project_Reorder(graph_t *graph)
 /*************************************************************************/
 /*! This function performs a cut-focused FM refinement */
 /*************************************************************************/
-void mynd_FM_2WayCutRefine(graph_t *graph, Hunyuan_real_t *ntpwgts, Hunyuan_int_t niter)
+void mynd_FM_2WayCutRefine(graph_t *graph, reordering_real_t *ntpwgts, reordering_int_t niter)
 {
-    Hunyuan_int_t i, ii, j, k, kwgt, nvtxs, nbnd, nswaps, from, to, pass, limit, tmp;
-    Hunyuan_int_t *xadj, *vwgt, *adjncy, *adjwgt, *where, *id, *ed, *bndptr, *bndind, *pwgts;
-    Hunyuan_int_t *moved, *swaps, *perm;
+    reordering_int_t i, ii, j, k, kwgt, nvtxs, nbnd, nswaps, from, to, pass, limit, tmp;
+    reordering_int_t *xadj, *vwgt, *adjncy, *adjwgt, *where, *id, *ed, *bndptr, *bndind, *pwgts;
+    reordering_int_t *moved, *swaps, *perm;
     priority_queue_t *queues[2];
-    Hunyuan_int_t higain, mincut, mindiff, origdiff, initcut, newcut, mincutorder, avgvwgt;
-    Hunyuan_int_t tpwgts[2];
+    reordering_int_t higain, mincut, mindiff, origdiff, initcut, newcut, mincutorder, avgvwgt;
+    reordering_int_t tpwgts[2];
 
     nvtxs  = graph->nvtxs;
     xadj   = graph->xadj;
@@ -178,9 +178,9 @@ void mynd_FM_2WayCutRefine(graph_t *graph, Hunyuan_real_t *ntpwgts, Hunyuan_int_
     bndptr = graph->bndptr;
     bndind = graph->bndind;
 
-    moved = (Hunyuan_int_t *)mynd_check_malloc(sizeof(Hunyuan_int_t) * nvtxs, "FM_2WayCutRefine: moved");
-    swaps = (Hunyuan_int_t *)mynd_check_malloc(sizeof(Hunyuan_int_t) * nvtxs, "FM_2WayCutRefine: swaps");
-    perm  = (Hunyuan_int_t *)mynd_check_malloc(sizeof(Hunyuan_int_t) * nvtxs, "FM_2WayCutRefine: perm");
+    moved = (reordering_int_t *)mynd_check_malloc(sizeof(reordering_int_t) * nvtxs, "FM_2WayCutRefine: moved");
+    swaps = (reordering_int_t *)mynd_check_malloc(sizeof(reordering_int_t) * nvtxs, "FM_2WayCutRefine: swaps");
+    perm  = (reordering_int_t *)mynd_check_malloc(sizeof(reordering_int_t) * nvtxs, "FM_2WayCutRefine: perm");
 
     tpwgts[0] = graph->tvwgt[0] * ntpwgts[0];
     tpwgts[1] = graph->tvwgt[0] - tpwgts[0];
@@ -366,25 +366,25 @@ void mynd_FM_2WayCutRefine(graph_t *graph, Hunyuan_real_t *ntpwgts, Hunyuan_int_
     mynd_priority_queue_Destroy(queues[1]);
     mynd_priority_queue_Destroy(queues[0]);
 
-    mynd_check_free(perm, sizeof(Hunyuan_int_t) * nvtxs, "FM_2WayCutRefine: perm");
-    mynd_check_free(swaps, sizeof(Hunyuan_int_t) * nvtxs, "FM_2WayCutRefine: swaps");
-    mynd_check_free(moved, sizeof(Hunyuan_int_t) * nvtxs, "FM_2WayCutRefine: moved");
+    mynd_check_free(perm, sizeof(reordering_int_t) * nvtxs, "FM_2WayCutRefine: perm");
+    mynd_check_free(swaps, sizeof(reordering_int_t) * nvtxs, "FM_2WayCutRefine: swaps");
+    mynd_check_free(moved, sizeof(reordering_int_t) * nvtxs, "FM_2WayCutRefine: moved");
 }
 
 /*************************************************************************/
 /*! This function performs a node-based FM refinement */
 /**************************************************************************/
-void mynd_FM_2WayNodeRefine2Sided(graph_t *graph, Hunyuan_int_t niter)
+void mynd_FM_2WayNodeRefine2Sided(graph_t *graph, reordering_int_t niter)
 {
-    Hunyuan_int_t i, ii, j, k, jj, kk, nvtxs, nbnd, nswaps, nmind;
-    Hunyuan_int_t *xadj, *vwgt, *adjncy, *where, *pwgts, *edegrees, *bndind, *bndptr;
-    Hunyuan_int_t *mptr, *mind, *moved, *swaps;
+    reordering_int_t i, ii, j, k, jj, kk, nvtxs, nbnd, nswaps, nmind;
+    reordering_int_t *xadj, *vwgt, *adjncy, *where, *pwgts, *edegrees, *bndind, *bndptr;
+    reordering_int_t *mptr, *mind, *moved, *swaps;
     priority_queue_t *queues[2]; 
     nrinfo_t *rinfo;
-    Hunyuan_int_t higain, oldgain, mincut, initcut, mincutorder;	
-    Hunyuan_int_t pass, to, other, limit;
-    Hunyuan_int_t badmaxpwgt, mindiff, newdiff;
-    Hunyuan_int_t u[2], g[2];
+    reordering_int_t higain, oldgain, mincut, initcut, mincutorder;	
+    reordering_int_t pass, to, other, limit;
+    reordering_int_t badmaxpwgt, mindiff, newdiff;
+    reordering_int_t u[2], g[2];
     double mult;   
 
     nvtxs  = graph->nvtxs;
@@ -401,13 +401,13 @@ void mynd_FM_2WayNodeRefine2Sided(graph_t *graph, Hunyuan_int_t niter)
     queues[0] = mynd_priority_queue_Create(nvtxs);
     queues[1] = mynd_priority_queue_Create(nvtxs);
 
-    moved = (Hunyuan_int_t *)mynd_check_malloc(sizeof(Hunyuan_int_t) * nvtxs, "FM_2WayNodeRefine2Sided: moved");
-    swaps = (Hunyuan_int_t *)mynd_check_malloc(sizeof(Hunyuan_int_t) * nvtxs, "FM_2WayNodeRefine2Sided: swaps");
-    mptr = (Hunyuan_int_t *)mynd_check_malloc(sizeof(Hunyuan_int_t) * (nvtxs + 1), "FM_2WayNodeRefine2Sided: mptr");
-    mind = (Hunyuan_int_t *)mynd_check_malloc(sizeof(Hunyuan_int_t) * nvtxs * 2, "FM_2WayNodeRefine2Sided: mind");
+    moved = (reordering_int_t *)mynd_check_malloc(sizeof(reordering_int_t) * nvtxs, "FM_2WayNodeRefine2Sided: moved");
+    swaps = (reordering_int_t *)mynd_check_malloc(sizeof(reordering_int_t) * nvtxs, "FM_2WayNodeRefine2Sided: swaps");
+    mptr = (reordering_int_t *)mynd_check_malloc(sizeof(reordering_int_t) * (nvtxs + 1), "FM_2WayNodeRefine2Sided: mptr");
+    mind = (reordering_int_t *)mynd_check_malloc(sizeof(reordering_int_t) * nvtxs * 2, "FM_2WayNodeRefine2Sided: mind");
 
     mult = 0.5 * 1.2000499;
-    badmaxpwgt = (Hunyuan_int_t)(mult * (pwgts[0] + pwgts[1] + pwgts[2]));
+    badmaxpwgt = (reordering_int_t)(mult * (pwgts[0] + pwgts[1] + pwgts[2]));
 
     // printf("Partitions-N2: [%6"PRIDX" %6"PRIDX"] Nv-Nb[%6"PRIDX" %6"PRIDX"]. ISep: %6"PRIDX"\n", pwgts[0], pwgts[1], graph->nvtxs, graph->nbnd, graph->mincut);
 
@@ -434,7 +434,7 @@ void mynd_FM_2WayNodeRefine2Sided(graph_t *graph, Hunyuan_int_t niter)
         limit = (0 ? lyj_min(5*nbnd, 400) : lyj_min(2*nbnd, 300));
 
         /******************************************************
-        * Get Hunyuan_int_to the FM loop
+        * Get into the FM loop
         *******************************************************/
         mptr[0] = nmind = 0;
         mindiff = lyj_abs(pwgts[0] - pwgts[1]);
@@ -521,7 +521,7 @@ void mynd_FM_2WayNodeRefine2Sided(graph_t *graph, Hunyuan_int_t niter)
                 }
                 else if (where[k] == other) 
                 { 
-                    /* This vertex is pulled Hunyuan_int_to the separator */
+                    /* This vertex is pulled into the separator */
                     nbnd = mynd_insert_queue(nbnd,bndptr,bndind,k);
 
                     mind[nmind++] = k;  /* Keep track for rollback */
@@ -544,7 +544,7 @@ void mynd_FM_2WayNodeRefine2Sided(graph_t *graph, Hunyuan_int_t niter)
                         }
                     }
 
-                    /* Insert the new vertex Hunyuan_int_to the priority queue. Only one side! */
+                    /* Insert the new vertex into the priority queue. Only one side! */
                     if (moved[k] == -1) 
                     {
                         mynd_priority_queue_Insert(queues[to], k, vwgt[k] - edegrees[other]);
@@ -612,31 +612,31 @@ void mynd_FM_2WayNodeRefine2Sided(graph_t *graph, Hunyuan_int_t niter)
             break;
     }
 
-    mynd_check_free(mind, sizeof(Hunyuan_int_t) * nvtxs * 2, "FM_2WayNodeRefine2Sided: mind");
-    mynd_check_free(mptr, sizeof(Hunyuan_int_t) * (nvtxs + 1), "FM_2WayNodeRefine2Sided: mptr");
-    mynd_check_free(swaps, sizeof(Hunyuan_int_t) * nvtxs, "FM_2WayNodeRefine2Sided: swaps");
-    mynd_check_free(moved, sizeof(Hunyuan_int_t) * nvtxs, "FM_2WayNodeRefine2Sided: moved");
+    mynd_check_free(mind, sizeof(reordering_int_t) * nvtxs * 2, "FM_2WayNodeRefine2Sided: mind");
+    mynd_check_free(mptr, sizeof(reordering_int_t) * (nvtxs + 1), "FM_2WayNodeRefine2Sided: mptr");
+    mynd_check_free(swaps, sizeof(reordering_int_t) * nvtxs, "FM_2WayNodeRefine2Sided: swaps");
+    mynd_check_free(moved, sizeof(reordering_int_t) * nvtxs, "FM_2WayNodeRefine2Sided: moved");
     mynd_priority_queue_Destroy(queues[1]);
     mynd_priority_queue_Destroy(queues[0]);
 }
 
 /*************************************************************************/
 /*! This function performs a node-based FM refinement. 
-    Each refinement iteration is split Hunyuan_int_to two sub-iterations. 
+    Each refinement iteration is split into two sub-iterations. 
     In each sub-iteration only moves to one of the left/right partitions 
     is allowed; hence, it is one-sided. 
 */
 /**************************************************************************/
-void mynd_FM_2WayNodeRefine1Sided(graph_t *graph, Hunyuan_int_t niter)
+void mynd_FM_2WayNodeRefine1Sided(graph_t *graph, reordering_int_t niter)
 {
-    Hunyuan_int_t i, ii, j, k, jj, kk, nvtxs, nbnd, nswaps, nmind, iend;
-    Hunyuan_int_t *xadj, *vwgt, *adjncy, *where, *pwgts, *edegrees, *bndind, *bndptr;
-    Hunyuan_int_t *mptr, *mind, *swaps;
+    reordering_int_t i, ii, j, k, jj, kk, nvtxs, nbnd, nswaps, nmind, iend;
+    reordering_int_t *xadj, *vwgt, *adjncy, *where, *pwgts, *edegrees, *bndind, *bndptr;
+    reordering_int_t *mptr, *mind, *swaps;
     priority_queue_t *queue; 
     nrinfo_t *rinfo;
-    Hunyuan_int_t higain, mincut, initcut, mincutorder;	
-    Hunyuan_int_t pass, to, other, limit;
-    Hunyuan_int_t badmaxpwgt, mindiff, newdiff;
+    reordering_int_t higain, mincut, initcut, mincutorder;	
+    reordering_int_t pass, to, other, limit;
+    reordering_int_t badmaxpwgt, mindiff, newdiff;
     double mult;
 
     nvtxs  = graph->nvtxs;
@@ -652,12 +652,12 @@ void mynd_FM_2WayNodeRefine1Sided(graph_t *graph, Hunyuan_int_t niter)
 
     queue = mynd_priority_queue_Create(nvtxs);
 
-    swaps = (Hunyuan_int_t *)mynd_check_malloc(sizeof(Hunyuan_int_t) * nvtxs, "mynd_FM_2WayNodeRefine1Sided: swaps");
-    mptr   = (Hunyuan_int_t *)mynd_check_malloc(sizeof(Hunyuan_int_t) * (nvtxs + 1), "mynd_FM_2WayNodeRefine1Sided: mptr");
-    mind   = (Hunyuan_int_t *)mynd_check_malloc(sizeof(Hunyuan_int_t) * nvtxs * 2, "mynd_FM_2WayNodeRefine1Sided: mind");
+    swaps = (reordering_int_t *)mynd_check_malloc(sizeof(reordering_int_t) * nvtxs, "mynd_FM_2WayNodeRefine1Sided: swaps");
+    mptr   = (reordering_int_t *)mynd_check_malloc(sizeof(reordering_int_t) * (nvtxs + 1), "mynd_FM_2WayNodeRefine1Sided: mptr");
+    mind   = (reordering_int_t *)mynd_check_malloc(sizeof(reordering_int_t) * nvtxs * 2, "mynd_FM_2WayNodeRefine1Sided: mind");
     
     mult = 0.5 * 1.2000499;
-    badmaxpwgt = (Hunyuan_int_t)(mult * (pwgts[0] + pwgts[1] + pwgts[2]));
+    badmaxpwgt = (reordering_int_t)(mult * (pwgts[0] + pwgts[1] + pwgts[2]));
 
     // printf("Partitions-N1: [%6"PRIDX" %6"PRIDX"] Nv-Nb[%6"PRIDX" %6"PRIDX"]. ISep: %6"PRIDX"\n", pwgts[0], pwgts[1], graph->nvtxs, graph->nbnd, graph->mincut);
 
@@ -685,7 +685,7 @@ void mynd_FM_2WayNodeRefine1Sided(graph_t *graph, Hunyuan_int_t niter)
         limit = (0 ? lyj_min(5 * nbnd, 500) : lyj_min(3 * nbnd, 300));
 
         /******************************************************
-        * Get Hunyuan_int_to the FM loop
+        * Get into the FM loop
         *******************************************************/
         mptr[0] = nmind = 0;
         mindiff = lyj_abs(pwgts[0] - pwgts[1]);
@@ -700,7 +700,7 @@ void mynd_FM_2WayNodeRefine1Sided(graph_t *graph, Hunyuan_int_t niter)
                 break;
 
             if (pwgts[to] + vwgt[higain] > badmaxpwgt) 
-                break;  /* No poHunyuan_int_t going any further. Balance will be bad */
+                break;  /* No point going any further. Balance will be bad */
 
             pwgts[2] -= (vwgt[higain] - rinfo[higain].edegrees[other]);
 
@@ -741,7 +741,7 @@ void mynd_FM_2WayNodeRefine1Sided(graph_t *graph, Hunyuan_int_t niter)
                 }
                 else if (where[k] == other) 
                 { 
-                    /* This vertex is pulled Hunyuan_int_to the separator */
+                    /* This vertex is pulled into the separator */
                     nbnd = mynd_insert_queue(nbnd,bndptr,bndind,k);
         
                     mind[nmind++] = k;  /* Keep track for rollback */
@@ -764,7 +764,7 @@ void mynd_FM_2WayNodeRefine1Sided(graph_t *graph, Hunyuan_int_t niter)
                         }
                     }
 
-                    /* Insert the new vertex Hunyuan_int_to the priority queue. Safe due to one-sided moves */
+                    /* Insert the new vertex into the priority queue. Safe due to one-sided moves */
                     mynd_priority_queue_Insert(queue, k, vwgt[k]-edegrees[other]);
                 }
             }
@@ -824,9 +824,9 @@ void mynd_FM_2WayNodeRefine1Sided(graph_t *graph, Hunyuan_int_t niter)
             break;
     }
 
-    mynd_check_free(mind, sizeof(Hunyuan_int_t) * nvtxs * 2, "mynd_FM_2WayNodeRefine1Sided: mind");
-    mynd_check_free(mptr, sizeof(Hunyuan_int_t) * (nvtxs + 1), "mynd_FM_2WayNodeRefine1Sided: mptr");
-    mynd_check_free(swaps, sizeof(Hunyuan_int_t) * nvtxs, "mynd_FM_2WayNodeRefine1Sided: swaps");
+    mynd_check_free(mind, sizeof(reordering_int_t) * nvtxs * 2, "mynd_FM_2WayNodeRefine1Sided: mind");
+    mynd_check_free(mptr, sizeof(reordering_int_t) * (nvtxs + 1), "mynd_FM_2WayNodeRefine1Sided: mptr");
+    mynd_check_free(swaps, sizeof(reordering_int_t) * nvtxs, "mynd_FM_2WayNodeRefine1Sided: swaps");
 
     mynd_priority_queue_Destroy(queue);
 }

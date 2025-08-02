@@ -282,7 +282,7 @@ int main(int ARGC, char **ARGV)
     init_options.gpu_kernel_warp_per_block = 4;
     init_options.gpu_data_move_warp_per_block = 4;
     init_options.nthread = 1;
-    init_options.hunyuan_nthread = 4;
+    init_options.reordering_nthread = 4;
     init_options.sizeof_value = sizeof(sparse_value_t);
     #ifdef COMPLEX_MTX
     init_options.is_complex_matrix = 1;

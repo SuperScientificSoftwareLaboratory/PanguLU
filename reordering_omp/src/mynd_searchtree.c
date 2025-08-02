@@ -45,12 +45,12 @@ void mynd_binary_search_tree_Destroy(binary_search_tree_t *tree)
 	mynd_check_free(tree, sizeof(binary_search_tree_t), "binary_search_tree_Destroy: tree");
 }
 
-Hunyuan_int_t mynd_binary_search_tree_Length(binary_search_tree_t *tree)
+reordering_int_t mynd_binary_search_tree_Length(binary_search_tree_t *tree)
 {
 	return tree->nownodes;
 }
 
-treenode_t *mynd_Create_TreeNode(Hunyuan_int_t val, Hunyuan_int_t key)
+treenode_t *mynd_Create_TreeNode(reordering_int_t val, reordering_int_t key)
 {
 	treenode_t *newnode = (treenode_t *)mynd_check_malloc(sizeof(treenode_t), "Create_TreeNode: newnode");
     
@@ -61,7 +61,7 @@ treenode_t *mynd_Create_TreeNode(Hunyuan_int_t val, Hunyuan_int_t key)
 	return newnode;
 }
 
-treenode_t *mynd_Insert_TreeNode(treenode_t *node, Hunyuan_int_t val, Hunyuan_int_t key, Hunyuan_int_t *nownodes)
+treenode_t *mynd_Insert_TreeNode(treenode_t *node, reordering_int_t val, reordering_int_t key, reordering_int_t *nownodes)
 {
 	// if empty
     if (node == NULL) 
@@ -85,7 +85,7 @@ treenode_t *mynd_Insert_TreeNode(treenode_t *node, Hunyuan_int_t val, Hunyuan_in
     return node;
 }
 
-void mynd_binary_search_tree_Insert(binary_search_tree_t *tree, Hunyuan_int_t val, Hunyuan_int_t key)
+void mynd_binary_search_tree_Insert(binary_search_tree_t *tree, reordering_int_t val, reordering_int_t key)
 {
 	treenode_t *root = tree->treenode;
 	
@@ -95,7 +95,7 @@ void mynd_binary_search_tree_Insert(binary_search_tree_t *tree, Hunyuan_int_t va
 	return ;
 }
 
-Hunyuan_int_t mynd_InorderTraversal_TreeNode(treenode_t *root, Hunyuan_int_t *dst1, Hunyuan_int_t *dst2, Hunyuan_int_t *ptr) 
+reordering_int_t mynd_InorderTraversal_TreeNode(treenode_t *root, reordering_int_t *dst1, reordering_int_t *dst2, reordering_int_t *ptr) 
 {
     if (root != NULL) 
 	{
@@ -116,10 +116,10 @@ Hunyuan_int_t mynd_InorderTraversal_TreeNode(treenode_t *root, Hunyuan_int_t *ds
 	return *ptr;
 }
 
-void mynd_binary_search_tree_Traversal(binary_search_tree_t *tree, Hunyuan_int_t *dst1, Hunyuan_int_t *dst2)
+void mynd_binary_search_tree_Traversal(binary_search_tree_t *tree, reordering_int_t *dst1, reordering_int_t *dst2)
 {
 	treenode_t *root = tree->treenode;
-	Hunyuan_int_t ptr = 0;
+	reordering_int_t ptr = 0;
 
 	mynd_InorderTraversal_TreeNode(root, dst1, dst2, &ptr);
 }
@@ -127,20 +127,20 @@ void mynd_binary_search_tree_Traversal(binary_search_tree_t *tree, Hunyuan_int_t
 
 
 //  Binary Search Tree Version 2.0
-void mynd_binary_search_tree_Init2(binary_search_tree2_t *tree, Hunyuan_int_t size)
+void mynd_binary_search_tree_Init2(binary_search_tree2_t *tree, reordering_int_t size)
 {
     tree->nownodes = 0;
 	tree->maxnodes = size;
 	tree->treenode = (treenode2_t *)mynd_check_malloc(sizeof(treenode2_t) * size, "binary_search_tree2_Init: tree->treenode");
 
-	for(Hunyuan_int_t i = 0;i < size;i++)
+	for(reordering_int_t i = 0;i < size;i++)
 	{
 		tree->treenode[i].val = -1;
 		tree->treenode[i].key = 0;
 	}
 }
 
-binary_search_tree2_t *mynd_binary_search_tree_Create2(Hunyuan_int_t size)
+binary_search_tree2_t *mynd_binary_search_tree_Create2(reordering_int_t size)
 {
     binary_search_tree2_t *tree;
 
@@ -154,13 +154,13 @@ binary_search_tree2_t *mynd_binary_search_tree_Create2(Hunyuan_int_t size)
 void mynd_exam_binary_search_tree2(binary_search_tree2_t *tree)
 {
 	printf("val:");
-	for(Hunyuan_int_t i = 0;i < tree->maxnodes;i++)
+	for(reordering_int_t i = 0;i < tree->maxnodes;i++)
 	{
 		printf("%"PRIDX" ",tree->treenode[i].val);
 	}
 	printf("\n");
 	printf("key:");
-	for(Hunyuan_int_t i = 0;i < tree->maxnodes;i++)
+	for(reordering_int_t i = 0;i < tree->maxnodes;i++)
 	{
 		printf("%"PRIDX" ",tree->treenode[i].key);
 	}
@@ -169,9 +169,9 @@ void mynd_exam_binary_search_tree2(binary_search_tree2_t *tree)
 
 void mynd_exam_binary_search_tree2_flag(binary_search_tree2_t *tree)
 {
-	Hunyuan_int_t flag = 0;
+	reordering_int_t flag = 0;
 	printf("val:");
-	for(Hunyuan_int_t i = 0;i < tree->maxnodes;i++)
+	for(reordering_int_t i = 0;i < tree->maxnodes;i++)
 	{
 		printf("%"PRIDX" ",tree->treenode[i].val);
 		if(tree->treenode[i].val != -1)
@@ -181,7 +181,7 @@ void mynd_exam_binary_search_tree2_flag(binary_search_tree2_t *tree)
 	if(flag == 1)
 		printf("flag=1\n");
 	printf("key:");
-	for(Hunyuan_int_t i = 0;i < tree->maxnodes;i++)
+	for(reordering_int_t i = 0;i < tree->maxnodes;i++)
 	{
 		printf("%"PRIDX" ",tree->treenode[i].key);
 		if(tree->treenode[i].key != 0)
@@ -207,14 +207,14 @@ void mynd_binary_search_tree_Destroy2(binary_search_tree2_t *tree)
 	mynd_check_free(tree, sizeof(binary_search_tree2_t), "binary_search_tree_Destroy2: tree");
 }
 
-Hunyuan_int_t mynd_binary_search_tree_Length2(binary_search_tree2_t *tree)
+reordering_int_t mynd_binary_search_tree_Length2(binary_search_tree2_t *tree)
 {
 	return tree->nownodes;
 }
 
-void mynd_Insert_TreeNode2(binary_search_tree2_t *tree, Hunyuan_int_t val, Hunyuan_int_t key)
+void mynd_Insert_TreeNode2(binary_search_tree2_t *tree, reordering_int_t val, reordering_int_t key)
 {
-	Hunyuan_int_t ptr = 0;
+	reordering_int_t ptr = 0;
 	treenode2_t *treenode = tree->treenode;
 
 	while (treenode[ptr].val != -1) 
@@ -222,8 +222,8 @@ void mynd_Insert_TreeNode2(binary_search_tree2_t *tree, Hunyuan_int_t val, Hunyu
 		if(ptr >= tree->maxnodes)
 		{
 			printf("mynd_check_realloc\n");
-			treenode = tree->treenode = (treenode2_t *)mynd_check_realloc(treenode, sizeof(treenode2_t) * tree->maxnodes * 2, sizeof(Hunyuan_int_t) * tree->maxnodes, "Insert_TreeNode2: treenode");
-			for(Hunyuan_int_t i = tree->maxnodes;i < tree->maxnodes * 2;i++)
+			treenode = tree->treenode = (treenode2_t *)mynd_check_realloc(treenode, sizeof(treenode2_t) * tree->maxnodes * 2, sizeof(reordering_int_t) * tree->maxnodes, "Insert_TreeNode2: treenode");
+			for(reordering_int_t i = tree->maxnodes;i < tree->maxnodes * 2;i++)
 			{
 				treenode[i].val = -1;
 				treenode[i].key = 0;
@@ -251,14 +251,14 @@ void mynd_Insert_TreeNode2(binary_search_tree2_t *tree, Hunyuan_int_t val, Hunyu
     return ;
 }
 
-void mynd_binary_search_tree_Insert2(binary_search_tree2_t *tree, Hunyuan_int_t val, Hunyuan_int_t key)
+void mynd_binary_search_tree_Insert2(binary_search_tree2_t *tree, reordering_int_t val, reordering_int_t key)
 {
 	mynd_Insert_TreeNode2(tree, val, key);
 	printf("\n");
 	return ;
 }
 
-void mynd_InorderTraversal_TreeNode2(binary_search_tree2_t *tree, treenode2_t *treenode, Hunyuan_int_t maxnodes, Hunyuan_int_t *dst1, Hunyuan_int_t *dst2, Hunyuan_int_t located, Hunyuan_int_t *ptr) 
+void mynd_InorderTraversal_TreeNode2(binary_search_tree2_t *tree, treenode2_t *treenode, reordering_int_t maxnodes, reordering_int_t *dst1, reordering_int_t *dst2, reordering_int_t located, reordering_int_t *ptr) 
 {
 	printf("InorderTraversal_TreeNode2 1 located=%"PRIDX"\n",located);
 	mynd_exam_binary_search_tree2(tree);
@@ -282,16 +282,16 @@ void mynd_InorderTraversal_TreeNode2(binary_search_tree2_t *tree, treenode2_t *t
 		mynd_InorderTraversal_TreeNode2(tree, treenode, maxnodes, dst1, dst2, 2 * located + 2, ptr);
 }
 
-void mynd_binary_search_tree_Traversal2(binary_search_tree2_t *tree, Hunyuan_int_t *dst1, Hunyuan_int_t *dst2)
+void mynd_binary_search_tree_Traversal2(binary_search_tree2_t *tree, reordering_int_t *dst1, reordering_int_t *dst2)
 {
 	treenode2_t *treenode = tree->treenode;
 
-	Hunyuan_int_t ptr = 0;
+	reordering_int_t ptr = 0;
 
 	mynd_InorderTraversal_TreeNode2(tree, treenode, tree->maxnodes, dst1, dst2, 0, &ptr);
 }
 
-void mynd_Reset_TreeNode2(treenode2_t *treenode, Hunyuan_int_t maxnodes, Hunyuan_int_t located) 
+void mynd_Reset_TreeNode2(treenode2_t *treenode, reordering_int_t maxnodes, reordering_int_t located) 
 {
 	if(treenode[located].val == -1)
 		return;

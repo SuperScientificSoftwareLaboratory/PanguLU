@@ -67,11 +67,11 @@ graph_t *mynd_CreateGraph(void)
 void mynd_SetupGraph_tvwgt(graph_t *graph)
 {
 	if (graph->tvwgt == NULL) 
-		graph->tvwgt = (Hunyuan_int_t *)mynd_check_malloc(sizeof(Hunyuan_int_t) * 1, "SetupGraph_tvwgt: tvwgt");
+		graph->tvwgt = (reordering_int_t *)mynd_check_malloc(sizeof(reordering_int_t) * 1, "SetupGraph_tvwgt: tvwgt");
 	if (graph->invtvwgt == NULL) 
 		graph->invtvwgt = (double *)mynd_check_malloc(sizeof(double) * 1, "SetupGraph_tvwgt: invtvwgt");
 
-	for (Hunyuan_int_t i = 0; i < 1; i++) 
+	for (reordering_int_t i = 0; i < 1; i++) 
 	{
 		graph->tvwgt[i]    = mynd_sum_int(graph->nvtxs, graph->vwgt + i, 1);
 		graph->invtvwgt[i] = 1.0 / (graph->tvwgt[i] > 0 ? graph->tvwgt[i] : 1);
@@ -85,16 +85,16 @@ void mynd_SetupGraph_tvwgt(graph_t *graph)
 void mynd_SetupGraph_label(graph_t *graph)
 {
 	if (graph->label == NULL)
-		graph->label = (Hunyuan_int_t *)mynd_check_malloc(sizeof(Hunyuan_int_t) * graph->nvtxs, "SetupGraph_label: label");
+		graph->label = (reordering_int_t *)mynd_check_malloc(sizeof(reordering_int_t) * graph->nvtxs, "SetupGraph_label: label");
 
-	for (Hunyuan_int_t i = 0; i < graph->nvtxs; i++)
+	for (reordering_int_t i = 0; i < graph->nvtxs; i++)
 		graph->label[i] = i;
 }
 
 /*************************************************************************/
 /*! This function sets up the graph from the user input */
 /*************************************************************************/
-graph_t *mynd_SetupGraph(Hunyuan_int_t nvtxs, Hunyuan_int_t *xadj, Hunyuan_int_t *adjncy, Hunyuan_int_t *vwgt, Hunyuan_int_t *adjwgt) 
+graph_t *mynd_SetupGraph(reordering_int_t nvtxs, reordering_int_t *xadj, reordering_int_t *adjncy, reordering_int_t *vwgt, reordering_int_t *adjwgt) 
 {
 	/* allocate the graph and fill in the fields */
 	graph_t *graph = mynd_CreateGraph();
@@ -110,13 +110,13 @@ graph_t *mynd_SetupGraph(Hunyuan_int_t nvtxs, Hunyuan_int_t *xadj, Hunyuan_int_t
 		graph->vwgt      = vwgt;
 	else 
 	{
-		vwgt = graph->vwgt = (Hunyuan_int_t *)mynd_check_malloc(sizeof(Hunyuan_int_t) * nvtxs, "SetupGraph: vwgt");
+		vwgt = graph->vwgt = (reordering_int_t *)mynd_check_malloc(sizeof(reordering_int_t) * nvtxs, "SetupGraph: vwgt");
 		mynd_set_value_int(nvtxs, 1, vwgt);
 	}
 
-	graph->tvwgt = (Hunyuan_int_t *)mynd_check_malloc(sizeof(Hunyuan_int_t), "SetupGraph: tvwgts");
+	graph->tvwgt = (reordering_int_t *)mynd_check_malloc(sizeof(reordering_int_t), "SetupGraph: tvwgts");
 	graph->invtvwgt = (double *)mynd_check_malloc(sizeof(double), "SetupGraph: invtvwgts");
-	for (Hunyuan_int_t i = 0; i < 1; i++) 
+	for (reordering_int_t i = 0; i < 1; i++) 
 	{
 		graph->tvwgt[i]    = mynd_sum_int(nvtxs, vwgt + i, 1);
 		graph->invtvwgt[i] = 1.0 / (graph->tvwgt[i] > 0 ? graph->tvwgt[i] : 1);
@@ -132,12 +132,12 @@ graph_t *mynd_SetupGraph(Hunyuan_int_t nvtxs, Hunyuan_int_t *xadj, Hunyuan_int_t
 	// 	}
 	// 	else 
 	// 	{
-	// 		vsize = graph->vsize = (Hunyuan_int_t *)mynd_check_malloc(sizeof(Hunyuan_int_t) * nvtxs, "SetupGraph: vsize");
+	// 		vsize = graph->vsize = (reordering_int_t *)mynd_check_malloc(sizeof(reordering_int_t) * nvtxs, "SetupGraph: vsize");
 	// 		mynd_set_value_int(nvtxs, 1, vsize);
 	// 	}
 
 	// 	/* Allocate memory for edge weights and initialize them to the sum of the vsize */
-	// 	adjwgt = graph->adjwgt = (Hunyuan_int_t *)mynd_check_malloc(sizeof(Hunyuan_int_t) * graph->nedges, "SetupGraph: adjwgt");
+	// 	adjwgt = graph->adjwgt = (reordering_int_t *)mynd_check_malloc(sizeof(reordering_int_t) * graph->nedges, "SetupGraph: adjwgt");
 	// 	for (i = 0; i < nvtxs; i++) 
 	// 	{
 	// 		for (j = xadj[i]; j < xadj[i + 1]; j++)
@@ -151,7 +151,7 @@ graph_t *mynd_SetupGraph(Hunyuan_int_t nvtxs, Hunyuan_int_t *xadj, Hunyuan_int_t
 			graph->adjwgt = adjwgt;
 		else 
 		{
-			adjwgt = graph->adjwgt = (Hunyuan_int_t *)mynd_check_malloc(sizeof(Hunyuan_int_t) * graph->nedges, "SetupGraph: adjwgt");
+			adjwgt = graph->adjwgt = (reordering_int_t *)mynd_check_malloc(sizeof(reordering_int_t) * graph->nedges, "SetupGraph: adjwgt");
 			mynd_set_value_int(graph->nedges, 1, adjwgt);
 		}
 	// }
@@ -170,7 +170,7 @@ graph_t *mynd_SetupGraph(Hunyuan_int_t nvtxs, Hunyuan_int_t *xadj, Hunyuan_int_t
 /*! Setup the various arrays for the coarse graph 
  */
 /*************************************************************************/
-graph_t *mynd_SetupCoarseGraph(graph_t *graph, Hunyuan_int_t cnvtxs)
+graph_t *mynd_SetupCoarseGraph(graph_t *graph, reordering_int_t cnvtxs)
 {
 	graph_t *cgraph = mynd_CreateGraph();
 
@@ -180,11 +180,11 @@ graph_t *mynd_SetupCoarseGraph(graph_t *graph, Hunyuan_int_t cnvtxs)
 	graph->coarser = cgraph;
 
 	/* Allocate memory for the coarser graph */
-	cgraph->xadj     = (Hunyuan_int_t *)mynd_check_malloc(sizeof(Hunyuan_int_t) * (cnvtxs + 1), "SetupCoarseGraph: xadj");
-	// cgraph->adjncy   = (Hunyuan_int_t *)mynd_check_malloc(sizeof(Hunyuan_int_t) * graph->nedges, "SetupCoarseGraph: adjncy");
-	// cgraph->adjwgt   = (Hunyuan_int_t *)mynd_check_malloc(sizeof(Hunyuan_int_t) * graph->nedges, "SetupCoarseGraph: adjwgt");
-	cgraph->vwgt     = (Hunyuan_int_t *)mynd_check_malloc(sizeof(Hunyuan_int_t) * cnvtxs, "SetupCoarseGraph: vwgt");
-	cgraph->tvwgt    = (Hunyuan_int_t *)mynd_check_malloc(sizeof(Hunyuan_int_t), "SetupCoarseGraph: tvwgt");
+	cgraph->xadj     = (reordering_int_t *)mynd_check_malloc(sizeof(reordering_int_t) * (cnvtxs + 1), "SetupCoarseGraph: xadj");
+	// cgraph->adjncy   = (reordering_int_t *)mynd_check_malloc(sizeof(reordering_int_t) * graph->nedges, "SetupCoarseGraph: adjncy");
+	// cgraph->adjwgt   = (reordering_int_t *)mynd_check_malloc(sizeof(reordering_int_t) * graph->nedges, "SetupCoarseGraph: adjwgt");
+	cgraph->vwgt     = (reordering_int_t *)mynd_check_malloc(sizeof(reordering_int_t) * cnvtxs, "SetupCoarseGraph: vwgt");
+	cgraph->tvwgt    = (reordering_int_t *)mynd_check_malloc(sizeof(reordering_int_t), "SetupCoarseGraph: tvwgt");
 	cgraph->invtvwgt = (double *)mynd_check_malloc(sizeof(double), "SetupCoarseGraph: invtvwgt");
 
 	return cgraph;
@@ -193,7 +193,7 @@ graph_t *mynd_SetupCoarseGraph(graph_t *graph, Hunyuan_int_t cnvtxs)
 /*************************************************************************/
 /*! Setup the various arrays for the splitted graph */
 /*************************************************************************/
-graph_t *mynd_SetupSplitGraph(graph_t *graph, Hunyuan_int_t subnvtxs, Hunyuan_int_t subnedges)
+graph_t *mynd_SetupSplitGraph(graph_t *graph, reordering_int_t subnvtxs, reordering_int_t subnedges)
 {
 	graph_t *subgraph = mynd_CreateGraph();
 
@@ -201,12 +201,12 @@ graph_t *mynd_SetupSplitGraph(graph_t *graph, Hunyuan_int_t subnvtxs, Hunyuan_in
 	subgraph->nedges = subnedges;
 
 	/* Allocate memory for the splitted graph */
-	subgraph->xadj     = (Hunyuan_int_t *)mynd_check_malloc(sizeof(Hunyuan_int_t) * (subnvtxs + 1), "SetupSplitGraph: xadj");
-	subgraph->vwgt     = (Hunyuan_int_t *)mynd_check_malloc(sizeof(Hunyuan_int_t) * subnvtxs, "SetupSplitGraph: vwgt");
-	subgraph->adjncy   = (Hunyuan_int_t *)mynd_check_malloc(sizeof(Hunyuan_int_t) * subnedges,  "SetupSplitGraph: adjncy");
-	subgraph->adjwgt   = (Hunyuan_int_t *)mynd_check_malloc(sizeof(Hunyuan_int_t) * subnedges,  "SetupSplitGraph: adjwgt");
-	subgraph->label	   = (Hunyuan_int_t *)mynd_check_malloc(sizeof(Hunyuan_int_t) * subnvtxs,   "SetupSplitGraph: label");
-	subgraph->tvwgt    = (Hunyuan_int_t *)mynd_check_malloc(sizeof(Hunyuan_int_t), "SetupSplitGraph: tvwgt");
+	subgraph->xadj     = (reordering_int_t *)mynd_check_malloc(sizeof(reordering_int_t) * (subnvtxs + 1), "SetupSplitGraph: xadj");
+	subgraph->vwgt     = (reordering_int_t *)mynd_check_malloc(sizeof(reordering_int_t) * subnvtxs, "SetupSplitGraph: vwgt");
+	subgraph->adjncy   = (reordering_int_t *)mynd_check_malloc(sizeof(reordering_int_t) * subnedges,  "SetupSplitGraph: adjncy");
+	subgraph->adjwgt   = (reordering_int_t *)mynd_check_malloc(sizeof(reordering_int_t) * subnedges,  "SetupSplitGraph: adjwgt");
+	subgraph->label	   = (reordering_int_t *)mynd_check_malloc(sizeof(reordering_int_t) * subnvtxs,   "SetupSplitGraph: label");
+	subgraph->tvwgt    = (reordering_int_t *)mynd_check_malloc(sizeof(reordering_int_t), "SetupSplitGraph: tvwgt");
 	subgraph->invtvwgt = (double *)mynd_check_malloc(sizeof(double), "SetupSplitGraph: invtvwgt");
 
 	return subgraph;
@@ -226,15 +226,15 @@ void mynd_FreeRefineData(graph_t *graph)
 	if(graph->nrinfo != NULL) 
 		mynd_check_free(graph->nrinfo, sizeof(nrinfo_t) * graph->nvtxs, "FreeRefineData: graph->nrinfo");
 	if(graph->ed != NULL) 
-		mynd_check_free(graph->ed, sizeof(Hunyuan_int_t) * graph->nvtxs, "FreeRefineData: graph->ed");
+		mynd_check_free(graph->ed, sizeof(reordering_int_t) * graph->nvtxs, "FreeRefineData: graph->ed");
 	if(graph->id != NULL) 
-		mynd_check_free(graph->id, sizeof(Hunyuan_int_t) * graph->nvtxs, "FreeRefineData: graph->id");
+		mynd_check_free(graph->id, sizeof(reordering_int_t) * graph->nvtxs, "FreeRefineData: graph->id");
 	if(graph->bndind != NULL) 
-		mynd_check_free(graph->bndind, sizeof(Hunyuan_int_t) * graph->nvtxs, "FreeRefineData: graph->bndind");
+		mynd_check_free(graph->bndind, sizeof(reordering_int_t) * graph->nvtxs, "FreeRefineData: graph->bndind");
 	if(graph->bndptr != NULL) 
-		mynd_check_free(graph->bndptr, sizeof(Hunyuan_int_t) * graph->nvtxs, "FreeRefineData: graph->bndptr");
+		mynd_check_free(graph->bndptr, sizeof(reordering_int_t) * graph->nvtxs, "FreeRefineData: graph->bndptr");
 	if(graph->pwgts != NULL) 
-		mynd_check_free(graph->pwgts, sizeof(Hunyuan_int_t) * 3, "FreeRefineData: graph->pwgts");
+		mynd_check_free(graph->pwgts, sizeof(reordering_int_t) * 3, "FreeRefineData: graph->pwgts");
 	// mynd_check_free(graph->ckrinfo);
 	// mynd_check_free(graph->vkrinfo);
 }
@@ -251,26 +251,26 @@ void mynd_FreeGraph(graph_t **r_graph)
 	
 	/* free graph structure */
 	if(graph->where != NULL)
-		mynd_check_free(graph->where, sizeof(Hunyuan_int_t) * graph->nvtxs, "FreeGraph: graph->where");
+		mynd_check_free(graph->where, sizeof(reordering_int_t) * graph->nvtxs, "FreeGraph: graph->where");
 	if(graph->cmap != NULL) 
-		mynd_check_free(graph->cmap, sizeof(Hunyuan_int_t) * graph->nvtxs, "FreeGraph: graph->cmap");
+		mynd_check_free(graph->cmap, sizeof(reordering_int_t) * graph->nvtxs, "FreeGraph: graph->cmap");
 	if(graph->match != NULL) 
-		mynd_check_free(graph->match, sizeof(Hunyuan_int_t) * graph->nvtxs, "FreeGraph:graph->match");
+		mynd_check_free(graph->match, sizeof(reordering_int_t) * graph->nvtxs, "FreeGraph:graph->match");
 	if(graph->adjwgt != NULL) 
-		mynd_check_free(graph->adjwgt, sizeof(Hunyuan_int_t) * graph->nedges, "FreeGraph: graph->adjwgt");
+		mynd_check_free(graph->adjwgt, sizeof(reordering_int_t) * graph->nedges, "FreeGraph: graph->adjwgt");
 	if(graph->adjncy != NULL) 
-		mynd_check_free(graph->adjncy, sizeof(Hunyuan_int_t) * graph->nedges, "FreeGraph: graph->adjncy");
+		mynd_check_free(graph->adjncy, sizeof(reordering_int_t) * graph->nedges, "FreeGraph: graph->adjncy");
 	if(graph->invtvwgt != NULL) 
 		mynd_check_free(graph->invtvwgt, sizeof(double), "FreeGraph: graph->invtvwgt");
 	if(graph->tvwgt != NULL) 
-		mynd_check_free(graph->tvwgt, sizeof(Hunyuan_int_t), "FreeGraph: graph->tvwgt");
+		mynd_check_free(graph->tvwgt, sizeof(reordering_int_t), "FreeGraph: graph->tvwgt");
 	if(graph->vwgt != NULL) 
-		mynd_check_free(graph->vwgt, sizeof(Hunyuan_int_t) * graph->nvtxs, "FreeGraph: graph->vwgt");
+		mynd_check_free(graph->vwgt, sizeof(reordering_int_t) * graph->nvtxs, "FreeGraph: graph->vwgt");
 	if(graph->xadj != NULL) 
-		mynd_check_free(graph->xadj, sizeof(Hunyuan_int_t) * (graph->nvtxs + 1), "FreeGraph: graph->xadj");
+		mynd_check_free(graph->xadj, sizeof(reordering_int_t) * (graph->nvtxs + 1), "FreeGraph: graph->xadj");
 	
 	if(graph->label != NULL) 
-		mynd_check_free(graph->label, sizeof(Hunyuan_int_t) * graph->nvtxs, "FreeGraph: graph->label");
+		mynd_check_free(graph->label, sizeof(reordering_int_t) * graph->nvtxs, "FreeGraph: graph->label");
 
 	mynd_check_free(graph, sizeof(graph_t), "FreeGraph: graph");
 	
@@ -280,26 +280,26 @@ void mynd_FreeGraph(graph_t **r_graph)
 /*************************************************************************/
 /*! This function changes the numbering to start from 0 instead of 1 */
 /*************************************************************************/
-void mynd_Change2CNumbering(Hunyuan_int_t nvtxs, Hunyuan_int_t *xadj, Hunyuan_int_t *adjncy)
+void mynd_Change2CNumbering(reordering_int_t nvtxs, reordering_int_t *xadj, reordering_int_t *adjncy)
 {
-	for (Hunyuan_int_t i = 0; i <= nvtxs; i++)
+	for (reordering_int_t i = 0; i <= nvtxs; i++)
 		xadj[i]--;
-	for (Hunyuan_int_t i = 0; i < xadj[nvtxs]; i++)
+	for (reordering_int_t i = 0; i < xadj[nvtxs]; i++)
 		adjncy[i]--;
 }
 
 /*************************************************************************/
 /*! This function changes the numbering to start from 1 instead of 0 */
 /*************************************************************************/
-void mynd_Change2FNumbering(Hunyuan_int_t nvtxs, Hunyuan_int_t *xadj, Hunyuan_int_t *adjncy, Hunyuan_int_t *vector)
+void mynd_Change2FNumbering(reordering_int_t nvtxs, reordering_int_t *xadj, reordering_int_t *adjncy, reordering_int_t *vector)
 {
-	for (Hunyuan_int_t i = 0; i < nvtxs; i++)
+	for (reordering_int_t i = 0; i < nvtxs; i++)
 		vector[i]++;
 
-	for (Hunyuan_int_t i = 0; i < xadj[nvtxs]; i++)
+	for (reordering_int_t i = 0; i < xadj[nvtxs]; i++)
 		adjncy[i]++;
 
-	for (Hunyuan_int_t i = 0; i <= nvtxs; i++)
+	for (reordering_int_t i = 0; i <= nvtxs; i++)
 		xadj[i]++;
 }
 
@@ -311,7 +311,7 @@ void mynd_exam_nvtxs_nedges(graph_t *graph)
 void mynd_exam_xadj(graph_t *graph)
 {
     printf("xadj:\n");
-    for(Hunyuan_int_t i = 0;i <= graph->nvtxs;i++)
+    for(reordering_int_t i = 0;i <= graph->nvtxs;i++)
 		printf("%"PRIDX" ",graph->xadj[i]);
 	printf("\n");
 }
@@ -319,7 +319,7 @@ void mynd_exam_xadj(graph_t *graph)
 void mynd_exam_vwgt(graph_t *graph)
 {
     printf("vwgt:\n");
-    for(Hunyuan_int_t i = 0;i < graph->nvtxs;i++)
+    for(reordering_int_t i = 0;i < graph->nvtxs;i++)
 		printf("%"PRIDX" ",graph->vwgt[i]);
 	printf("\n");
 }
@@ -327,13 +327,13 @@ void mynd_exam_vwgt(graph_t *graph)
 void mynd_exam_adjncy_adjwgt(graph_t *graph)
 {
     printf("adjncy adjwgt:\n");
-    for(Hunyuan_int_t i = 0;i < graph->nvtxs;i++)
+    for(reordering_int_t i = 0;i < graph->nvtxs;i++)
 	{
 		printf("ncy:");
-		for(Hunyuan_int_t j = graph->xadj[i];j < graph->xadj[i + 1];j++)
+		for(reordering_int_t j = graph->xadj[i];j < graph->xadj[i + 1];j++)
 			printf("%"PRIDX" ",graph->adjncy[j]);
 		printf("\nwgt:");
-		for(Hunyuan_int_t j = graph->xadj[i];j < graph->xadj[i + 1];j++)
+		for(reordering_int_t j = graph->xadj[i];j < graph->xadj[i + 1];j++)
 			printf("%"PRIDX" ",graph->adjwgt[j]);
 		printf("\n");
 	}
@@ -342,7 +342,7 @@ void mynd_exam_adjncy_adjwgt(graph_t *graph)
 void mynd_exam_label(graph_t *graph)
 {
     printf("label:\n");
-    for(Hunyuan_int_t i = 0;i < graph->nvtxs;i++)
+    for(reordering_int_t i = 0;i < graph->nvtxs;i++)
 		printf("%"PRIDX" ",graph->label[i]);
 	printf("\n");
 }
@@ -350,7 +350,7 @@ void mynd_exam_label(graph_t *graph)
 void mynd_exam_where(graph_t *graph)
 {
     printf("where:\n");
-    for(Hunyuan_int_t i = 0;i < graph->nvtxs;i++)
+    for(reordering_int_t i = 0;i < graph->nvtxs;i++)
 		printf("%"PRIDX" ",graph->where[i]);
 	printf("\n");
 }
@@ -358,7 +358,7 @@ void mynd_exam_where(graph_t *graph)
 void mynd_exam_pwgts(graph_t *graph)
 {
     printf("pwgts:");
-    for(Hunyuan_int_t i = 0;i < 3;i++)
+    for(reordering_int_t i = 0;i < 3;i++)
 		printf("%"PRIDX" ",graph->pwgts[i]);
 	printf("\n");
 }
@@ -367,11 +367,11 @@ void mynd_exam_edid(graph_t *graph)
 {
     printf("edid:\n");
 	printf("ed:");
-    for(Hunyuan_int_t i = 0;i < graph->nvtxs;i++)
+    for(reordering_int_t i = 0;i < graph->nvtxs;i++)
 		printf("%"PRIDX" ",graph->ed[i]);
 	printf("\n");
 	printf("id:");
-    for(Hunyuan_int_t i = 0;i < graph->nvtxs;i++)
+    for(reordering_int_t i = 0;i < graph->nvtxs;i++)
 		printf("%"PRIDX" ",graph->id[i]);
 	printf("\n");
 }
@@ -381,11 +381,11 @@ void mynd_exam_bnd(graph_t *graph)
     printf("bnd:\n");
 	printf("nbnd=%"PRIDX"\n",graph->nbnd);
 	printf("bndind:\n");
-    for(Hunyuan_int_t i = 0;i < graph->nbnd;i++)
+    for(reordering_int_t i = 0;i < graph->nbnd;i++)
 		printf("%"PRIDX" ",graph->bndind[i]);
 	printf("\n");
 	printf("bndptr:\n");
-    for(Hunyuan_int_t i = 0;i < graph->nvtxs;i++)
+    for(reordering_int_t i = 0;i < graph->nvtxs;i++)
 		printf("%"PRIDX" ",graph->bndptr[i]);
 	printf("\n");
 }
@@ -393,19 +393,19 @@ void mynd_exam_bnd(graph_t *graph)
 void mynd_exam_nrinfo(graph_t *graph)
 {
 	printf("nrinfo.edegrees[0]:\n");
-    for(Hunyuan_int_t i = 0;i < graph->nbnd;i++)
+    for(reordering_int_t i = 0;i < graph->nbnd;i++)
 		printf("%"PRIDX" ",graph->nrinfo[i].edegrees[0]);
 	printf("\n");
 	printf("nrinfo.edegrees[1]:\n");
-    for(Hunyuan_int_t i = 0;i < graph->nbnd;i++)
+    for(reordering_int_t i = 0;i < graph->nbnd;i++)
 		printf("%"PRIDX" ",graph->nrinfo[i].edegrees[1]);
 	printf("\n");
 }
 
-void mynd_exam_num(Hunyuan_int_t *num, Hunyuan_int_t n)
+void mynd_exam_num(reordering_int_t *num, reordering_int_t n)
 {
     printf("num:\n");
-    for(Hunyuan_int_t i = 0;i < n;i++)
+    for(reordering_int_t i = 0;i < n;i++)
 		printf("%"PRIDX" ",num[i]);
 	printf("\n");
 }

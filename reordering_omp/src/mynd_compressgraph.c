@@ -3,17 +3,17 @@
 
 #include "mynd_functionset.h"
 
-graph_t *mynd_Compress_Graph(Hunyuan_int_t nvtxs, Hunyuan_int_t *xadj, Hunyuan_int_t *adjncy, Hunyuan_int_t *vwgt, Hunyuan_int_t *cptr, Hunyuan_int_t *cind)
+graph_t *mynd_Compress_Graph(reordering_int_t nvtxs, reordering_int_t *xadj, reordering_int_t *adjncy, reordering_int_t *vwgt, reordering_int_t *cptr, reordering_int_t *cind)
 {
-    Hunyuan_int_t i, ii, iii, j, jj, k, l, cnvtxs, cnedges;
-    Hunyuan_int_t *cxadj, *cvwgt, *cadjncy, *cadjwgt, *mark, *map;
+    reordering_int_t i, ii, iii, j, jj, k, l, cnvtxs, cnedges;
+    reordering_int_t *cxadj, *cvwgt, *cadjncy, *cadjwgt, *mark, *map;
     ikv_t *keys;
     graph_t *graph = NULL;
 
     // printf("Compress_Graph 0\n");
 
-    mark = (Hunyuan_int_t *)mynd_check_malloc(sizeof(Hunyuan_int_t) * nvtxs, "Compress_Graph: mark");
-    map  = (Hunyuan_int_t *)mynd_check_malloc(sizeof(Hunyuan_int_t) * nvtxs, "Compress_Graph: map");
+    mark = (reordering_int_t *)mynd_check_malloc(sizeof(reordering_int_t) * nvtxs, "Compress_Graph: mark");
+    map  = (reordering_int_t *)mynd_check_malloc(sizeof(reordering_int_t) * nvtxs, "Compress_Graph: map");
     keys = (ikv_t *)mynd_check_malloc(sizeof(ikv_t) * nvtxs, "Compress_Graph: keys");
     mynd_set_value_int(nvtxs, -1, mark);
     mynd_set_value_int(nvtxs, -1, map);
@@ -92,10 +92,10 @@ graph_t *mynd_Compress_Graph(Hunyuan_int_t nvtxs, Hunyuan_int_t *xadj, Hunyuan_i
         // cvwgt   = graph->vwgt   = ismalloc(cnvtxs, 0, "CompressGraph: vwgt");
         // cadjncy = graph->adjncy = imalloc(cnedges, "CompressGraph: adjncy");
         //         graph->adjwgt = ismalloc(cnedges, 1, "CompressGraph: adjwgt");
-        cxadj   = graph->xadj   = (Hunyuan_int_t *)mynd_check_malloc(sizeof(Hunyuan_int_t) * (cnvtxs + 1), "Compress_Graph: graph->xadj");
-        cvwgt   = graph->vwgt   = (Hunyuan_int_t *)mynd_check_malloc(sizeof(Hunyuan_int_t) * cnvtxs, "Compress_Graph: graph->vwgt");
-        cadjncy = graph->adjncy = (Hunyuan_int_t *)mynd_check_malloc(sizeof(Hunyuan_int_t) * cnedges, "Compress_Graph: graph->adjncy");
-        cadjwgt = graph->adjwgt = (Hunyuan_int_t *)mynd_check_malloc(sizeof(Hunyuan_int_t) * cnedges, "Compress_Graph: graph->adjwgt");
+        cxadj   = graph->xadj   = (reordering_int_t *)mynd_check_malloc(sizeof(reordering_int_t) * (cnvtxs + 1), "Compress_Graph: graph->xadj");
+        cvwgt   = graph->vwgt   = (reordering_int_t *)mynd_check_malloc(sizeof(reordering_int_t) * cnvtxs, "Compress_Graph: graph->vwgt");
+        cadjncy = graph->adjncy = (reordering_int_t *)mynd_check_malloc(sizeof(reordering_int_t) * cnedges, "Compress_Graph: graph->adjncy");
+        cadjwgt = graph->adjwgt = (reordering_int_t *)mynd_check_malloc(sizeof(reordering_int_t) * cnedges, "Compress_Graph: graph->adjwgt");
         mynd_set_value_int(cnvtxs, 0, cvwgt);
         mynd_set_value_int(cnedges, 1, cadjwgt);
 
@@ -130,9 +130,9 @@ graph_t *mynd_Compress_Graph(Hunyuan_int_t nvtxs, Hunyuan_int_t *xadj, Hunyuan_i
         graph->nvtxs  = cnvtxs;
         graph->nedges = l;
         // graph->ncon   = 1;
-        // printf("sizeof(Hunyuan_int_t) * cnedges=%"PRIDX" sizeof(Hunyuan_int_t) * graph->nedges=%"PRIDX"\n",sizeof(Hunyuan_int_t) * cnedges,sizeof(Hunyuan_int_t) * graph->nedges);
-        cadjncy = graph->adjncy = (Hunyuan_int_t *)mynd_check_realloc(cadjncy, sizeof(Hunyuan_int_t) * graph->nedges, sizeof(Hunyuan_int_t) * cnedges, "Compress_Graph: adjncy");
-	    cadjwgt = graph->adjwgt = (Hunyuan_int_t *)mynd_check_realloc(cadjwgt, sizeof(Hunyuan_int_t) * graph->nedges, sizeof(Hunyuan_int_t) * cnedges, "Compress_Graph: adjwgt");
+        // printf("sizeof(reordering_int_t) * cnedges=%"PRIDX" sizeof(reordering_int_t) * graph->nedges=%"PRIDX"\n",sizeof(reordering_int_t) * cnedges,sizeof(reordering_int_t) * graph->nedges);
+        cadjncy = graph->adjncy = (reordering_int_t *)mynd_check_realloc(cadjncy, sizeof(reordering_int_t) * graph->nedges, sizeof(reordering_int_t) * cnedges, "Compress_Graph: adjncy");
+	    cadjwgt = graph->adjwgt = (reordering_int_t *)mynd_check_realloc(cadjwgt, sizeof(reordering_int_t) * graph->nedges, sizeof(reordering_int_t) * cnedges, "Compress_Graph: adjwgt");
     
 
         mynd_SetupGraph_tvwgt(graph);
@@ -142,15 +142,15 @@ graph_t *mynd_Compress_Graph(Hunyuan_int_t nvtxs, Hunyuan_int_t *xadj, Hunyuan_i
     // printf("Compress_Graph 3\n");
 
     // printf("%"PRIDX"\n",mark[0]);
-    // for(Hunyuan_int_t i = 0;i < nvtxs;i++)
+    // for(reordering_int_t i = 0;i < nvtxs;i++)
     //     printf("%"PRIDX" ",mark[i]);
     
     mynd_check_free(keys, sizeof(ikv_t) * nvtxs, "Compress_Graph: keys");
     // printf("Compress_Graph 3.1\n");
-    mynd_check_free(map, sizeof(Hunyuan_int_t) * nvtxs, "Compress_Graph: map");
+    mynd_check_free(map, sizeof(reordering_int_t) * nvtxs, "Compress_Graph: map");
     // printf("Compress_Graph 3.2\n");
     // printf("mark=%p \n",mark);
-    mynd_check_free(mark, sizeof(Hunyuan_int_t) * nvtxs, "Compress_Graph: mark");
+    mynd_check_free(mark, sizeof(reordering_int_t) * nvtxs, "Compress_Graph: mark");
 
     // printf("Compress_Graph 4\n");
 

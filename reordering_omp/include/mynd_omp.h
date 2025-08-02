@@ -33,7 +33,7 @@ typedef __int64 int64_t;
 
 
 #if IDXTYPEWIDTH == 32
-  typedef int32_t Hunyuan_int_t;
+  typedef int32_t reordering_int_t;
 
   #define IDX_MAX   INT32_MAX
   #define IDX_MIN   INT32_MIN
@@ -44,7 +44,7 @@ typedef __int64 int64_t;
   #define strtoidx      strtol
   #define lyj_abs          abs
 #elif IDXTYPEWIDTH == 64
-  typedef int64_t Hunyuan_int_t;
+  typedef int64_t reordering_int_t;
 
   #define IDX_MAX   INT64_MAX
   #define IDX_MIN   INT64_MIN
@@ -64,7 +64,7 @@ typedef __int64 int64_t;
 
 
 #if REALTYPEWIDTH == 32
-  typedef float Hunyuan_real_t;
+  typedef float reordering_real_t;
 
   #define SCREAL         "f"
   #define PRREAL         "f"
@@ -81,7 +81,7 @@ typedef __int64 int64_t;
   #define strtoreal     strtof
 #endif
 #elif REALTYPEWIDTH == 64
-  typedef double Hunyuan_real_t;
+  typedef double reordering_real_t;
 
   #define SCREAL         "lf"
   #define PRREAL         "lf"
@@ -108,9 +108,9 @@ extern "C"
 {
 #endif
 
-    void mynd_ReorderGraph(Hunyuan_int_t *nvtxs, Hunyuan_int_t *nedges, Hunyuan_int_t *xadj, Hunyuan_int_t *vwgt, Hunyuan_int_t *adjncy, Hunyuan_int_t *adjwgt, 
-        Hunyuan_int_t *treflect, Hunyuan_int_t *reflect, Hunyuan_int_t *compress, Hunyuan_int_t *tcontrol, Hunyuan_int_t *is_memery_manage_before, Hunyuan_int_t nthreads);
-    void mynd_ReadGraph(char *filename, Hunyuan_int_t *nvtxs, Hunyuan_int_t *nedges, Hunyuan_int_t **txadj, Hunyuan_int_t **tvwgt, Hunyuan_int_t **tadjncy, Hunyuan_int_t **tadjwgt);
+    void mynd_ReorderGraph(reordering_int_t *nvtxs, reordering_int_t *nedges, reordering_int_t *xadj, reordering_int_t *vwgt, reordering_int_t *adjncy, reordering_int_t *adjwgt, 
+        reordering_int_t *treflect, reordering_int_t *reflect, reordering_int_t *compress, reordering_int_t *tcontrol, reordering_int_t *is_memery_manage_before, reordering_int_t nthreads);
+    void mynd_ReadGraph(char *filename, reordering_int_t *nvtxs, reordering_int_t *nedges, reordering_int_t **txadj, reordering_int_t **tvwgt, reordering_int_t **tadjncy, reordering_int_t **tadjwgt);
 
 #ifdef __cplusplus
 }

@@ -3,10 +3,10 @@
 
 #include "mynd_functionset.h"
 
-void MMD_Order_line(graph_t *graph, Hunyuan_int_t *reflect, Hunyuan_int_t *reordernum, Hunyuan_int_t task_id)
+void MMD_Order_line(graph_t *graph, reordering_int_t *reflect, reordering_int_t *reordernum, reordering_int_t task_id)
 {
     // printf("beg task_id=%"PRIDX" reordernum=%"PRIDX" graph->nvtxs=%"PRIDX" \n",task_id, reordernum[task_id],graph->nvtxs);
-    for(Hunyuan_int_t i = graph->nvtxs - 1;i >= 0;i--)
+    for(reordering_int_t i = graph->nvtxs - 1;i >= 0;i--)
     {
         // if( reflect[graph->label[i]] != -1)
         // {
@@ -34,10 +34,10 @@ void MMD_Order_line(graph_t *graph, Hunyuan_int_t *reflect, Hunyuan_int_t *reord
 *       list -- linked list.
 *       marker -- marker vector.
 ****************************************************************************/
-Hunyuan_int_t mmdint(Hunyuan_int_t neqns, Hunyuan_int_t *xadj, Hunyuan_int_t *adjncy, Hunyuan_int_t *head, Hunyuan_int_t *forward,
-     Hunyuan_int_t *backward, Hunyuan_int_t *qsize, Hunyuan_int_t *list, Hunyuan_int_t *marker)
+reordering_int_t mmdint(reordering_int_t neqns, reordering_int_t *xadj, reordering_int_t *adjncy, reordering_int_t *head, reordering_int_t *forward,
+     reordering_int_t *backward, reordering_int_t *qsize, reordering_int_t *list, reordering_int_t *marker)
 {
-    Hunyuan_int_t  fnode, ndeg, node;
+    reordering_int_t  fnode, ndeg, node;
 
     for ( node = 1; node <= neqns; node++ ) {
         head[node] = 0;
@@ -77,9 +77,9 @@ Hunyuan_int_t mmdint(Hunyuan_int_t neqns, Hunyuan_int_t *xadj, Hunyuan_int_t *ad
 * output parameters --
 *     perm -- the permutation vector.
 ****************************************************************************/
-void mmdnum(Hunyuan_int_t neqns, Hunyuan_int_t *perm, Hunyuan_int_t *invp, Hunyuan_int_t *qsize)
+void mmdnum(reordering_int_t neqns, reordering_int_t *perm, reordering_int_t *invp, reordering_int_t *qsize)
 {
-  Hunyuan_int_t father, nextf, node, nqsize, num, root;
+  reordering_int_t father, nextf, node, nqsize, num, root;
 
   for ( node = 1; node <= neqns; node++ ) {
       nqsize = qsize[node];
@@ -140,10 +140,10 @@ void mmdnum(Hunyuan_int_t neqns, Hunyuan_int_t *perm, Hunyuan_int_t *invp, Hunyu
 *     marker -- marker vector.
 *     list -- temporary linked list of eliminated nabors.
 ***************************************************************************/
-void mmdelm(Hunyuan_int_t mdeg_node, Hunyuan_int_t *xadj, Hunyuan_int_t *adjncy, Hunyuan_int_t *head, Hunyuan_int_t *forward,
-     Hunyuan_int_t *backward, Hunyuan_int_t *qsize, Hunyuan_int_t *list, Hunyuan_int_t *marker, Hunyuan_int_t maxint, Hunyuan_int_t tag)
+void mmdelm(reordering_int_t mdeg_node, reordering_int_t *xadj, reordering_int_t *adjncy, reordering_int_t *head, reordering_int_t *forward,
+     reordering_int_t *backward, reordering_int_t *qsize, reordering_int_t *list, reordering_int_t *marker, reordering_int_t maxint, reordering_int_t tag)
 {
-    Hunyuan_int_t   element, i,   istop, istart, j,
+    reordering_int_t   element, i,   istop, istart, j,
           jstop, jstart, link,
           nabor, node, npv, nqnbrs, nxnode,
           pvnode, rlmt, rloc, rnode, xqnbr;
@@ -280,11 +280,11 @@ n1100:
 *    list -- marker vector for degree update.
 *    *tag   -- tag value.
 *************************************************************************** */
-void mmdupd(Hunyuan_int_t ehead, Hunyuan_int_t neqns, Hunyuan_int_t *xadj, Hunyuan_int_t *adjncy, Hunyuan_int_t delta, Hunyuan_int_t *mdeg,
-     Hunyuan_int_t *head, Hunyuan_int_t *forward, Hunyuan_int_t *backward, Hunyuan_int_t *qsize, Hunyuan_int_t *list,
-     Hunyuan_int_t *marker, Hunyuan_int_t maxint, Hunyuan_int_t *tag)
+void mmdupd(reordering_int_t ehead, reordering_int_t neqns, reordering_int_t *xadj, reordering_int_t *adjncy, reordering_int_t delta, reordering_int_t *mdeg,
+     reordering_int_t *head, reordering_int_t *forward, reordering_int_t *backward, reordering_int_t *qsize, reordering_int_t *list,
+     reordering_int_t *marker, reordering_int_t maxint, reordering_int_t *tag)
 {
- Hunyuan_int_t  deg, deg0, element, enode, fnode, i, iq2, istop,
+ reordering_int_t  deg, deg0, element, enode, fnode, i, iq2, istop,
       istart, j, jstop, jstart, link, mdeg0, mtag, nabor,
       node, q2head, qxhead;
 
@@ -492,11 +492,11 @@ n2300:
 *     marker -- a temporary marker vector.
 *  Subroutines used -- mmdelm, mmdint, mmdnum, mmdupd.
 **************************************************************************/
-void genmmd(Hunyuan_int_t neqns, Hunyuan_int_t *xadj, Hunyuan_int_t *adjncy, Hunyuan_int_t *invp, Hunyuan_int_t *perm,
-     Hunyuan_int_t delta, Hunyuan_int_t *head, Hunyuan_int_t *qsize, Hunyuan_int_t *list, Hunyuan_int_t *marker,
-     Hunyuan_int_t maxint, Hunyuan_int_t *ncsub)
+void genmmd(reordering_int_t neqns, reordering_int_t *xadj, reordering_int_t *adjncy, reordering_int_t *invp, reordering_int_t *perm,
+     reordering_int_t delta, reordering_int_t *head, reordering_int_t *qsize, reordering_int_t *list, reordering_int_t *marker,
+     reordering_int_t maxint, reordering_int_t *ncsub)
 {
-    Hunyuan_int_t  ehead, i, mdeg, mdlmt, mdeg_node, nextmd, num, tag;
+    reordering_int_t  ehead, i, mdeg, mdlmt, mdeg_node, nextmd, num, tag;
 
     if (neqns <= 0)  
       return;
@@ -592,12 +592,12 @@ n1000:
     xadj++; adjncy++; invp++; perm++; head++; qsize++; list++; marker++;
 }
 
-void mynd_MMD_Order(graph_t *graph, Hunyuan_int_t *order, Hunyuan_int_t *reordernum, Hunyuan_int_t task_id)
+void mynd_MMD_Order(graph_t *graph, reordering_int_t *order, reordering_int_t *reordernum, reordering_int_t task_id)
 {
-	Hunyuan_int_t i, k, nvtxs, nofsub, firstvtx;
-	Hunyuan_int_t *xadj, *adjncy, *label;
-	Hunyuan_int_t *perm, *iperm, *head, *qsize, *list, *marker;
-    Hunyuan_int_t lastvtx = reordernum[task_id];
+	reordering_int_t i, k, nvtxs, nofsub, firstvtx;
+	reordering_int_t *xadj, *adjncy, *label;
+	reordering_int_t *perm, *iperm, *head, *qsize, *list, *marker;
+    reordering_int_t lastvtx = reordernum[task_id];
 
 	nvtxs  = graph->nvtxs;
 	xadj   = graph->xadj;
@@ -617,12 +617,12 @@ void mynd_MMD_Order(graph_t *graph, Hunyuan_int_t *order, Hunyuan_int_t *reorder
 	// list   = iwspacemalloc(ctrl, nvtxs+5);
 	// marker = iwspacemalloc(ctrl, nvtxs+5);
 
-	perm   = (Hunyuan_int_t *)mynd_check_malloc(sizeof(Hunyuan_int_t) * (nvtxs + 5), "MMD_Order: perm");
-	iperm  = (Hunyuan_int_t *)mynd_check_malloc(sizeof(Hunyuan_int_t) * (nvtxs + 5), "MMD_Order: iperm");
-	head   = (Hunyuan_int_t *)mynd_check_malloc(sizeof(Hunyuan_int_t) * (nvtxs + 5), "MMD_Order: head");
-	qsize  = (Hunyuan_int_t *)mynd_check_malloc(sizeof(Hunyuan_int_t) * (nvtxs + 5), "MMD_Order: qsize");
-	list   = (Hunyuan_int_t *)mynd_check_malloc(sizeof(Hunyuan_int_t) * (nvtxs + 5), "MMD_Order: list");
-	marker = (Hunyuan_int_t *)mynd_check_malloc(sizeof(Hunyuan_int_t) * (nvtxs + 5), "MMD_Order: marker");
+	perm   = (reordering_int_t *)mynd_check_malloc(sizeof(reordering_int_t) * (nvtxs + 5), "MMD_Order: perm");
+	iperm  = (reordering_int_t *)mynd_check_malloc(sizeof(reordering_int_t) * (nvtxs + 5), "MMD_Order: iperm");
+	head   = (reordering_int_t *)mynd_check_malloc(sizeof(reordering_int_t) * (nvtxs + 5), "MMD_Order: head");
+	qsize  = (reordering_int_t *)mynd_check_malloc(sizeof(reordering_int_t) * (nvtxs + 5), "MMD_Order: qsize");
+	list   = (reordering_int_t *)mynd_check_malloc(sizeof(reordering_int_t) * (nvtxs + 5), "MMD_Order: list");
+	marker = (reordering_int_t *)mynd_check_malloc(sizeof(reordering_int_t) * (nvtxs + 5), "MMD_Order: marker");
 
 	genmmd(nvtxs, xadj, adjncy, iperm, perm, 1, head, qsize, list, marker, IDX_MAX, &nofsub);
 
@@ -638,12 +638,12 @@ void mynd_MMD_Order(graph_t *graph, Hunyuan_int_t *order, Hunyuan_int_t *reorder
 	for (i=0; i<k; i++)
 		adjncy[i]--;
 	
-	mynd_check_free(perm, sizeof(Hunyuan_int_t) * (nvtxs + 5), "MMD_Order: perm");
-	mynd_check_free(iperm, sizeof(Hunyuan_int_t) * (nvtxs + 5), "MMD_Order: iperm");
-	mynd_check_free(head, sizeof(Hunyuan_int_t) * (nvtxs + 5), "MMD_Order: head");
-	mynd_check_free(qsize, sizeof(Hunyuan_int_t) * (nvtxs + 5), "MMD_Order: qsize");
-	mynd_check_free(list, sizeof(Hunyuan_int_t) * (nvtxs + 5), "MMD_Order: list");
-	mynd_check_free(marker, sizeof(Hunyuan_int_t) * (nvtxs + 5), "MMD_Order: marker");
+	mynd_check_free(perm, sizeof(reordering_int_t) * (nvtxs + 5), "MMD_Order: perm");
+	mynd_check_free(iperm, sizeof(reordering_int_t) * (nvtxs + 5), "MMD_Order: iperm");
+	mynd_check_free(head, sizeof(reordering_int_t) * (nvtxs + 5), "MMD_Order: head");
+	mynd_check_free(qsize, sizeof(reordering_int_t) * (nvtxs + 5), "MMD_Order: qsize");
+	mynd_check_free(list, sizeof(reordering_int_t) * (nvtxs + 5), "MMD_Order: list");
+	mynd_check_free(marker, sizeof(reordering_int_t) * (nvtxs + 5), "MMD_Order: marker");
 }
 
 #endif

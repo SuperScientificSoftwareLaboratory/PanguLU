@@ -2,7 +2,7 @@
 #define CONTROL_H
 
 #include "typedef.h"
-Hunyuan_int_t control;
+reordering_int_t control;
 
 #define ALL_Time                    7
 #define PRINTTIMEGENERAL            7
