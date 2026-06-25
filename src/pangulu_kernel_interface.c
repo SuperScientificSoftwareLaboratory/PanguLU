@@ -1,354 +1,338 @@
 #include "pangulu_common.h"
 
-void pangulu_getrf_interface(pangulu_smatrix *a, pangulu_smatrix *l, pangulu_smatrix *u,
-                             pangulu_smatrix *calculate_L, pangulu_smatrix *calculate_U)
+#ifdef PANGULU_PERF
+void pangulu_getrf_flop(
+    pangulu_inblock_idx nb,
+    pangulu_storage_slot_t *opdst,
+    int tid)
 {
-    for(pangulu_int64_t i=0;i<u->nnz;i++){
-        pangulu_int64_t now_row=u->rowindex[i];
-        calculate_time+=(l->columnpointer[now_row+1]-l->columnpointer[now_row]);
-    }
-#ifdef CHECK_TIME
-    struct timeval GET_TIME_START;
-    pangulu_time_check_begin(&GET_TIME_START);
-#endif
-
-#ifdef GPU_OPEN
-
-#ifdef ADD_GPU_MEMORY
-
-#ifdef ADAPTIVE_KERNEL_SELECTION
-    int nnzA = a->nnz;
-    if (nnzA < 6309)
-    { // 6309≈1e3.8
-        pangulu_getrf_interface_C_V1(a, l, u);
-    }
-    else if (nnzA < 1e4)
+    pangulu_storage_slot_t *upper_diag;
+    pangulu_storage_slot_t *lower_diag;
+    if (opdst->is_upper)
     {
-        pangulu_getrf_interface_G_V1(a, l, u);
+        upper_diag = opdst;
+        lower_diag = opdst->related_block;
     }
     else
     {
-        pangulu_getrf_interface_G_V2(a, l, u);
+        upper_diag = opdst->related_block;
+        lower_diag = opdst;
     }
-#else // ADAPTIVE_KERNEL_SELECTION
-    pangulu_getrf_interface_G_V1(a, l, u);
-#endif // ADAPTIVE_KERNEL_SELECTION
-    cudaDeviceSynchronize();
-
-#else // ADD_GPU_MEMORY
-    pangulu_smatrix_cuda_memcpy_struct_csc(calculate_L, l);
-    pangulu_smatrix_cuda_memcpy_struct_csc(calculate_U, u);
-    pangulu_smatrix_cuda_memcpy_nnzu(calculate_U, u);
-    pangulu_getrf_fp64_cuda(a, calculate_L, calculate_U);
-    pangulu_smatrix_cuda_memcpy_value_csc(l, calculate_L);
-    pangulu_smatrix_cuda_memcpy_value_csc(u, calculate_U);
-
-#endif // ADD_GPU_MEMORY
-#else // GPU_OPEN
-
-    pangulu_getrf_fp64(a, l, u);
-
-#endif // GPU_OPEN
-
-#ifdef CHECK_TIME
-    time_getrf += pangulu_time_check_end(&GET_TIME_START);
-#endif
-}
-
-void pangulu_tstrf_interface(pangulu_smatrix *a, pangulu_smatrix *save_X, pangulu_smatrix *u,
-                             pangulu_smatrix *calculate_X, pangulu_smatrix *calculate_U)
-{
-    // for(int_t i=0;i<a->nnz;i++){
-    //     int_t now_col=a->columnindex[i];
-    //     calculate_time+=(u->rowpointer[now_col+1]-u->rowpointer[now_col]);
-    // }
-#ifdef CHECK_TIME
-    struct timeval GET_TIME_START;
-    pangulu_time_check_begin(&GET_TIME_START);
-#endif
-
-#ifdef GPU_OPEN
-
-#ifndef GPU_TSTRF
-
-#ifndef CPU_OPTION
-    pangulu_smatrix_cuda_memcpy_value_csc_cal_length(calculate_X, a);
-
-    pangulu_tstrf_interface_cpu(a, calculate_X, u);
-#else // CPU_OPTION
-
-    pangulu_int64_t cpu_choice2 = a->nnz;
-    calculate_type cpu_choice3 = cpu_choice2 / ((calculate_type)nrecord * (calculate_type)cpu_choice1);
-    pangulu_int64_t TSTRF_choice_cpu = Select_Function_CPU(cpu_choice1, cpu_choice3, nrecord);
-    pangulu_tstrf_kernel_choice_cpu(a, calculate_X, u, TSTRF_choice_cpu);
-#endif // CPU_OPTION
-
-#else // GPU_TSTRF
-
-#ifdef ADD_GPU_MEMORY
-#ifdef ADAPTIVE_KERNEL_SELECTION
-    pangulu_int64_t nnzB = a->nnz;
-    if (nnzB < 6309)
+    for (pangulu_int32_t level = 0; level < nb; level++)
     {
-        // 6309≈1e3.8
-        if (nnzB < 3981)
-        { // 3981≈1e3.6
-            pangulu_tstrf_interface_C_V1(a, calculate_X, u);
-        }
-        else
+        if (upper_diag->columnpointer[level] == upper_diag->columnpointer[level + 1])
         {
-            pangulu_tstrf_interface_C_V2(a, calculate_X, u);
+            continue;
+        }
+
+        global_stat.flop += (lower_diag->columnpointer[level + 1] - lower_diag->columnpointer[level]);
+
+        for (pangulu_int32_t csc_idx = lower_diag->columnpointer[level]; csc_idx < lower_diag->columnpointer[level + 1]; csc_idx++)
+        {
+            pangulu_int32_t row = lower_diag->rowindex[csc_idx];
+            pangulu_int32_t csr_idx_op2 = upper_diag->columnpointer[level];
+            pangulu_int32_t csr_idx_op2_ub = upper_diag->columnpointer[level + 1];
+            pangulu_int32_t csr_idx_opdst = upper_diag->columnpointer[row];
+            pangulu_int32_t csr_idx_opdst_ub = upper_diag->columnpointer[row + 1];
+            while (csr_idx_op2 < csr_idx_op2_ub && csr_idx_opdst < csr_idx_opdst_ub)
+            {
+                if (upper_diag->rowindex[csr_idx_opdst] == upper_diag->rowindex[csr_idx_op2])
+                {
+                    global_stat.flop += 2;
+                    csr_idx_op2++;
+                    csr_idx_opdst++;
+                }
+                while (csr_idx_op2 < csr_idx_op2_ub && upper_diag->rowindex[csr_idx_op2] < upper_diag->rowindex[csr_idx_opdst])
+                {
+                    csr_idx_op2++;
+                }
+                while (csr_idx_opdst < csr_idx_opdst_ub && upper_diag->rowindex[csr_idx_opdst] < upper_diag->rowindex[csr_idx_op2])
+                {
+                    csr_idx_opdst++;
+                }
+            }
+        }
+
+        for (pangulu_int32_t csr_idx = upper_diag->columnpointer[level] + 1; csr_idx < upper_diag->columnpointer[level + 1]; csr_idx++)
+        {
+            pangulu_int32_t col = upper_diag->rowindex[csr_idx];
+            pangulu_int32_t csc_idx_op1 = lower_diag->columnpointer[level];
+            pangulu_int32_t csc_idx_op1_ub = lower_diag->columnpointer[level + 1];
+            pangulu_int32_t csc_idx_opdst = lower_diag->columnpointer[col];
+            pangulu_int32_t csc_idx_opdst_ub = lower_diag->columnpointer[col + 1];
+            while (csc_idx_op1 < csc_idx_op1_ub && csc_idx_opdst < csc_idx_opdst_ub)
+            {
+                if (lower_diag->rowindex[csc_idx_opdst] == lower_diag->rowindex[csc_idx_op1])
+                {
+                    global_stat.flop += 2;
+                    csc_idx_op1++;
+                    csc_idx_opdst++;
+                }
+                while (csc_idx_op1 < csc_idx_op1_ub && lower_diag->rowindex[csc_idx_op1] < lower_diag->rowindex[csc_idx_opdst])
+                {
+                    csc_idx_op1++;
+                }
+                while (csc_idx_opdst < csc_idx_opdst_ub && lower_diag->rowindex[csc_idx_opdst] < lower_diag->rowindex[csc_idx_op1])
+                {
+                    csc_idx_opdst++;
+                }
+            }
         }
     }
-    else
+}
+
+void pangulu_tstrf_flop(
+    pangulu_inblock_idx nb,
+    pangulu_storage_slot_t *opdst,
+    pangulu_storage_slot_t *opdiag,
+    int tid)
+{
+    if (opdiag->is_upper == 0)
     {
-        if (nnzB < 1e4)
-        {
-            pangulu_tstrf_interface_G_V2(a, calculate_X, u);
-        }
-        else if (nnzB < 19952)
-        { // 19952≈1e4.3
-            pangulu_tstrf_interface_G_V1(a, calculate_X, u);
-        }
-        else
-        {
-            pangulu_tstrf_interface_G_V3(a, calculate_X, u);
-        }
+        opdiag = opdiag->related_block;
     }
-#else // ADAPTIVE_KERNEL_SELECTION
-    pangulu_tstrf_interface_G_V1(a, calculate_X, u);
-#endif // ADAPTIVE_KERNEL_SELECTION
-    cudaDeviceSynchronize();
-
-#else // ADD_GPU_MEMORY
-
-    pangulu_smatrix_cuda_memcpy_complete_csr(calculate_U, u);
-    pangulu_tstrf_interface(a, calculate_X, calculate_U);
-    pangulu_smatrix_cuda_memcpy_value_csc(a, calculate_X);
-#endif // ADD_GPU_MEMORY
-
-#endif // ADAPTIVE_KERNEL_SELECTION
-
-#else // GPU_OPEN
-
-    // csc
-    tstrf_csc_csc(a->row, u->columnpointer, u->rowindex, u->value_csc, a->columnpointer, a->rowindex, a->value_csc);
-    pangulu_pangulu_smatrix_memcpy_columnpointer_csc(save_X, a);
-
-    // // csr
-    // pangulu_transpose_pangulu_smatrix_csc_to_csr(a);
-    // pangulu_pangulu_smatrix_memcpy_value_csc_copy_length(calculate_X, a);
-    // pangulu_tstrf_fp64_CPU_6(a, calculate_X, u);
-    // pangulu_transpose_pangulu_smatrix_csr_to_csc(a);
-    // pangulu_pangulu_smatrix_memcpy_columnpointer_csc(save_X, a);
-
-#endif // GPU_OPEN
-
-#ifdef CHECK_TIME
-    time_tstrf += pangulu_time_check_end(&GET_TIME_START);
-#endif
-}
-
-void pangulu_gessm_interface(pangulu_smatrix *a, pangulu_smatrix *save_X, pangulu_smatrix *l,
-                             pangulu_smatrix *calculate_X, pangulu_smatrix *calculate_L)
-{
-    for(pangulu_int64_t i=0;i<a->nnz;i++){
-        pangulu_int64_t now_row=a->rowindex[i];
-        calculate_time+=(l->columnpointer[now_row+1]-l->columnpointer[now_row]);
-    }
-#ifdef CHECK_TIME
-    struct timeval GET_TIME_START;
-    pangulu_time_check_begin(&GET_TIME_START);
-#endif
-
-#ifdef GPU_OPEN
-
-#ifndef GPU_GESSM
-
-#ifndef CPU_OPTION
-    pangulu_smatrix_cuda_memcpy_value_csc(a, a);
-    pangulu_transpose_pangulu_smatrix_csc_to_csr(a);
-    pangulu_pangulu_smatrix_memcpy_value_csr_copy_length(calculate_X, a);
-    pangulu_transpose_pangulu_smatrix_csc_to_csr(l);
-    pangulu_gessm_interface_cpu(a, l, calculate_X);
-    pangulu_transpose_pangulu_smatrix_csr_to_csc(a);
-#else
-
-    /*******************Choose the best performance（性能择优）*************************/
-    pangulu_int64_t cpu_choice2 = a->nnz;
-    calculate_type cpu_choice3 = cpu_choice2 / ((calculate_type)nrecord * (calculate_type)cpu_choice1);
-    pangulu_int64_t GESSM_choice_cpu = Select_Function_CPU(cpu_choice1, cpu_choice3, nrecord);
-    pangulu_gessm_kernel_choice_cpu(a, l, calculate_X, GESSM_choice_cpu);
-#endif
-#else
-
-#ifdef ADD_GPU_MEMORY
-#ifdef ADAPTIVE_KERNEL_SELECTION
-    int nnzL = l->nnz;
-    if (nnzL < 7943)
+    for (pangulu_int32_t rhs_id = 0; rhs_id < nb; rhs_id++)
     {
-        // 7943≈1e3.9
-        if (nnzL < 3981)
-        { // 3981≈1e3.6
-            pangulu_gessm_interface_C_V1(a, l, calculate_X);
-        }
-        else
+        for (pangulu_int32_t rhs_idx = opdst->rowpointer[rhs_id]; rhs_idx < opdst->rowpointer[rhs_id + 1]; rhs_idx++)
         {
-            pangulu_gessm_interface_C_V2(a, l, calculate_X);
+            pangulu_int32_t mul_row = opdst->columnindex[rhs_idx];
+            pangulu_int32_t lsum_idx = rhs_idx + 1;
+            pangulu_int32_t diag_idx = opdiag->columnpointer[mul_row];
+            global_stat.flop++;
+            while (lsum_idx < opdst->rowpointer[rhs_id + 1] && diag_idx < opdiag->columnpointer[mul_row + 1])
+            {
+                if (opdiag->rowindex[diag_idx] == opdst->columnindex[lsum_idx])
+                {
+                    global_stat.flop += 2;
+                    lsum_idx++;
+                    diag_idx++;
+                }
+                while (lsum_idx < opdst->rowpointer[rhs_id + 1] && opdst->columnindex[lsum_idx] < opdiag->rowindex[diag_idx])
+                {
+                    lsum_idx++;
+                }
+                while (diag_idx < opdiag->columnpointer[mul_row + 1] && opdiag->rowindex[diag_idx] < opdst->columnindex[lsum_idx])
+                {
+                    diag_idx++;
+                }
+            }
         }
     }
-    else
+}
+
+void pangulu_gessm_flop(
+    pangulu_inblock_idx nb,
+    pangulu_storage_slot_t *opdst,
+    pangulu_storage_slot_t *opdiag,
+    int tid)
+{
+    if (opdiag->is_upper == 1)
     {
-        if (nnzL < 12589)
-        {
-            // 12589≈1e4.1
-            pangulu_gessm_interface_G_V2(a, l, calculate_X);
-        }
-        else if (nnzL < 19952)
-        { // 19952≈1e4.3
-            pangulu_gessm_interface_g_v1(a, l, calculate_X);
-        }
-        else
-        {
-            pangulu_gessm_interface_G_V3(a, l, calculate_X);
-        }
+        opdiag = opdiag->related_block;
     }
-#else
-    pangulu_gessm_interface_g_v1(a, l, calculate_X);
-#endif
-    cudaDeviceSynchronize();
-
-#else
-
-    pangulu_smatrix_cuda_memcpy_complete_csc(calculate_L, l);
-    pangulu_gessm_interface(a, calculate_L, calculate_X);
-#endif
-
-#endif
-
-#else
-    pangulu_pangulu_smatrix_memcpy_value_csr_copy_length(calculate_X, a);
-    pangulu_gessm_fp64_cpu_6(a, l, calculate_X);
-    pangulu_pangulu_smatrix_memcpy_columnpointer_csc(save_X, a);
-    // pangulu_transpose_pangulu_smatrix_csc_to_csr(a);
-    // pangulu_pangulu_smatrix_memcpy_value_csr_copy_length(calculate_X, a);
-    // pangulu_gessm_interface_CPU_csr(a, l, calculate_X);
-    // pangulu_transpose_pangulu_smatrix_csr_to_csc(a);
-    // pangulu_pangulu_smatrix_memcpy_columnpointer_csc(save_X, a);
-#endif
-
-#ifdef CHECK_TIME
-    time_gessm += pangulu_time_check_end(&GET_TIME_START);
-#endif
-}
-
-void pangulu_ssssm_interface(pangulu_smatrix *a, pangulu_smatrix *l, pangulu_smatrix *u,
-                             pangulu_smatrix *calculate_L, pangulu_smatrix *calculate_U)
-{
-    for(pangulu_int64_t i=0;i<u->nnz;i++){
-        pangulu_int64_t now_row=u->rowindex[i];
-        calculate_time+=(l->columnpointer[now_row+1]-l->columnpointer[now_row]);
-    }
-#ifdef CHECK_TIME
-    struct timeval GET_TIME_START;
-    pangulu_time_check_begin(&GET_TIME_START);
-#endif
-
-#ifdef GPU_OPEN
-
-#ifndef ADD_GPU_MEMORY
-    pangulu_smatrix_cuda_memcpy_complete_csc(calculate_L, l);
-    pangulu_smatrix_cuda_memcpy_complete_csc(calculate_U, u);
-    pangulu_ssssm_fp64_cuda(a, calculate_L, calculate_U);
-#else
-
-#ifdef ADAPTIVE_KERNEL_SELECTION
-    long long flops = 0;
-    int n = a->row;
-    for (int i = 0; i < n; i++)
+    for (pangulu_int32_t rhs_id = 0; rhs_id < nb; rhs_id++)
     {
-        for (int j = u->columnpointer[i]; j < u->columnpointer[i + 1]; j++)
+        for (pangulu_int32_t rhs_idx = opdst->columnpointer[rhs_id]; rhs_idx < opdst->columnpointer[rhs_id + 1]; rhs_idx++)
         {
-            int col_L = u->rowindex[j];
-            flops += l->columnpointer[col_L + 1] - l->columnpointer[col_L];
+            pangulu_int32_t mul_row = opdst->rowindex[rhs_idx];
+            pangulu_int32_t lsum_idx = rhs_idx + 1;
+            pangulu_int32_t diag_idx = opdiag->columnpointer[mul_row];
+            while (lsum_idx < opdst->columnpointer[rhs_id + 1] && diag_idx < opdiag->columnpointer[mul_row + 1])
+            {
+                if (opdiag->rowindex[diag_idx] == opdst->rowindex[lsum_idx])
+                {
+                    global_stat.flop += 2;
+                    lsum_idx++;
+                    diag_idx++;
+                }
+                while (lsum_idx < opdst->columnpointer[rhs_id + 1] && opdst->rowindex[lsum_idx] < opdiag->rowindex[diag_idx])
+                {
+                    lsum_idx++;
+                }
+                while (diag_idx < opdiag->columnpointer[mul_row + 1] && opdiag->rowindex[diag_idx] < opdst->rowindex[lsum_idx])
+                {
+                    diag_idx++;
+                }
+            }
         }
     }
-    if (flops < 1e7)
+}
+
+void pangulu_ssssm_flop(
+    pangulu_inblock_idx nb,
+    pangulu_storage_slot_t *opdst,
+    pangulu_storage_slot_t *op1,
+    pangulu_storage_slot_t *op2,
+    int tid)
+{
+    for (pangulu_int32_t col2 = 0; col2 < nb; col2++)
     {
-        if (flops < 3981071705)
+        for (pangulu_int32_t idx2 = op2->columnpointer[col2]; idx2 < op2->columnpointer[col2 + 1]; idx2++)
         {
-            // 3981071705≈1e9.6
-            pangulu_ssssm_interface_G_V2(a, l, u);
-        }
-        else
-        {
-            pangulu_ssssm_interface_G_V1(a, l, u);
+            pangulu_inblock_idx row2 = op2->rowindex[idx2];
+            global_stat.flop += 2 * (op1->columnpointer[row2 + 1] - op1->columnpointer[row2]);
         }
     }
-    else
+}
+
+#endif
+
+void pangulu_getrf_interface(
+    pangulu_inblock_idx nb,
+    pangulu_storage_slot_t *opdst,
+    int tid)
+{
+#ifdef PANGULU_PERF
+    global_stat.kernel_cnt++;
+    struct timeval start;
+    pangulu_time_start(&start);
+#endif
+    pangulu_platform_getrf(nb, opdst, tid, PANGULU_DEFAULT_PLATFORM);
+    pangulu_platform_synchronize(PANGULU_DEFAULT_PLATFORM);
+#ifdef PANGULU_PERF
+    global_stat.time_outer_kernel += pangulu_time_stop(&start);
+    pangulu_getrf_flop(nb, opdst, tid);
+#endif
+}
+
+void pangulu_tstrf_interface(
+    pangulu_inblock_idx nb,
+    pangulu_storage_slot_t *opdst,
+    pangulu_storage_slot_t *opdiag,
+    int tid)
+{
+#ifdef PANGULU_PERF
+    global_stat.kernel_cnt++;
+    struct timeval start;
+    pangulu_time_start(&start);
+#endif
+    pangulu_platform_tstrf(nb, opdst, opdiag, tid, PANGULU_DEFAULT_PLATFORM);
+    pangulu_platform_synchronize(PANGULU_DEFAULT_PLATFORM);
+#ifdef PANGULU_PERF
+    global_stat.time_outer_kernel += pangulu_time_stop(&start);
+    pangulu_tstrf_flop(nb, opdst, opdiag, tid);
+#endif
+}
+
+void pangulu_gessm_interface(
+    pangulu_inblock_idx nb,
+    pangulu_storage_slot_t *opdst,
+    pangulu_storage_slot_t *opdiag,
+    int tid)
+{
+#ifdef PANGULU_PERF
+    global_stat.kernel_cnt++;
+    struct timeval start;
+    pangulu_time_start(&start);
+#endif
+    pangulu_platform_gessm(nb, opdst, opdiag, tid, PANGULU_DEFAULT_PLATFORM);
+    pangulu_platform_synchronize(PANGULU_DEFAULT_PLATFORM);
+#ifdef PANGULU_PERF
+    global_stat.time_outer_kernel += pangulu_time_stop(&start);
+    pangulu_gessm_flop(nb, opdst, opdiag, tid);
+#endif
+}
+
+void pangulu_ssssm_interface(
+    pangulu_inblock_idx nb,
+    pangulu_storage_slot_t *opdst,
+    pangulu_storage_slot_t *op1,
+    pangulu_storage_slot_t *op2,
+    int tid)
+{
+#ifdef PANGULU_PERF
+    global_stat.kernel_cnt++;
+    struct timeval start;
+    pangulu_time_start(&start);
+#endif
+    pangulu_platform_ssssm(nb, opdst, op1, op2, tid, PANGULU_DEFAULT_PLATFORM);
+    pangulu_platform_synchronize(PANGULU_DEFAULT_PLATFORM);
+#ifdef PANGULU_PERF
+    global_stat.time_outer_kernel += pangulu_time_stop(&start);
+    pangulu_ssssm_flop(nb, opdst, op1, op2, tid);
+#endif
+}
+
+void pangulu_hybrid_batched_interface(
+    pangulu_inblock_idx nb,
+    pangulu_uint64_t ntask,
+    pangulu_task_t *tasks)
+{
+#ifdef PANGULU_PERF
+    global_stat.kernel_cnt++;
+    struct timeval start;
+    pangulu_time_start(&start);
+#endif
+    pangulu_platform_hybrid_batched(nb, ntask, tasks, PANGULU_DEFAULT_PLATFORM);
+    pangulu_platform_synchronize(PANGULU_DEFAULT_PLATFORM);
+#ifdef PANGULU_PERF
+    global_stat.time_outer_kernel += pangulu_time_stop(&start);
+
+    for (pangulu_int64_t i = 0; i < ntask; i++)
     {
-        if (flops < 63095)
+        switch (tasks[i].kernel_id)
         {
-            // 63095≈1e4.8
-            pangulu_ssssm_interface_C_V1(a, l, u);
-        }
-        else
-        {
-            pangulu_ssssm_interface_C_V2(a, l, u);
+        case PANGULU_TASK_GETRF:
+            pangulu_getrf_flop(nb, tasks[i].opdst, 0);
+            break;
+        case PANGULU_TASK_TSTRF:
+            pangulu_tstrf_flop(nb, tasks[i].opdst, tasks[i].op1, 0);
+            break;
+        case PANGULU_TASK_GESSM:
+            pangulu_gessm_flop(nb, tasks[i].opdst, tasks[i].op1, 0);
+            break;
+        case PANGULU_TASK_SSSSM:
+            pangulu_ssssm_flop(nb, tasks[i].opdst, tasks[i].op1, tasks[i].op2, 0);
+            break;
         }
     }
-#else
-    pangulu_ssssm_interface_G_V1(a, l, u);
-#endif
-    cudaDeviceSynchronize();
-#endif
-#else
-
-    pangulu_ssssm_fp64(a, l, u);
-#endif
-
-#ifdef CHECK_TIME
-    time_ssssm += pangulu_time_check_end(&GET_TIME_START);
 #endif
 }
 
-#ifdef GPU_OPEN
-
-void pangulu_addmatrix_interface(pangulu_smatrix *a,
-                                 pangulu_smatrix *b)
+void pangulu_ssssm_batched_interface(
+    pangulu_inblock_idx nb,
+    pangulu_uint64_t ntask,
+    pangulu_task_t *tasks)
 {
-    pangulu_add_pangulu_smatrix_cuda(a, b);
-}
-
+#ifdef PANGULU_PERF
+    global_stat.kernel_cnt++;
+    struct timeval start;
+    pangulu_time_start(&start);
 #endif
+    pangulu_platform_hybrid_batched(nb, ntask, tasks, PANGULU_DEFAULT_PLATFORM);
+    pangulu_platform_synchronize(PANGULU_DEFAULT_PLATFORM);
+#ifdef PANGULU_PERF
+    global_stat.time_outer_kernel += pangulu_time_stop(&start);
 
-void pangulu_addmatrix_interface_cpu(pangulu_smatrix *a,
-                                     pangulu_smatrix *b)
-{
-    pangulu_add_pangulu_smatrix_cpu(a, b);
+    for (pangulu_int64_t i = 0; i < ntask; i++)
+    {
+        pangulu_ssssm_flop(nb, tasks[i].opdst, tasks[i].op1, tasks[i].op2, 0);
+    }
+#endif
 }
 
-void pangulu_spmv(pangulu_smatrix *s, pangulu_vector *z, pangulu_vector *answer, int vector_number)
+void pangulu_spmv_interface(
+    pangulu_inblock_idx nb,
+    pangulu_storage_slot_t *a,
+    calculate_type *x,
+    calculate_type *y)
 {
-    pangulu_spmv_cpu_xishu_csc(s, z, answer, vector_number);
+    pangulu_platform_spmv(nb, a, x, y, PANGULU_DEFAULT_PLATFORM);
 }
 
-void pangulu_sptrsv(pangulu_smatrix *s, pangulu_vector *answer, pangulu_vector *z, int vector_number, int32_t tag)
+void pangulu_vecadd_interface(
+    pangulu_int64_t length,
+    calculate_type *bval,
+    calculate_type *xval)
 {
-    pangulu_sptrsv_cpu_xishu_csc(s, answer, z, vector_number, tag);
+    pangulu_platform_vecadd(length, bval, xval, PANGULU_DEFAULT_PLATFORM);
 }
 
-void pangulu_vector_add(pangulu_vector *answer, pangulu_vector *z)
+void pangulu_sptrsv_interface(
+    pangulu_inblock_idx nb,
+    pangulu_storage_slot_t *s,
+    calculate_type *xval,
+    pangulu_int64_t uplo)
 {
-    pangulu_vector_add_cpu(answer, z);
-}
-
-void pangulu_vector_sub(pangulu_vector *answer, pangulu_vector *z)
-{
-    pangulu_vector_sub_cpu(answer, z);
-}
-
-void pangulu_vector_copy(pangulu_vector *answer, pangulu_vector *z)
-{
-    pangulu_vector_copy_cpu(answer, z);
+    pangulu_platform_sptrsv(nb, s, xval, uplo, PANGULU_DEFAULT_PLATFORM);
 }

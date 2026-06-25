@@ -1,12 +1,12 @@
-LINK_METIS = /path/to/libmetis.a /path/to/libGKlib.a
-OPENBLAS_LIB = /path/to/libopenblas.a
-#LINK_CUDA = -L/path/to/cuda/lib64 -lcudart -lcusparse -lstdc++
-LINK_PANGULU = ../lib/libpangulu.a # Derictly importing static library as compiler input makes dynamic library loader searching the directory of static library.
+LINK_METIS = $(PATH_TO_METIS_I32_LIB)/libmetis.so
+LINK_OPENBLAS = $(PATH_TO_OPENBLAS_LIB)/libopenblas.so
+LINK_CUDA = -L$(PATH_TO_CUDA_LIB) -lcudart -lstdc++ -lcusolver -lcublas
+LINK_PANGULU = ../lib/libpangulu.a
 
 all: pangulu_example.elf
 
 pangulu_example.elf:example.c
-	mpicc -O3 $< -DCALCULATE_TYPE_R64 -I../include $(LINK_PANGULU) $(LINK_CUDA) $(LINK_METIS) $(OPENBLAS_LIB) -fopenmp -lpthread -lm -o $@
+	mpicc -O3 $< -DCALCULATE_TYPE_R64 -I../include $(LINK_PANGULU) $(LINK_CUDA) $(LINK_REORDERING) $(LINK_METIS) $(LINK_OPENBLAS)  -fopenmp -lpthread -lm -o $@
 
 clean:
 	rm -f *.elf

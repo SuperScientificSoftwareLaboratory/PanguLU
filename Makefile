@@ -12,8 +12,8 @@ src:
 	$(MAKE) -C $@
 
 clean:
-	(cd src; $(MAKE) clean)
-	(cd lib; $(MAKE) clean)
-	(cd examples; $(MAKE) clean)
+	$(MAKE) -C src clean
+	$(MAKE) -C lib clean
+	$(MAKE) -C examples clean
 
 update : clean all

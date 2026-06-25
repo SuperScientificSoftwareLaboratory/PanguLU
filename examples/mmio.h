@@ -164,8 +164,6 @@ char  *mm_typecode_to_str(mm_typecode matcode)
     /* check for MTX type */
     if (mm_is_matrix(matcode))
         types[0] = (char *)MM_MTX_STR;
-    //else
-    //    error=1;
 
     /* check for CRD or ARR matrix */
     if (mm_is_sparse(matcode))
@@ -385,9 +383,6 @@ long mm_write_mtx_array_size(FILE *f, sparse_index_t M, sparse_index_t N)
         return 0;
 }
 
-
-
-
 long mm_is_valid(mm_typecode matcode)		/* too complex for a macro */
 {
     if (!mm_is_matrix(matcode)) return 0;
@@ -397,9 +392,6 @@ long mm_is_valid(mm_typecode matcode)		/* too complex for a macro */
                 mm_is_skew(matcode))) return 0;
     return 1;
 }
-
-
-
 
 /*  high level routines */
 

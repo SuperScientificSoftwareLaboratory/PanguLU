@@ -8,7 +8,7 @@ extern "C"
 {
 #endif // __cplusplus
 
-    void pangulu_init(sparse_index_t pangulu_n, sparse_pointer_t pangulu_nnz, sparse_pointer_t *csr_rowptr, sparse_index_t *csr_colidx, sparse_value_t *csr_value, pangulu_init_options *init_options, void **pangulu_handle);
+    void pangulu_init(sparse_index_t pangulu_n, sparse_pointer_t pangulu_nnz, sparse_pointer_t *csc_colptr, sparse_index_t *csc_rowidx, sparse_value_t *csc_value, pangulu_init_options *init_options, void **pangulu_handle);
     void pangulu_gstrf(pangulu_gstrf_options *gstrf_options, void **pangulu_handle);
     void pangulu_gstrs(sparse_value_t *rhs, pangulu_gstrs_options *gstrs_options, void **pangulu_handle);
     void pangulu_gssv(sparse_value_t *rhs, pangulu_gstrf_options *gstrf_options, pangulu_gstrs_options *gstrs_options, void **pangulu_handle);
