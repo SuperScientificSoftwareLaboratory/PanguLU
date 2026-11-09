@@ -182,9 +182,11 @@ void pangulu_storage_bin_init(
     bin->queue_tail = slot_count;
     memset(bin->slots, 0, sizeof(pangulu_storage_slot_t) * slot_count);
     char *h_bin_buffer = pangulu_malloc(__FILE__, __LINE__, slot_capacity * slot_count);
+    bin->host_buffer = h_bin_buffer;
 #ifdef PANGULU_NONSHAREDMEM
     char *d_bin_buffer = NULL;
     pangulu_platform_malloc(&(d_bin_buffer), slot_capacity * slot_count, PANGULU_DEFAULT_PLATFORM);
+    bin->device_buffer = d_bin_buffer;
 #endif
     for (pangulu_int32_t i = 0; i < slot_count; i++)
     {
@@ -218,9 +220,10 @@ void pangulu_storage_init(
     calculate_type **diag_lower_cscvalue,
     pangulu_inblock_idx nb)
 {
-    pangulu_int64_t storage_size = sizeof(pangulu_storage_bin_t) * storage->n_bin;
     storage->n_bin = 7;
+    pangulu_int64_t storage_size = sizeof(pangulu_storage_bin_t) * storage->n_bin;
     storage->bins = pangulu_malloc(__FILE__, __LINE__, sizeof(pangulu_storage_bin_t) * storage->n_bin);
+    memset(storage->bins, 0, sizeof(pangulu_storage_bin_t) * storage->n_bin);
     for (pangulu_int32_t i_bin = 1; i_bin < storage->n_bin; i_bin++)
     {
         pangulu_storage_bin_init(&storage->bins[i_bin], i_bin, slot_capacity[i_bin], slot_count[i_bin]);
@@ -241,6 +244,7 @@ void pangulu_storage_init(
     bin0->nondiag_slot_cnt = bcsc_pointer[block_length];
     bin0->slot_capacity = 0;
     bin0->slots = pangulu_malloc(__FILE__, __LINE__, sizeof(pangulu_storage_slot_t) * bin0->slot_count);
+    memset(bin0->slots, 0, sizeof(pangulu_storage_slot_t) * bin0->slot_count);
     bin0->avail_slot_queue = NULL;
     bin0->queue_head = 0;
     bin0->queue_tail = 0;
@@ -357,6 +361,7 @@ void pangulu_storage_init(
     size_t mem_size = (size_t)d_memptr;
 
     pangulu_platform_malloc(&(d_memptr), mem_size, PANGULU_DEFAULT_PLATFORM);
+    bin0->device_buffer = d_memptr;
     char *h_memptr = (char *)(bin0->slots[0].value) - 32;
     pangulu_platform_memcpy(d_memptr, h_memptr, nondiag_mem_size, 0, PANGULU_DEFAULT_PLATFORM);
     for (pangulu_exblock_idx bcol = 0; bcol < block_length; bcol++)

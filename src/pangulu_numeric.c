@@ -318,11 +318,12 @@ void pangulu_numeric_work_batched(
         working_task_buf = pangulu_realloc(__FILE__, __LINE__, working_task_buf, sizeof(pangulu_task_t) * working_task_buf_capacity);
         tasks = working_task_buf;
     }
-    for (int i = ntask - ntask_no_ssssm; i >= 0; i--)
+    for (int i = ntask - ntask_no_ssssm - 1; ntasks_fetched > 0 && i >= 0; i--)
     {
         tasks[ntask_no_ssssm + ntasks_fetched + i] = tasks[ntask_no_ssssm + i];
     }
-    memcpy(tasks + ntask_no_ssssm, tasks_fetched, sizeof(pangulu_task_t) * ntasks_fetched);
+    if (ntasks_fetched > 0)
+        memcpy(tasks + ntask_no_ssssm, tasks_fetched, sizeof(pangulu_task_t) * ntasks_fetched);
     ntask_no_ssssm = ntask_no_ssssm + ntasks_fetched;
     ntask = ntask + ntasks_fetched;
 
@@ -1008,6 +1009,8 @@ void *pangulu_numeric_compute_thread(void *param)
     }
 
     pangulu_free(__FILE__, __LINE__, working_task_buf);
+    working_task_buf = NULL;
+    working_task_buf_capacity = 0;
     return NULL;
 }
 

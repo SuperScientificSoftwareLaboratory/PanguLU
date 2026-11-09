@@ -73,15 +73,16 @@ void pangulu_platform_0100000_getrf(
     {
         if (upper_diag->columnpointer[level] == upper_diag->columnpointer[level + 1])
         {
+            /* Empty padded rows have no pivot. Actual rows are checked by
+             * the collective factor validation before a solve is allowed. */
             continue;
         }
 
-        calculate_type diag;
-        if(fabs(upper_diag->value[upper_diag->columnpointer[level]]) < PANGULU_TOL){
-            diag = PANGULU_TOL;
-        }else{
-            diag = upper_diag->value[upper_diag->columnpointer[level]];
-        }
+        calculate_type diag = upper_diag->value[upper_diag->columnpointer[level]];
+        upper_diag->numerical_status = pangulu_pivot_status(diag,
+            upper_diag->value, upper_diag->columnpointer[level],
+            upper_diag->columnpointer[level + 1]);
+        if (upper_diag->numerical_status != PANGULU_SUCCESS) return;
         for(pangulu_int32_t csc_idx = lower_diag->columnpointer[level]; csc_idx < lower_diag->columnpointer[level+1]; csc_idx++){
             pangulu_int32_t row = lower_diag->rowindex[csc_idx];
             lower_diag->value[csc_idx] /= diag;
@@ -100,10 +101,10 @@ void pangulu_platform_0100000_getrf(
                     csr_idx_op2++;
                     csr_idx_opdst++;
                 }
-                while(csr_idx_op2 < csr_idx_op2_ub && upper_diag->rowindex[csr_idx_op2] < upper_diag->rowindex[csr_idx_opdst]){
+                while(csr_idx_op2 < csr_idx_op2_ub && csr_idx_opdst < csr_idx_opdst_ub && upper_diag->rowindex[csr_idx_op2] < upper_diag->rowindex[csr_idx_opdst]){
                     csr_idx_op2++;
                 }
-                while(csr_idx_opdst < csr_idx_opdst_ub && upper_diag->rowindex[csr_idx_opdst] < upper_diag->rowindex[csr_idx_op2]){
+                while(csr_idx_opdst < csr_idx_opdst_ub && csr_idx_op2 < csr_idx_op2_ub && upper_diag->rowindex[csr_idx_opdst] < upper_diag->rowindex[csr_idx_op2]){
                     csr_idx_opdst++;
                 }
             }
@@ -122,10 +123,10 @@ void pangulu_platform_0100000_getrf(
                     csc_idx_op1++;
                     csc_idx_opdst++;
                 }
-                while(csc_idx_op1 < csc_idx_op1_ub && lower_diag->rowindex[csc_idx_op1] < lower_diag->rowindex[csc_idx_opdst]){
+                while(csc_idx_op1 < csc_idx_op1_ub && csc_idx_opdst < csc_idx_opdst_ub && lower_diag->rowindex[csc_idx_op1] < lower_diag->rowindex[csc_idx_opdst]){
                     csc_idx_op1++;
                 }
-                while(csc_idx_opdst < csc_idx_opdst_ub && lower_diag->rowindex[csc_idx_opdst] < lower_diag->rowindex[csc_idx_op1]){
+                while(csc_idx_opdst < csc_idx_opdst_ub && csc_idx_op1 < csc_idx_op1_ub && lower_diag->rowindex[csc_idx_opdst] < lower_diag->rowindex[csc_idx_op1]){
                     csc_idx_opdst++;
                 }
             }
@@ -149,12 +150,10 @@ void pangulu_platform_0100000_tstrf(
             pangulu_int32_t mul_row = opdst->columnindex[rhs_idx];
             pangulu_int32_t lsum_idx = rhs_idx+1;
             pangulu_int32_t diag_idx = opdiag->columnpointer[mul_row];
-            calculate_type diag;
-            if(fabs(opdiag->value[diag_idx]) < PANGULU_TOL){
-                diag = PANGULU_TOL;
-            }else{
-                diag = opdiag->value[diag_idx];
-            }
+            calculate_type diag = opdiag->value[diag_idx];
+            opdst->numerical_status = pangulu_pivot_status(diag, opdiag->value,
+                diag_idx, opdiag->columnpointer[mul_row + 1]);
+            if (opdst->numerical_status != PANGULU_SUCCESS) return;
             opdst->value[opdst->idx_of_csc_value_for_csr[rhs_idx]] /= diag;
             calculate_type mul_val = opdst->value[opdst->idx_of_csc_value_for_csr[rhs_idx]];
             while(lsum_idx < opdst->rowpointer[rhs_id+1] && diag_idx < opdiag->columnpointer[mul_row+1]){
@@ -163,10 +162,10 @@ void pangulu_platform_0100000_tstrf(
                     lsum_idx++;
                     diag_idx++;
                 }
-                while(lsum_idx < opdst->rowpointer[rhs_id+1] && opdst->columnindex[lsum_idx] < opdiag->rowindex[diag_idx]){
+                while(lsum_idx < opdst->rowpointer[rhs_id+1] && diag_idx < opdiag->columnpointer[mul_row+1] && opdst->columnindex[lsum_idx] < opdiag->rowindex[diag_idx]){
                     lsum_idx++;
                 }
-                while(diag_idx < opdiag->columnpointer[mul_row+1] && opdiag->rowindex[diag_idx] < opdst->columnindex[lsum_idx]){
+                while(diag_idx < opdiag->columnpointer[mul_row+1] && lsum_idx < opdst->rowpointer[rhs_id+1] && opdiag->rowindex[diag_idx] < opdst->columnindex[lsum_idx]){
                     diag_idx++;
                 }
             }
@@ -197,10 +196,10 @@ void pangulu_platform_0100000_gessm(
                     lsum_idx++;
                     diag_idx++;
                 }
-                while(lsum_idx < opdst->columnpointer[rhs_id+1] && opdst->rowindex[lsum_idx] < opdiag->rowindex[diag_idx]){
+                while(lsum_idx < opdst->columnpointer[rhs_id+1] && diag_idx < opdiag->columnpointer[mul_row+1] && opdst->rowindex[lsum_idx] < opdiag->rowindex[diag_idx]){
                     lsum_idx++;
                 }
-                while(diag_idx < opdiag->columnpointer[mul_row+1] && opdiag->rowindex[diag_idx] < opdst->rowindex[lsum_idx]){
+                while(diag_idx < opdiag->columnpointer[mul_row+1] && lsum_idx < opdst->columnpointer[rhs_id+1] && opdiag->rowindex[diag_idx] < opdst->rowindex[lsum_idx]){
                     diag_idx++;
                 }
             }
@@ -497,10 +496,45 @@ void pangulu_platform_0100000_sptrsv(
                 xval[i]-=u_value[j]*xval[col];
             }
 
-            if(fabs(u_value[u_rowptr[i]])>PANGULU_SPTRSV_TOL)
-                xval[i]=xval[i]/u_value[u_rowptr[i]];
-            else
-                xval[i]=xval[i]/PANGULU_SPTRSV_TOL;
+            s->numerical_status = pangulu_pivot_status(u_value[u_rowptr[i]],
+                u_value, u_rowptr[i], u_rowptr[i + 1]);
+            if (s->numerical_status != PANGULU_SUCCESS) return;
+            xval[i] /= u_value[u_rowptr[i]];
         }
     }
+}
+
+void pangulu_cpu_workspace_select(pangulu_cpu_workspace *w)
+{
+    ssssm_hash_lu = w->hash_lu;
+    ssssm_hash_l_row = w->hash_l_row;
+    ssssm_hash_l_row_inv = w->hash_l_row_inv;
+    ssssm_hash_u_col = w->hash_u_col;
+    ssssm_hash_u_col_inv = w->hash_u_col_inv;
+    ssssm_l_value = w->l_value;
+    ssssm_u_value = w->u_value;
+    temp_a_value = w->a_value;
+}
+
+void pangulu_cpu_workspace_destroy(pangulu_cpu_workspace *w)
+{
+#define RELEASE_WORKSPACE(member) do { \
+    if (w->member) { \
+        for (int i = 0; i < w->nthread; ++i) \
+            pangulu_free(__FILE__, __LINE__, w->member[i]); \
+        pangulu_free(__FILE__, __LINE__, w->member); \
+    } \
+} while (0)
+    RELEASE_WORKSPACE(hash_lu);
+    RELEASE_WORKSPACE(hash_l_row);
+    RELEASE_WORKSPACE(hash_l_row_inv);
+    RELEASE_WORKSPACE(hash_u_col);
+    RELEASE_WORKSPACE(hash_u_col_inv);
+    RELEASE_WORKSPACE(l_value);
+    RELEASE_WORKSPACE(u_value);
+    RELEASE_WORKSPACE(a_value);
+#undef RELEASE_WORKSPACE
+    memset(w, 0, sizeof(*w));
+    pangulu_cpu_workspace empty = {0};
+    pangulu_cpu_workspace_select(&empty);
 }

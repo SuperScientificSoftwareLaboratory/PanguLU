@@ -1,5 +1,6 @@
 #ifndef PANGULU_COMMON_H
 #define PANGULU_COMMON_H
+#include "../include/pangulu_interface_common.h"
 
 #ifdef GPU_OPEN
 #define PANGULU_DEFAULT_PLATFORM PANGULU_PLATFORM_GPU_CUDA
@@ -73,6 +74,9 @@ typedef calculate_real_type sparse_value_real_t;
 #include <stdlib.h>
 #include <stdint.h>
 #include <math.h>
+#ifndef __cplusplus
+#include <complex.h>
+#endif
 #include <float.h>
 #include <string.h>
 #include <sys/time.h>
@@ -130,8 +134,49 @@ typedef int reordering_int_t;
 #define PANGULU_DATA_INVALID 0
 #define PANGULU_DATA_PREPARING 1
 #define PANGULU_DATA_READY 2
-#define PANGULU_TOL 1e-16
-#define PANGULU_SPTRSV_TOL 1e-16
+/* Do not replace a small or complex pivot with an absolute real constant.
+ * Compare its magnitude to the current row, independent of overall scale. */
+static inline calculate_real_type pangulu_value_abs(calculate_type value)
+{
+#ifdef PANGULU_COMPLEX
+#if defined(CALCULATE_TYPE_CR32)
+    return hypotf(__real__ value, __imag__ value);
+#else
+    return hypot(__real__ value, __imag__ value);
+#endif
+#else
+    return fabs(value);
+#endif
+}
+
+static inline int pangulu_value_finite(calculate_type value)
+{
+#ifdef PANGULU_COMPLEX
+    return isfinite(__real__ value) && isfinite(__imag__ value);
+#else
+    return isfinite(value);
+#endif
+}
+
+static inline pangulu_status_t pangulu_pivot_status(
+    calculate_type pivot, const calculate_type *values,
+    pangulu_inblock_ptr begin, pangulu_inblock_ptr end)
+{
+    calculate_real_type magnitude = pangulu_value_abs(pivot), scale = 0;
+    if (!pangulu_value_finite(pivot)) return PANGULU_NUMERICAL_FAILURE;
+    if (magnitude == 0) return PANGULU_ZERO_PIVOT;
+    for (pangulu_inblock_ptr k = begin; k < end; ++k) {
+        if (!pangulu_value_finite(values[k])) return PANGULU_NUMERICAL_FAILURE;
+        calculate_real_type value = pangulu_value_abs(values[k]);
+        if (value > scale) scale = value;
+    }
+#if defined(CALCULATE_TYPE_R32) || defined(CALCULATE_TYPE_CR32)
+    const calculate_real_type epsilon = FLT_EPSILON;
+#else
+    const calculate_real_type epsilon = DBL_EPSILON;
+#endif
+    return magnitude / scale > epsilon ? PANGULU_SUCCESS : PANGULU_NUMERICAL_FAILURE;
+}
 #define PANGULU_CALC_RANK(row, col, p, q) (((row) % (p)) * (q) + ((col) % (q)))
 #define PANGULU_CALC_OFFSET(offset_init, now_level, PQ_length) \
     (((offset_init) - (now_level) % (PQ_length)) < 0) ? ((offset_init) - (now_level) % (PQ_length) + (PQ_length)) : ((offset_init) - (now_level) % (PQ_length))
@@ -206,6 +251,7 @@ typedef struct pangulu_aggregate_queue_t
 
 typedef struct pangulu_storage_slot_t
 {
+    pangulu_status_t numerical_status;
     pangulu_exblock_idx brow_pos;
     pangulu_exblock_idx bcol_pos;
     pangulu_inblock_ptr *columnpointer;
@@ -258,6 +304,10 @@ typedef struct pangulu_task_queue_t
 typedef struct pangulu_storage_bin_t
 {
     pangulu_storage_slot_t *slots;
+    void *host_buffer;
+#ifdef PANGULU_NONSHAREDMEM
+    void *device_buffer;
+#endif
     pangulu_int64_t slot_capacity;
     pangulu_int64_t slot_count;
     pangulu_int64_t nondiag_slot_cnt;
@@ -279,8 +329,18 @@ typedef struct pangulu_vector
     pangulu_int64_t row;
 } pangulu_vector;
 
+typedef struct pangulu_cpu_workspace {
+    pangulu_int32_t **hash_lu, **hash_l_row, **hash_l_row_inv;
+    pangulu_int32_t **hash_u_col, **hash_u_col_inv;
+    calculate_type **l_value, **u_value, **a_value;
+    int nthread;
+} pangulu_cpu_workspace;
+
 typedef struct pangulu_block_smatrix
 {
+    /* Base allocations; the sparse pointer/value arrays contain interior aliases. */
+    void *symbolic_buffers[3];
+    pangulu_cpu_workspace cpu_workspace;
     pangulu_exblock_idx *row_perm;
     pangulu_exblock_idx *col_perm;
     pangulu_exblock_idx *metis_perm;
@@ -376,6 +436,8 @@ typedef struct pangulu_handle_t
     pangulu_block_common *block_common;
     pangulu_block_smatrix *block_smatrix;
     pangulu_common *commmon;
+    pangulu_status_t status;
+    int factorized; /* 0: initialized, 1: usable factors, -1: failed factors */
 } pangulu_handle_t;
 
 typedef struct pangulu_symbolic_node_t
@@ -390,6 +452,12 @@ extern "C"
 #endif
 
 #ifndef PANGULU_PLATFORM_ENV
+    void pangulu_aggregate_finalize(void);
+    void pangulu_cpu_workspace_select(pangulu_cpu_workspace *workspace);
+    void pangulu_cpu_workspace_destroy(pangulu_cpu_workspace *workspace);
+#ifdef GPU_OPEN
+    void pangulu_platform_0201000_finalize(void);
+#endif
     // pangulu_communication.c
     void pangulu_cm_rank(pangulu_int32_t *rank);
     void pangulu_cm_size(pangulu_int32_t *size);
@@ -424,7 +492,7 @@ extern "C"
         pangulu_inblock_idx ***bcsc_inblock_indeces,
         calculate_type ***bcsc_values,
         pangulu_exblock_ptr **bcsc_global_pointer,
-        pangulu_exblock_idx **bcsc_global_index);
+        pangulu_exblock_idx **bcsc_global_index, void **owned_buffers);
     void pangulu_set_omp_threads_per_process(int total_threads, int total_processes, int process_rank);
     void pangulu_cm_distribute_csc_to_distbcsc_symb(
         pangulu_exblock_idx n,
@@ -453,7 +521,7 @@ extern "C"
         pangulu_exblock_ptr **out_related_nondiag_block_rowptr,
         pangulu_exblock_idx **out_related_nondiag_block_colidx,
         pangulu_exblock_ptr **out_related_nondiag_block_csr_to_csc,
-        pangulu_uint64_t **out_diag_uniaddr);
+        pangulu_uint64_t **out_diag_uniaddr, void **owned_buffers);
     void pangulu_cm_recv_block(
         MPI_Status *msg_stat,
         pangulu_storage_t *storage,

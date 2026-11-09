@@ -289,19 +289,12 @@ void pangulu_convert_block_fill_value_to_struct(
                     pangulu_inblock_ptr sii = diag_lower_colpointers[dsi][ip];
                     for (pangulu_exblock_ptr vii = value_bcsc_inblock_pointers[vsi][ip]; vii < value_bcsc_inblock_pointers[vsi][ip + 1]; vii++)
                     {
-                        if (diag_lower_rowindeces[dsi][sii] > value_bcsc_inblock_indeces[vsi][vii])
-                        {
-                            continue;
-                        }
-                        while ((diag_lower_rowindeces[dsi][sii] < value_bcsc_inblock_indeces[vsi][vii]) && (sii < diag_lower_colpointers[dsi][ip + 1]))
-                        {
-                            sii++;
-                        }
-                        if (sii >= diag_lower_colpointers[dsi][ip + 1])
-                        {
-                            break;
-                        }
-                        diag_lower_values[dsi][sii] = value_bcsc_values[vsi][vii];
+                        while (sii < diag_lower_colpointers[dsi][ip + 1] &&
+                               diag_lower_rowindeces[dsi][sii] < value_bcsc_inblock_indeces[vsi][vii])
+                            ++sii;
+                        if (sii == diag_lower_colpointers[dsi][ip + 1]) break;
+                        if (diag_lower_rowindeces[dsi][sii] == value_bcsc_inblock_indeces[vsi][vii])
+                            diag_lower_values[dsi][sii] = value_bcsc_values[vsi][vii];
                     }
                 }
                 memset(diag_upper_values[dsi], 0, sizeof(calculate_type) * diag_upper_rowpointers[dsi][nb]);
@@ -322,18 +315,19 @@ void pangulu_convert_block_fill_value_to_struct(
                 }
                 continue;
             }
-            while ((nondiag_block_rowindex[ssi] != value_block_index[vsi]) && (ssi < nondiag_block_colpointer[sp + 1]))
+            while (ssi < nondiag_block_colpointer[sp + 1] && nondiag_block_rowindex[ssi] != value_block_index[vsi])
             {
                 memset(nondiag_values[ssi], 0, sizeof(calculate_type) * nondiag_colpointers[ssi][nb]);
                 ssi++;
             }
+            if (ssi == nondiag_block_colpointer[sp + 1]) break;
             memset(nondiag_values[ssi], 0, sizeof(calculate_type) * nondiag_colpointers[ssi][nb]);
             for (pangulu_exblock_idx ip = 0; ip < nb; ip++)
             {
                 pangulu_inblock_ptr sii = nondiag_colpointers[ssi][ip];
                 for (pangulu_exblock_ptr vii = value_bcsc_inblock_pointers[vsi][ip]; vii < value_bcsc_inblock_pointers[vsi][ip + 1]; vii++)
                 {
-                    while ((nondiag_rowindeces[ssi][sii] != value_bcsc_inblock_indeces[vsi][vii]) && (sii < nondiag_colpointers[ssi][ip + 1]))
+                    while (sii < nondiag_colpointers[ssi][ip + 1] && nondiag_rowindeces[ssi][sii] != value_bcsc_inblock_indeces[vsi][vii])
                     {
                         sii++;
                     }

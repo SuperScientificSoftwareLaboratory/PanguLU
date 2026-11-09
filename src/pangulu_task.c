@@ -1,12 +1,15 @@
 #include "pangulu_common.h"
 
-pthread_mutex_t pangulu_aggregate_map_mutex;
+pthread_mutex_t pangulu_aggregate_map_mutex = PTHREAD_MUTEX_INITIALIZER;
+static unsigned pangulu_aggregate_users;
 void *pangulu_aggregate_task_buf = NULL;
 unsigned long long pangulu_aggregate_task_buf_capacity = 0;
 
 int pangulu_aggregate_init()
 {
-    pthread_mutex_init(&pangulu_aggregate_map_mutex, NULL);
+    pthread_mutex_lock(&pangulu_aggregate_map_mutex);
+    ++pangulu_aggregate_users;
+    pthread_mutex_unlock(&pangulu_aggregate_map_mutex);
     return 0;
 }
 
@@ -55,7 +58,9 @@ int pangulu_aggregate_task_compute(
     pangulu_free(__FILE__, __LINE__, opdst->task_queue);
     opdst->task_queue = NULL;
     pthread_mutex_unlock(&pangulu_aggregate_map_mutex);
-    return compute_callback(ntasks, task_descriptors, extra_params);
+    int result = compute_callback(ntasks, task_descriptors, extra_params);
+    pangulu_free(__FILE__, __LINE__, task_descriptors);
+    return result;
 }
 
 int pangulu_aggregate_task_compute_multi_tile(
@@ -241,6 +246,10 @@ pangulu_task_queue_t *pangulu_task_queue_destory(pangulu_task_queue_t *heap)
     {
         pangulu_free(__FILE__, __LINE__, heap->task_storage);
         pangulu_free(__FILE__, __LINE__, heap->task_index_heap);
+        pangulu_free(__FILE__, __LINE__, heap->task_storage_avail_queue);
+        pthread_mutex_destroy(heap->heap_bsem->mutex);
+        pangulu_free(__FILE__, __LINE__, heap->heap_bsem->mutex);
+        pangulu_free(__FILE__, __LINE__, heap->heap_bsem);
         heap->length = 0;
         heap->capacity = 0;
     }
@@ -469,4 +478,14 @@ pangulu_task_t pangulu_task_queue_pop(pangulu_task_queue_t *heap)
     }
     pangulu_task_t task = pangulu_task_queue_delete(heap);
     return task;
+}
+void pangulu_aggregate_finalize(void)
+{
+    pthread_mutex_lock(&pangulu_aggregate_map_mutex);
+    if (pangulu_aggregate_users && --pangulu_aggregate_users == 0) {
+        pangulu_free(__FILE__, __LINE__, pangulu_aggregate_task_buf);
+        pangulu_aggregate_task_buf = NULL;
+        pangulu_aggregate_task_buf_capacity = 0;
+    }
+    pthread_mutex_unlock(&pangulu_aggregate_map_mutex);
 }

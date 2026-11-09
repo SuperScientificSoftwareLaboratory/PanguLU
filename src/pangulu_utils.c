@@ -553,7 +553,7 @@ void pangulu_diag_block_trans(
     int n = 0;
     for (int i = 0; i < nb; i++)
     {
-        if (diag_colidx[diag_rowptr[i]] != i)
+        if (diag_rowptr[i] == diag_rowptr[i + 1] || diag_colidx[diag_rowptr[i]] != i)
             break;
         n++;
     }
@@ -576,8 +576,84 @@ void pangulu_diag_block_trans(
 
 void pangulu_destroy(
     pangulu_block_common *block_common,
-    pangulu_block_smatrix *block_smatrix
-){
-    
-    return;
+    pangulu_block_smatrix *block_smatrix)
+{
+    pangulu_storage_t *storage = block_smatrix->storage;
+    if (storage) {
+        for (int bin_id = 0; bin_id < storage->n_bin; ++bin_id) {
+            pangulu_storage_bin_t *bin = &storage->bins[bin_id];
+            for (pangulu_int64_t i = 0; i < bin->slot_count; ++i) {
+                pangulu_aggregate_queue_t *queue = bin->slots[i].task_queue;
+                if (queue) {
+                    pangulu_free(__FILE__, __LINE__, queue->task_descriptors);
+                    pangulu_free(__FILE__, __LINE__, queue);
+                }
+            }
+#ifdef PANGULU_NONSHAREDMEM
+            if (bin->device_buffer)
+                pangulu_platform_free(bin->device_buffer, PANGULU_DEFAULT_PLATFORM);
+#endif
+            pangulu_free(__FILE__, __LINE__, bin->host_buffer);
+            pangulu_free(__FILE__, __LINE__, bin->avail_slot_queue);
+            pangulu_free(__FILE__, __LINE__, bin->slots);
+        }
+        pthread_mutex_destroy(storage->mutex);
+        pangulu_free(__FILE__, __LINE__, storage->mutex);
+        pangulu_free(__FILE__, __LINE__, storage->bins);
+        pangulu_free(__FILE__, __LINE__, storage);
+    }
+    for (int i = 0; i < 3; ++i)
+        pangulu_free(__FILE__, __LINE__, block_smatrix->symbolic_buffers[i]);
+    if (block_smatrix->info_mutex) {
+        pthread_mutex_destroy(block_smatrix->info_mutex);
+        pangulu_free(__FILE__, __LINE__, block_smatrix->info_mutex);
+    }
+    pangulu_task_queue_destory(block_smatrix->heap);
+#define RELEASE_FIELD(field) pangulu_free(__FILE__, __LINE__, (void *)block_smatrix->field)
+    RELEASE_FIELD(row_perm);
+    RELEASE_FIELD(col_perm);
+    RELEASE_FIELD(metis_perm);
+    RELEASE_FIELD(row_scale);
+    RELEASE_FIELD(col_scale);
+    RELEASE_FIELD(symbolic_rowpointer);
+    RELEASE_FIELD(symbolic_columnindex);
+    RELEASE_FIELD(sent_rank_flag);
+    RELEASE_FIELD(aggregate_batch_tileid);
+    RELEASE_FIELD(A_rowsum_reordered);
+    RELEASE_FIELD(nondiag_remain_task_count);
+    RELEASE_FIELD(diag_remain_task_count);
+    RELEASE_FIELD(diag_uniaddr);
+    RELEASE_FIELD(diag_upper_rowptr);
+    RELEASE_FIELD(diag_upper_colidx);
+    RELEASE_FIELD(diag_upper_csrvalue);
+    RELEASE_FIELD(diag_lower_colptr);
+    RELEASE_FIELD(diag_lower_rowidx);
+    RELEASE_FIELD(diag_lower_cscvalue);
+    RELEASE_FIELD(nondiag_cscvalue);
+    RELEASE_FIELD(nondiag_colptr);
+    RELEASE_FIELD(nondiag_rowidx);
+    RELEASE_FIELD(nondiag_csr_to_csc);
+    RELEASE_FIELD(nondiag_rowptr);
+    RELEASE_FIELD(nondiag_colidx);
+    RELEASE_FIELD(nondiag_block_colptr);
+    RELEASE_FIELD(nondiag_block_rowidx);
+    RELEASE_FIELD(nondiag_block_rowptr);
+    RELEASE_FIELD(nondiag_block_colidx);
+    RELEASE_FIELD(nondiag_block_csr_to_csc);
+    RELEASE_FIELD(related_nondiag_block_colptr);
+    RELEASE_FIELD(related_nondiag_block_rowidx);
+    RELEASE_FIELD(related_nondiag_uniaddr);
+    RELEASE_FIELD(related_nondiag_block_rowptr);
+    RELEASE_FIELD(related_nondiag_block_colidx);
+    RELEASE_FIELD(related_nondiag_block_csr_to_csc);
+    RELEASE_FIELD(related_nondiag_fstblk_idx_after_diag);
+    RELEASE_FIELD(related_nondiag_fstblk_idx_after_diag_csr);
+    RELEASE_FIELD(rhs_remain_task_count);
+    RELEASE_FIELD(rhs_remain_recv_count);
+    RELEASE_FIELD(rhs);
+    RELEASE_FIELD(spmv_acc);
+    RELEASE_FIELD(recv_buf);
+#undef RELEASE_FIELD
+    memset(block_smatrix, 0, sizeof(*block_smatrix));
+    (void)block_common;
 }

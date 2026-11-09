@@ -11,14 +11,18 @@ void pangulu_sptrsv_preprocessing(
     pangulu_int32_t nproc = bcommon->sum_rank_size;
     pangulu_int16_t p = bcommon->p;
     pangulu_int16_t q = bcommon->q;
-    bsmatrix->rhs = pangulu_malloc(__FILE__, __LINE__, sizeof(calculate_type) * block_length * nb);
+    if (!bsmatrix->rhs)
+        bsmatrix->rhs = pangulu_malloc(__FILE__, __LINE__, sizeof(calculate_type) * block_length * nb);
+    memset(bsmatrix->rhs, 0, sizeof(calculate_type) * block_length * nb);
     if (rank == 0)
     {
         memcpy(bsmatrix->rhs, reordered_rhs->value, sizeof(calculate_type) * reordered_rhs->row);
     }
     pangulu_cm_bcast(bsmatrix->rhs, block_length * nb, MPI_VAL_TYPE, 0);
-    bsmatrix->spmv_acc = pangulu_malloc(__FILE__, __LINE__, sizeof(calculate_type) * nb);
-    bsmatrix->recv_buf = pangulu_malloc(__FILE__, __LINE__, sizeof(calculate_type) * nb);
+    if (!bsmatrix->spmv_acc)
+        bsmatrix->spmv_acc = pangulu_malloc(__FILE__, __LINE__, sizeof(calculate_type) * nb);
+    if (!bsmatrix->recv_buf)
+        bsmatrix->recv_buf = pangulu_malloc(__FILE__, __LINE__, sizeof(calculate_type) * nb);
 }
 
 void pangulu_sptrsv_uplo(
