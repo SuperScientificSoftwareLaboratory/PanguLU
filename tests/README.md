@@ -18,8 +18,9 @@ Use `--case N BLOCK SCALE PHASE` to isolate one generated numerical case.
 Phase IDs are 0 (+1), 1 (-1), 2 (+i), 3 (-i), and 4 (0.6+0.8i); the last
 three apply only to complex builds.
 
-MPI must provide `MPI_THREAD_MULTIPLE`. The tests use one OpenMP thread per
-rank and generated matrices only; no external datasets are required.
+MPI must provide `MPI_THREAD_MULTIPLE`. The numerical tests use one OpenMP thread per
+rank; the error tests also switch between handles with different thread counts.
+All tests use generated matrices only; no external datasets are required.
 
 The numerical test uses nonsymmetric, diagonally dominant tridiagonal matrices
 of orders 2 and 65, block sizes 8 and 64, and three right-hand sides per
