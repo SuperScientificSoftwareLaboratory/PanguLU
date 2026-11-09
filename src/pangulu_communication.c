@@ -237,7 +237,7 @@ void pangulu_cm_distribute_csc_to_distbcsc(
     pangulu_inblock_idx ***bcsc_inblock_indeces,
     calculate_type ***bcsc_values,
     pangulu_exblock_ptr **bcsc_global_pointer,
-    pangulu_exblock_idx **bcsc_global_index)
+    pangulu_exblock_idx **bcsc_global_index, void **owned_buffers)
 {
 #define _PANGULU_SET_BVALUE_SIZE(size) ((csc_value) ? (size) : (0))
 
@@ -264,7 +264,7 @@ void pangulu_cm_distribute_csc_to_distbcsc(
     if (rank == 0)
     {
         pangulu_time_start(&start_time);
-        int nthreads = sysconf(_SC_NPROCESSORS_ONLN);
+        int nthreads = omp_get_max_threads();
 #pragma omp parallel num_threads(nthreads)
         {
             pangulu_bind_to_core(omp_get_thread_num());
@@ -479,12 +479,9 @@ void pangulu_cm_distribute_csc_to_distbcsc(
 
         pangulu_time_start(&start_time);
         char **block_csc_remote = pangulu_malloc(__FILE__, __LINE__, sizeof(char *) * nproc);
-#pragma omp parallel num_threads(nthreads)
+#pragma omp parallel for num_threads(nthreads)
+        for (pangulu_int32_t target_rank = 0; target_rank < nproc; target_rank++)
         {
-            pangulu_int32_t tid = omp_get_thread_num();
-            if (tid < nproc)
-            {
-                pangulu_int32_t target_rank = tid;
                 pangulu_int32_t blk_diff = nzblk_each_rank_ptr[target_rank + 1] - nzblk_each_rank_ptr[target_rank];
                 pangulu_int32_t nnz_diff = nnz_each_rank_ptr[target_rank + 1] - nnz_each_rank_ptr[target_rank];
 
@@ -494,7 +491,6 @@ void pangulu_cm_distribute_csc_to_distbcsc(
 
                 block_csc_remote[target_rank] = pangulu_malloc(__FILE__, __LINE__, alloc_size);
                 memset(block_csc_remote[target_rank], 0, alloc_size);
-            }
         }
 
         pangulu_time_start(&start_time);
@@ -757,6 +753,8 @@ void pangulu_cm_distribute_csc_to_distbcsc(
     {
         pangulu_free(__FILE__, __LINE__, inblock_values);
     }
+    owned_buffers[0] = bstruct_csc;
+    owned_buffers[1] = block_csc;
 #undef _PANGULU_SET_BVALUE_SIZE
 }
 
@@ -816,7 +814,7 @@ void pangulu_cm_distribute_csc_to_distbcsc_symb(
     pangulu_exblock_ptr **out_related_nondiag_block_rowptr,
     pangulu_exblock_idx **out_related_nondiag_block_colidx,
     pangulu_exblock_ptr **out_related_nondiag_block_csr_to_csc,
-    pangulu_uint64_t **out_diag_uniaddr)
+    pangulu_uint64_t **out_diag_uniaddr, void **owned_buffers)
 {
     struct timeval start_time, total_time;
 
@@ -831,9 +829,9 @@ void pangulu_cm_distribute_csc_to_distbcsc_symb(
     }
     pangulu_int64_t q = nproc / p;
     pangulu_int64_t block_length = PANGULU_ICEIL(n, nb);
-    int nthreads = sysconf(_SC_NPROCESSORS_ONLN);
-
-    pangulu_set_omp_threads_per_process(nthreads, nproc, rank);
+    /* Respect the thread count selected by pangulu_init, including while
+     * preparing a small matrix on a machine with many logical CPUs. */
+    int nthreads = omp_get_max_threads();
 
     if (rank == 0)
     {
@@ -1476,6 +1474,8 @@ void pangulu_cm_distribute_csc_to_distbcsc_symb(
                     pangulu_convert_csr_to_csc_block(0, nb, double_ptr, double_idx, NULL, double_ptr, double_idx, NULL);
                     memcpy(nondiag_colptr[i], ptr, (nb + 1) * sizeof(pangulu_inblock_ptr));
                     memcpy(nondiag_rowidx[i], ptr1, ptr[nb] * sizeof(pangulu_inblock_idx));
+                    pangulu_free(__FILE__, __LINE__, ptr);
+                    pangulu_free(__FILE__, __LINE__, ptr1);
                 }
             }
         }
@@ -1525,6 +1525,35 @@ void pangulu_cm_distribute_csc_to_distbcsc_symb(
         *out_related_nondiag_block_colidx = related_nondiag_block_colidx;
         *out_related_nondiag_block_csr_to_csc = related_nondiag_block_csr_to_csc;
         *out_diag_uniaddr = diag_uniaddr;
+        owned_buffers[0] = nondiag_csc;
+        owned_buffers[1] = diag_upper_csr;
+        owned_buffers[2] = diag_lower_csc;
+        pangulu_free(__FILE__, __LINE__, thread_pt);
+        pangulu_free(__FILE__, __LINE__, block_col_pt);
+        pangulu_free(__FILE__, __LINE__, block_row_idx);
+        pangulu_free(__FILE__, __LINE__, block_nnz_pt);
+        pangulu_free(__FILE__, __LINE__, block_nnz_pt_full);
+        pangulu_free(__FILE__, __LINE__, block_bcsc_colptr);
+        pangulu_free(__FILE__, __LINE__, block_bcsc_rowidx);
+        pangulu_free(__FILE__, __LINE__, procgrid);
+        pangulu_free(__FILE__, __LINE__, procgrid_blockpos);
+        pangulu_free(__FILE__, __LINE__, malloc_size_each_rank);
+        pangulu_free(__FILE__, __LINE__, req_tag4);
+        pangulu_free(__FILE__, __LINE__, related_nondiag_block_length);
+        pangulu_free(__FILE__, __LINE__, blocknum_each_rank_ptr);
+        pangulu_free(__FILE__, __LINE__, nondiag_blocknum_each_rank_ptr);
+        pangulu_free(__FILE__, __LINE__, req_tag0);
+        pangulu_free(__FILE__, __LINE__, blknz_ptr_pre);
+        pangulu_free(__FILE__, __LINE__, nzblk_each_rank_ptr);
+        pangulu_free(__FILE__, __LINE__, block_op_rank);
+        pangulu_free(__FILE__, __LINE__, blknz_ptr_rank);
+        pangulu_free(__FILE__, __LINE__, tag_par);
+        pangulu_free(__FILE__, __LINE__, req_tag5);
+        pangulu_free(__FILE__, __LINE__, aid_inptr);
+        pangulu_free(__FILE__, __LINE__, req_tag1);
+        pangulu_free(__FILE__, __LINE__, req_tag2);
+        pangulu_free(__FILE__, __LINE__, op_nondiag_loc);
+        pangulu_free(__FILE__, __LINE__, send_reqs);
     }
     else
     {
@@ -1537,7 +1566,7 @@ void pangulu_cm_distribute_csc_to_distbcsc_symb(
         pangulu_exblock_ptr *nondiag_block_rowptr = (pangulu_exblock_ptr *)pangulu_malloc(__FILE__, __LINE__, sizeof(pangulu_exblock_ptr) * (block_length + 1));
         memset(nondiag_block_rowptr, 0, sizeof(pangulu_exblock_ptr) * (block_length + 1));
         MPI_Irecv(diag_uniaddr, block_length, MPI_PANGULU_UINT64_T, 0, 4, MPI_COMM_WORLD, &req_tag4);
-        pangulu_exblock_ptr *malloc_size = (pangulu_exblock_ptr *)pangulu_malloc(__FILE__, __LINE__, sizeof(pangulu_exblock_ptr) * 6);
+        pangulu_exblock_ptr *malloc_size = (pangulu_exblock_ptr *)pangulu_malloc(__FILE__, __LINE__, sizeof(pangulu_exblock_ptr) * 7);
         MPI_Recv(malloc_size, 7, MPI_UINT64_T, 0, 0, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
         pangulu_exblock_idx *related_nondiag_block_rowidx = (pangulu_exblock_idx *)pangulu_malloc(__FILE__, __LINE__, sizeof(pangulu_exblock_idx) * malloc_size[6]);
         pangulu_exblock_idx *related_nondiag_block_colidx = (pangulu_exblock_idx *)pangulu_malloc(__FILE__, __LINE__, sizeof(pangulu_exblock_idx) * malloc_size[6]);
@@ -1748,6 +1777,8 @@ void pangulu_cm_distribute_csc_to_distbcsc_symb(
                     pangulu_convert_csr_to_csc_block(0, nb, double_ptr, double_idx, NULL, double_ptr, double_idx, NULL);
                     memcpy(nondiag_colptr[i], ptr, (nb + 1) * sizeof(pangulu_inblock_ptr));
                     memcpy(nondiag_rowidx[i], ptr1, ptr[nb] * sizeof(pangulu_inblock_idx));
+                    pangulu_free(__FILE__, __LINE__, ptr);
+                    pangulu_free(__FILE__, __LINE__, ptr1);
                 }
             }
         }
@@ -1779,6 +1810,16 @@ void pangulu_cm_distribute_csc_to_distbcsc_symb(
         *out_related_nondiag_block_colidx = related_nondiag_block_colidx;
         *out_related_nondiag_block_csr_to_csc = related_nondiag_block_csr_to_csc;
         *out_diag_uniaddr = diag_uniaddr;
+        owned_buffers[0] = nondiag_csc;
+        owned_buffers[1] = diag_upper_csr;
+        owned_buffers[2] = diag_lower_csc;
+        pangulu_free(__FILE__, __LINE__, req_tag5);
+        pangulu_free(__FILE__, __LINE__, malloc_size);
+        pangulu_free(__FILE__, __LINE__, aid_inptr);
+        pangulu_free(__FILE__, __LINE__, nzblk_size);
+        pangulu_free(__FILE__, __LINE__, block_op);
+        pangulu_free(__FILE__, __LINE__, op_nondiag_loc);
+        pangulu_free(__FILE__, __LINE__, recv_requests);
     }
 #undef _PANGULU_SET_BVALUE_SIZE
 }

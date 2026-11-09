@@ -64,6 +64,7 @@ void pangulu_preprocessing(
 
     pangulu_cm_sync_asym(0);
 
+    void *value_buffers[2] = {NULL, NULL};
     pangulu_cm_distribute_csc_to_distbcsc(
         n, nb,
         reorder_matrix->columnpointer,
@@ -76,7 +77,7 @@ void pangulu_preprocessing(
         &bcsc_reordered_inblk_indeces,
         &bcsc_reordered_inblk_values,
         NULL,
-        NULL);
+        NULL, value_buffers);
 
     pangulu_cm_distribute_csc_to_distbcsc_symb(
         n, nb,
@@ -104,7 +105,10 @@ void pangulu_preprocessing(
         &related_nondiag_block_rowptr,
         &related_nondiag_block_colidx,
         &related_nondiag_block_csr_to_csc,
-        &diag_uniaddr);
+        &diag_uniaddr, bsmatrix->symbolic_buffers);
+    /* The symbolic distribution consumes these two input allocations. */
+    bsmatrix->symbolic_rowpointer = NULL;
+    bsmatrix->symbolic_columnindex = NULL;
 
     pangulu_convert_block_fill_value_to_struct(
         p, q, rank, n, nb,
@@ -126,6 +130,12 @@ void pangulu_preprocessing(
         diag_lower_colptr,
         diag_lower_rowidx,
         diag_lower_cscvalue);
+
+    pangulu_free(__FILE__, __LINE__, value_buffers[0]);
+    pangulu_free(__FILE__, __LINE__, value_buffers[1]);
+    pangulu_free(__FILE__, __LINE__, bcsc_reordered_inblk_pointers);
+    pangulu_free(__FILE__, __LINE__, bcsc_reordered_inblk_indeces);
+    pangulu_free(__FILE__, __LINE__, bcsc_reordered_inblk_values);
 
     struct timeval start_time;
     pangulu_time_start(&start_time);
@@ -609,4 +619,8 @@ void pangulu_preprocessing(
     memset(ssssm_u_value, 0, sizeof(calculate_type *) * common->omp_thread);
     temp_a_value = pangulu_malloc(__FILE__, __LINE__, sizeof(calculate_type *) * common->omp_thread);
     memset(temp_a_value, 0, sizeof(calculate_type *) * common->omp_thread);
+    bsmatrix->cpu_workspace = (pangulu_cpu_workspace){
+        ssssm_hash_lu, ssssm_hash_l_row, ssssm_hash_l_row_inv,
+        ssssm_hash_u_col, ssssm_hash_u_col_inv, ssssm_l_value,
+        ssssm_u_value, temp_a_value, common->omp_thread};
 }

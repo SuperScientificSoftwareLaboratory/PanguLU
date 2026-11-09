@@ -368,12 +368,20 @@ __global__ void tstrf_cuda(
 #ifdef PANGULU_COMPLEX
         calculate_type z1 = vala;
         calculate_type z2 = l_value[coll1];
-        __real__(vala) =
-            (__real__(z1) * __real__(z2) + __imag__(z1) * __imag__(z2)) /
-            (__real__(z2) * __real__(z2) + __imag__(z2) * __imag__(z2));
-        __imag__(vala) =
-            (__imag__(z1) * __real__(z2) - __real__(z1) * __imag__(z2)) /
-            (__real__(z2) * __real__(z2) + __imag__(z2) * __imag__(z2));
+        /* Guard the division against overflow/underflow of |z2| squared. */
+#if defined(CALCULATE_TYPE_CR32)
+        cuFloatComplex quotient = cuCdivf(
+            make_cuFloatComplex(__real__(z1), __imag__(z1)),
+            make_cuFloatComplex(__real__(z2), __imag__(z2)));
+        __real__(vala) = cuCrealf(quotient);
+        __imag__(vala) = cuCimagf(quotient);
+#else
+        cuDoubleComplex quotient = cuCdiv(
+            make_cuDoubleComplex(__real__(z1), __imag__(z1)),
+            make_cuDoubleComplex(__real__(z2), __imag__(z2)));
+        __real__(vala) = cuCreal(quotient);
+        __imag__(vala) = cuCimag(quotient);
+#endif
 #else
         vala /= l_value[coll1];
 #endif
@@ -544,6 +552,25 @@ __global__ void ssssm_cuda(
     }
 }
 
+#ifdef PANGULU_COMPLEX
+__global__ void pangulu_scale_dense_getrf(int nb, calculate_real_type *buffer,
+    calculate_real_type scale, int restore_upper)
+{
+    calculate_type *values = (calculate_type *)buffer;
+    int col = blockIdx.x;
+    for (int row = threadIdx.x; row < nb; row += blockDim.x) {
+        if (restore_upper) {
+            if (row > col) continue; /* L is dimensionless. */
+            __real__(values[col * nb + row]) *= scale;
+            __imag__(values[col * nb + row]) *= scale;
+        } else {
+            __real__(values[col * nb + row]) /= scale;
+            __imag__(values[col * nb + row]) /= scale;
+        }
+    }
+}
+#endif
+
 void pangulu_platform_0201000_getrf(
     pangulu_inblock_idx nb,
     pangulu_storage_slot_t *opdst,
@@ -603,6 +630,35 @@ void pangulu_platform_0201000_getrf(
         (calculate_real_type *)diag_upper->d_value,
         (calculate_real_type *)d_getrf_tag_buffer);
 
+#ifdef PANGULU_COMPLEX
+    /* Keep the dense vendor factorization away from exponent extremes too.
+     * Factoring A/s gives L and U/s, so restore only U afterwards. */
+    if (!cublas_handle) cublasCreate(&cublas_handle);
+    int maximum_index = 0;
+#if defined(CALCULATE_TYPE_CR32)
+    cublasStatus_t scale_status = cublasIcamax(cublas_handle, nb * nb,
+        (cuFloatComplex *)d_getrf_tag_buffer, 1, &maximum_index);
+#else
+    cublasStatus_t scale_status = cublasIzamax(cublas_handle, nb * nb,
+        (cuDoubleComplex *)d_getrf_tag_buffer, 1, &maximum_index);
+#endif
+    if (scale_status != CUBLAS_STATUS_SUCCESS || maximum_index < 1) {
+        fprintf(stderr, "[PanguLU Error] Cannot determine dense pivot scale.\n");
+        exit(EXIT_FAILURE);
+    }
+    calculate_type maximum_value;
+    CHECK_CUDA_ERROR(cudaMemcpy(&maximum_value, d_getrf_tag_buffer + maximum_index - 1,
+        sizeof(maximum_value), cudaMemcpyDeviceToHost));
+    calculate_real_type factor_scale = pangulu_value_abs(maximum_value);
+    if (!pangulu_value_finite(maximum_value) || !isfinite(factor_scale)) {
+        diag_upper->numerical_status = PANGULU_NUMERICAL_FAILURE;
+        return;
+    }
+    if (factor_scale == 0) factor_scale = 1;
+    pangulu_scale_dense_getrf<<<nb, PANGULU_DATAMOV_THREADPERBLOCK>>>(
+        nb, (calculate_real_type *)d_getrf_tag_buffer, factor_scale, 0);
+#endif
+
 #ifdef PANGULU_PERF
     struct timeval start;
     cudaDeviceSynchronize();
@@ -626,6 +682,10 @@ void pangulu_platform_0201000_getrf(
     global_stat.time_inner_kernel += pangulu_time_stop(&start);
 #endif
 
+#ifdef PANGULU_COMPLEX
+    pangulu_scale_dense_getrf<<<nb, PANGULU_DATAMOV_THREADPERBLOCK>>>(
+        nb, (calculate_real_type *)d_getrf_tag_buffer, factor_scale, 1);
+#endif
     pangulu_store_dense_getrf<<<nb, PANGULU_DATAMOV_THREADPERBLOCK>>>(
         nb,
         diag_lower->d_columnpointer,
@@ -730,22 +790,9 @@ void pangulu_platform_0201000_ssssm(
     if (!cublas_handle)
     {
         cublasCreate(&cublas_handle);
-        int work_size = 0;
-#if defined(CALCULATE_TYPE_R64)
-        cusolverDnDgetrf_bufferSize(cusolver_handle, nb, nb, d_getrf_tag_buffer, nb, &work_size);
-#elif defined(CALCULATE_TYPE_R32)
-        cusolverDnSgetrf_bufferSize(cusolver_handle, nb, nb, d_getrf_tag_buffer, nb, &work_size);
-#elif defined(CALCULATE_TYPE_CR64)
-        cusolverDnZgetrf_bufferSize(cusolver_handle, nb, nb, (cuDoubleComplex *)d_getrf_tag_buffer, nb, &work_size);
-#elif defined(CALCULATE_TYPE_CR32)
-        cusolverDnCgetrf_bufferSize(cusolver_handle, nb, nb, (cuFloatComplex *)d_getrf_tag_buffer, nb, &work_size);
-#else
-#error [PanguLU ERROR] Invalid CALCULATE_TYPE marco.
-#endif
-
-        cudaMalloc(&d_cusolver_work, work_size * sizeof(calculate_type));
-        cudaMalloc(&d_cusolver_info, sizeof(int));
-        cudaMalloc(&d_cusolver_pivot, sizeof(int) * nb);
+    }
+    if (!d_ssssm_dense_buf_opdst)
+    {
         cudaMalloc(&d_ssssm_dense_buf_opdst, sizeof(calculate_type) * nb * nb);
         cudaMalloc(&d_ssssm_dense_buf_op1, sizeof(calculate_type) * nb * nb);
         cudaMalloc(&d_ssssm_dense_buf_op2, sizeof(calculate_type) * nb * nb);
@@ -976,4 +1023,26 @@ void pangulu_platform_0201000_sptrsv(
     calculate_type *xval,
     pangulu_int64_t uplo)
 {
+}
+
+
+void pangulu_platform_0201000_finalize(void)
+{
+#define RELEASE_DEVICE(pointer) do { \
+    if (pointer) CHECK_CUDA_ERROR(cudaFree(pointer)); \
+    pointer = NULL; \
+} while (0)
+    RELEASE_DEVICE(getrf_dense_buf_d);
+    RELEASE_DEVICE(d_cusolver_work);
+    RELEASE_DEVICE(d_cusolver_info);
+    RELEASE_DEVICE(d_cusolver_pivot);
+    RELEASE_DEVICE(d_getrf_tag_buffer);
+    RELEASE_DEVICE(d_ssssm_dense_buf_opdst);
+    RELEASE_DEVICE(d_ssssm_dense_buf_op1);
+    RELEASE_DEVICE(d_ssssm_dense_buf_op2);
+#undef RELEASE_DEVICE
+    if (cublas_handle) cublasDestroy(cublas_handle);
+    if (cusolver_handle) cusolverDnDestroy(cusolver_handle);
+    cublas_handle = NULL;
+    cusolver_handle = NULL;
 }

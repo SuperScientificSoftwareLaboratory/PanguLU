@@ -4,6 +4,8 @@
 extern "C"{
 #endif
 
+void pangulu_platform_0201000_finalize(void);
+
 void pangulu_platform_0201000_malloc(void** platform_address, size_t size);
 
 void pangulu_platform_0201000_malloc_pinned(void** platform_address, size_t size);
